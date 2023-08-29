@@ -1,13 +1,14 @@
 pub mod utils;
 
-use std::{fmt, fs, io};
-use std::fmt::Formatter;
-use strum_macros::AsRefStr;
-use utils::Color;
-use crate::utils::Color::Red;
 use crate::utils::color_fmt;
+use crate::utils::Color::Red;
+use std::fmt::Formatter;
+use std::{fmt, fs, io};
+use strum_macros::AsRefStr;
+use serde::Serialize;
+use utils::Color;
 
-static mut CODE_COUNT: u32 = 0;
+static mut CODE_COUNT: usize = 0;
 
 #[derive(Debug, Clone, AsRefStr, strum_macros::EnumProperty)]
 pub enum ReportKind {
@@ -26,6 +27,13 @@ pub struct SourceDetails {
 }
 
 impl SourceDetails {
+    pub fn new(source: &str, path: &str) -> SourceDetails {
+        SourceDetails {
+            source: source.to_string(),
+            path: path.to_string(),
+        }
+    }
+
     pub fn read(file_path: &str) -> Result<SourceDetails, io::Error> {
         let file_source = fs::read_to_string(file_path)?;
 
@@ -36,16 +44,17 @@ impl SourceDetails {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Span<'a> {
+    #[serde(skip)]
     source_details: &'a SourceDetails,
-    line: u32,
-    start: u32,
-    end: u32,
+    line: usize,
+    start: usize,
+    end: usize,
 }
 
 impl<'a> Span<'a> {
-    pub fn new(source_details: &'a SourceDetails, line: u32, start: u32, end: u32) -> Self {
+    pub fn new(source_details: &'a SourceDetails, line: usize, start: usize, end: usize) -> Self {
         Span {
             source_details,
             line,
@@ -54,7 +63,12 @@ impl<'a> Span<'a> {
         }
     }
 
-    pub fn label(source_details: &'a SourceDetails, line: u32, start: u32, end: u32) -> LabelBuilder {
+    pub fn label(
+        source_details: &'a SourceDetails,
+        line: usize,
+        start: usize,
+        end: usize,
+    ) -> LabelBuilder {
         LabelBuilder {
             span: Span::new(source_details, line, start, end),
             message: None,
@@ -100,7 +114,7 @@ impl<'a> LabelBuilder<'a> {
 #[derive(Debug)]
 pub struct Report<'a> {
     labels: Vec<Label<'a>>,
-    code: u32,
+    code: usize,
     message: String,
     kind: ReportKind,
     note: Option<String>,
@@ -128,7 +142,7 @@ impl fmt::Display for Report<'_> {
 #[derive(Debug)]
 pub struct ReportBuilder<'a> {
     labels: Vec<Label<'a>>,
-    code: Option<u32>,
+    code: Option<usize>,
     message: String,
     kind: ReportKind,
     note: Option<String>,
@@ -140,7 +154,7 @@ impl<'a> ReportBuilder<'a> {
         self
     }
 
-    pub fn code(&mut self, code: u32) -> &mut Self {
+    pub fn code(&mut self, code: usize) -> &mut Self {
         self.code = Some(code);
         self
     }
