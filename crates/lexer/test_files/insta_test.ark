@@ -1,0 +1,28 @@
+struct Foo {
+	foo @i32!,
+	bar @i64,
+}
+
+fun init(self @Foo!) @void {
+	self.foo = 42;
+}
+
+struct Test { 
+	hello @i64!,
+	world @i64!,
+	foo @Foo,
+}
+
+fun init(self @Test!) @void {
+	self.hello = 21;
+	self.world = 21;
+}
+
+fun add(self @Test) @i64 {
+	self.hello + self.world + self.foo.foo + self.foo.bar
+}
+
+fun main() @i32 {
+	let test @i32 = 0;
+	test
+}

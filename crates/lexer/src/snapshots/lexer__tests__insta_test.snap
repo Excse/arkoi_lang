@@ -1,0 +1,124 @@
+---
+source: src/lib.rs
+expression: "&tokens"
+---
+- struct
+- identifier: Foo
+- "{"
+- identifier: foo
+- "@"
+- i32
+- "!"
+- ","
+- identifier: bar
+- "@"
+- i64
+- ","
+- "}"
+- fun
+- identifier: init
+- (
+- self
+- "@"
+- identifier: Foo
+- "!"
+- )
+- "@"
+- identifier: void
+- "{"
+- self
+- "."
+- identifier: foo
+- "="
+- int: 42
+- ;
+- "}"
+- struct
+- identifier: Test
+- "{"
+- identifier: hello
+- "@"
+- i64
+- "!"
+- ","
+- identifier: world
+- "@"
+- i64
+- "!"
+- ","
+- identifier: foo
+- "@"
+- identifier: Foo
+- ","
+- "}"
+- fun
+- identifier: init
+- (
+- self
+- "@"
+- identifier: Test
+- "!"
+- )
+- "@"
+- identifier: void
+- "{"
+- self
+- "."
+- identifier: hello
+- "="
+- int: 21
+- ;
+- self
+- "."
+- identifier: world
+- "="
+- int: 21
+- ;
+- "}"
+- fun
+- identifier: add
+- (
+- self
+- "@"
+- identifier: Test
+- )
+- "@"
+- i64
+- "{"
+- self
+- "."
+- identifier: hello
+- +
+- self
+- "."
+- identifier: world
+- +
+- self
+- "."
+- identifier: foo
+- "."
+- identifier: foo
+- +
+- self
+- "."
+- identifier: foo
+- "."
+- identifier: bar
+- "}"
+- fun
+- identifier: main
+- (
+- )
+- "@"
+- i32
+- "{"
+- identifier: let
+- identifier: test
+- "@"
+- i32
+- "="
+- int: 0
+- ;
+- identifier: test
+- "}"
+
