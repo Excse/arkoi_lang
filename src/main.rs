@@ -1,17 +1,18 @@
+use diagnostics::SourceDetails;
 use lexer;
 
 use lexer::token::TokenKind;
 use lexer::Lexer;
 
 fn main() {
-    let source_code = match std::fs::read_to_string("examples/struct.ark") {
-        Ok(code) => code,
+    let source_details = match SourceDetails::read("examples/struct.ark") {
+        Ok(source_details) => source_details,
         Err(err) => panic!("{err}"),
     };
 
-    let mut lexer = Lexer::new(&source_code);
+    let mut lexer = Lexer::new(&source_details);
     let mut tokens = lexer.tokenize();
-    tokens.retain(|token| !matches!(token, TokenKind::Whitespace));
+    tokens.retain(|token| !matches!(token.kind, TokenKind::Whitespace));
 
     println!("{tokens:?}");
 }
