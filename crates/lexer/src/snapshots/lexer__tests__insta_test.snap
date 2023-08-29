@@ -2,123 +2,632 @@
 source: src/lib.rs
 expression: "&tokens"
 ---
-- struct
-- identifier: Foo
-- "{"
-- identifier: foo
-- "@"
-- i32
-- "!"
-- ","
-- identifier: bar
-- "@"
-- i64
-- ","
-- "}"
-- fun
-- identifier: init
-- (
-- self
-- "@"
-- identifier: Foo
-- "!"
-- )
-- "@"
-- identifier: void
-- "{"
-- self
-- "."
-- identifier: foo
-- "="
-- int: 42
-- ;
-- "}"
-- struct
-- identifier: Test
-- "{"
-- identifier: hello
-- "@"
-- i64
-- "!"
-- ","
-- identifier: world
-- "@"
-- i64
-- "!"
-- ","
-- identifier: foo
-- "@"
-- identifier: Foo
-- ","
-- "}"
-- fun
-- identifier: init
-- (
-- self
-- "@"
-- identifier: Test
-- "!"
-- )
-- "@"
-- identifier: void
-- "{"
-- self
-- "."
-- identifier: hello
-- "="
-- int: 21
-- ;
-- self
-- "."
-- identifier: world
-- "="
-- int: 21
-- ;
-- "}"
-- fun
-- identifier: add
-- (
-- self
-- "@"
-- identifier: Test
-- )
-- "@"
-- i64
-- "{"
-- self
-- "."
-- identifier: hello
-- +
-- self
-- "."
-- identifier: world
-- +
-- self
-- "."
-- identifier: foo
-- "."
-- identifier: foo
-- +
-- self
-- "."
-- identifier: foo
-- "."
-- identifier: bar
-- "}"
-- fun
-- identifier: main
-- (
-- )
-- "@"
-- i32
-- "{"
-- identifier: let
-- identifier: test
-- "@"
-- i32
-- "="
-- int: 0
-- ;
-- identifier: test
-- "}"
+- span:
+    line: 0
+    start: 0
+    end: 6
+  kind: struct
+- span:
+    line: 0
+    start: 7
+    end: 10
+  kind:
+    identifier: Foo
+- span:
+    line: 0
+    start: 11
+    end: 12
+  kind: "{"
+- span:
+    line: 1
+    start: 14
+    end: 17
+  kind:
+    identifier: foo
+- span:
+    line: 1
+    start: 18
+    end: 19
+  kind: "@"
+- span:
+    line: 1
+    start: 19
+    end: 22
+  kind: i32
+- span:
+    line: 1
+    start: 22
+    end: 23
+  kind: "!"
+- span:
+    line: 1
+    start: 23
+    end: 24
+  kind: ","
+- span:
+    line: 2
+    start: 26
+    end: 29
+  kind:
+    identifier: bar
+- span:
+    line: 2
+    start: 30
+    end: 31
+  kind: "@"
+- span:
+    line: 2
+    start: 31
+    end: 34
+  kind: i64
+- span:
+    line: 2
+    start: 34
+    end: 35
+  kind: ","
+- span:
+    line: 3
+    start: 36
+    end: 37
+  kind: "}"
+- span:
+    line: 5
+    start: 39
+    end: 42
+  kind: fun
+- span:
+    line: 5
+    start: 43
+    end: 47
+  kind:
+    identifier: init
+- span:
+    line: 5
+    start: 47
+    end: 48
+  kind: (
+- span:
+    line: 5
+    start: 48
+    end: 52
+  kind: self
+- span:
+    line: 5
+    start: 53
+    end: 54
+  kind: "@"
+- span:
+    line: 5
+    start: 54
+    end: 57
+  kind:
+    identifier: Foo
+- span:
+    line: 5
+    start: 57
+    end: 58
+  kind: "!"
+- span:
+    line: 5
+    start: 58
+    end: 59
+  kind: )
+- span:
+    line: 5
+    start: 60
+    end: 61
+  kind: "@"
+- span:
+    line: 5
+    start: 61
+    end: 65
+  kind:
+    identifier: void
+- span:
+    line: 5
+    start: 66
+    end: 67
+  kind: "{"
+- span:
+    line: 6
+    start: 69
+    end: 73
+  kind: self
+- span:
+    line: 6
+    start: 73
+    end: 74
+  kind: "."
+- span:
+    line: 6
+    start: 74
+    end: 77
+  kind:
+    identifier: foo
+- span:
+    line: 6
+    start: 78
+    end: 79
+  kind: "="
+- span:
+    line: 6
+    start: 80
+    end: 82
+  kind:
+    int: 42
+- span:
+    line: 6
+    start: 82
+    end: 83
+  kind: ;
+- span:
+    line: 7
+    start: 84
+    end: 85
+  kind: "}"
+- span:
+    line: 9
+    start: 87
+    end: 93
+  kind: struct
+- span:
+    line: 9
+    start: 94
+    end: 98
+  kind:
+    identifier: Test
+- span:
+    line: 9
+    start: 99
+    end: 100
+  kind: "{"
+- span:
+    line: 10
+    start: 103
+    end: 108
+  kind:
+    identifier: hello
+- span:
+    line: 10
+    start: 109
+    end: 110
+  kind: "@"
+- span:
+    line: 10
+    start: 110
+    end: 113
+  kind: i64
+- span:
+    line: 10
+    start: 113
+    end: 114
+  kind: "!"
+- span:
+    line: 10
+    start: 114
+    end: 115
+  kind: ","
+- span:
+    line: 11
+    start: 117
+    end: 122
+  kind:
+    identifier: world
+- span:
+    line: 11
+    start: 123
+    end: 124
+  kind: "@"
+- span:
+    line: 11
+    start: 124
+    end: 127
+  kind: i64
+- span:
+    line: 11
+    start: 127
+    end: 128
+  kind: "!"
+- span:
+    line: 11
+    start: 128
+    end: 129
+  kind: ","
+- span:
+    line: 12
+    start: 131
+    end: 134
+  kind:
+    identifier: foo
+- span:
+    line: 12
+    start: 135
+    end: 136
+  kind: "@"
+- span:
+    line: 12
+    start: 136
+    end: 139
+  kind:
+    identifier: Foo
+- span:
+    line: 12
+    start: 139
+    end: 140
+  kind: ","
+- span:
+    line: 13
+    start: 141
+    end: 142
+  kind: "}"
+- span:
+    line: 15
+    start: 144
+    end: 147
+  kind: fun
+- span:
+    line: 15
+    start: 148
+    end: 152
+  kind:
+    identifier: init
+- span:
+    line: 15
+    start: 152
+    end: 153
+  kind: (
+- span:
+    line: 15
+    start: 153
+    end: 157
+  kind: self
+- span:
+    line: 15
+    start: 158
+    end: 159
+  kind: "@"
+- span:
+    line: 15
+    start: 159
+    end: 163
+  kind:
+    identifier: Test
+- span:
+    line: 15
+    start: 163
+    end: 164
+  kind: "!"
+- span:
+    line: 15
+    start: 164
+    end: 165
+  kind: )
+- span:
+    line: 15
+    start: 166
+    end: 167
+  kind: "@"
+- span:
+    line: 15
+    start: 167
+    end: 171
+  kind:
+    identifier: void
+- span:
+    line: 15
+    start: 172
+    end: 173
+  kind: "{"
+- span:
+    line: 16
+    start: 175
+    end: 179
+  kind: self
+- span:
+    line: 16
+    start: 179
+    end: 180
+  kind: "."
+- span:
+    line: 16
+    start: 180
+    end: 185
+  kind:
+    identifier: hello
+- span:
+    line: 16
+    start: 186
+    end: 187
+  kind: "="
+- span:
+    line: 16
+    start: 188
+    end: 190
+  kind:
+    int: 21
+- span:
+    line: 16
+    start: 190
+    end: 191
+  kind: ;
+- span:
+    line: 17
+    start: 193
+    end: 197
+  kind: self
+- span:
+    line: 17
+    start: 197
+    end: 198
+  kind: "."
+- span:
+    line: 17
+    start: 198
+    end: 203
+  kind:
+    identifier: world
+- span:
+    line: 17
+    start: 204
+    end: 205
+  kind: "="
+- span:
+    line: 17
+    start: 206
+    end: 208
+  kind:
+    int: 21
+- span:
+    line: 17
+    start: 208
+    end: 209
+  kind: ;
+- span:
+    line: 18
+    start: 210
+    end: 211
+  kind: "}"
+- span:
+    line: 20
+    start: 213
+    end: 216
+  kind: fun
+- span:
+    line: 20
+    start: 217
+    end: 220
+  kind:
+    identifier: add
+- span:
+    line: 20
+    start: 220
+    end: 221
+  kind: (
+- span:
+    line: 20
+    start: 221
+    end: 225
+  kind: self
+- span:
+    line: 20
+    start: 226
+    end: 227
+  kind: "@"
+- span:
+    line: 20
+    start: 227
+    end: 231
+  kind:
+    identifier: Test
+- span:
+    line: 20
+    start: 231
+    end: 232
+  kind: )
+- span:
+    line: 20
+    start: 233
+    end: 234
+  kind: "@"
+- span:
+    line: 20
+    start: 234
+    end: 237
+  kind: i64
+- span:
+    line: 20
+    start: 238
+    end: 239
+  kind: "{"
+- span:
+    line: 21
+    start: 241
+    end: 245
+  kind: self
+- span:
+    line: 21
+    start: 245
+    end: 246
+  kind: "."
+- span:
+    line: 21
+    start: 246
+    end: 251
+  kind:
+    identifier: hello
+- span:
+    line: 21
+    start: 252
+    end: 253
+  kind: +
+- span:
+    line: 21
+    start: 254
+    end: 258
+  kind: self
+- span:
+    line: 21
+    start: 258
+    end: 259
+  kind: "."
+- span:
+    line: 21
+    start: 259
+    end: 264
+  kind:
+    identifier: world
+- span:
+    line: 21
+    start: 265
+    end: 266
+  kind: +
+- span:
+    line: 21
+    start: 267
+    end: 271
+  kind: self
+- span:
+    line: 21
+    start: 271
+    end: 272
+  kind: "."
+- span:
+    line: 21
+    start: 272
+    end: 275
+  kind:
+    identifier: foo
+- span:
+    line: 21
+    start: 275
+    end: 276
+  kind: "."
+- span:
+    line: 21
+    start: 276
+    end: 279
+  kind:
+    identifier: foo
+- span:
+    line: 21
+    start: 280
+    end: 281
+  kind: +
+- span:
+    line: 21
+    start: 282
+    end: 286
+  kind: self
+- span:
+    line: 21
+    start: 286
+    end: 287
+  kind: "."
+- span:
+    line: 21
+    start: 287
+    end: 290
+  kind:
+    identifier: foo
+- span:
+    line: 21
+    start: 290
+    end: 291
+  kind: "."
+- span:
+    line: 21
+    start: 291
+    end: 294
+  kind:
+    identifier: bar
+- span:
+    line: 22
+    start: 295
+    end: 296
+  kind: "}"
+- span:
+    line: 24
+    start: 298
+    end: 301
+  kind: fun
+- span:
+    line: 24
+    start: 302
+    end: 306
+  kind:
+    identifier: main
+- span:
+    line: 24
+    start: 306
+    end: 307
+  kind: (
+- span:
+    line: 24
+    start: 307
+    end: 308
+  kind: )
+- span:
+    line: 24
+    start: 309
+    end: 310
+  kind: "@"
+- span:
+    line: 24
+    start: 310
+    end: 313
+  kind: i32
+- span:
+    line: 24
+    start: 314
+    end: 315
+  kind: "{"
+- span:
+    line: 25
+    start: 317
+    end: 320
+  kind:
+    identifier: let
+- span:
+    line: 25
+    start: 321
+    end: 325
+  kind:
+    identifier: test
+- span:
+    line: 25
+    start: 326
+    end: 327
+  kind: "@"
+- span:
+    line: 25
+    start: 327
+    end: 330
+  kind: i32
+- span:
+    line: 25
+    start: 331
+    end: 332
+  kind: "="
+- span:
+    line: 25
+    start: 333
+    end: 334
+  kind:
+    int: 0
+- span:
+    line: 25
+    start: 334
+    end: 335
+  kind: ;
+- span:
+    line: 26
+    start: 337
+    end: 341
+  kind:
+    identifier: test
+- span:
+    line: 27
+    start: 342
+    end: 343
+  kind: "}"
 

@@ -1,15 +1,22 @@
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
+use diagnostics::Span;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub enum TokenKind {
+#[derive(Debug, Serialize)]
+pub struct Token<'a> {
+    pub span: Span<'a>,
+    pub kind: TokenKind<'a>, 
+}
+
+#[derive(Debug, PartialEq, Serialize, Clone)]
+pub enum TokenKind<'a> {
     #[serde(rename = "int")]
     Integer(usize),
     #[serde(rename = "decimal")]
     Decimal(f64),
     #[serde(rename = "identifier")]
-    Identifier(String),
+    Identifier(&'a str),
     #[serde(rename = "string")]
-    QuotedString(String),
+    QuotedString(&'a str),
 
     #[serde(rename = "struct")]
     Struct,
@@ -99,25 +106,28 @@ pub enum TokenKind {
     Unknown,
 }
 
-impl From<String> for TokenKind {
-    fn from(value: String) -> Self {
+impl<'a> Token<'a> {
+    pub fn new(span: Span<'a>, kind: TokenKind<'a>) -> Token<'a> {
+        Token {
+            span,
+            kind,
+        }
+    }
+}
+
+impl<'a> From<&'a str> for TokenKind<'a> {
+    fn from(value: &'a str) -> Self {
         TokenKind::Identifier(value)
     }
 }
 
-impl<'a> From<&'a str> for TokenKind {
-    fn from(value: &'a str) -> Self {
-        TokenKind::Identifier(value.to_string())
-    }
-}
-
-impl From<usize> for TokenKind {
+impl From<usize> for TokenKind<'_> {
     fn from(value: usize) -> Self {
         TokenKind::Integer(value)
     }
 }
 
-impl From<f64> for TokenKind {
+impl From<f64> for TokenKind<'_> {
     fn from(value: f64) -> Self {
         TokenKind::Decimal(value)
     }

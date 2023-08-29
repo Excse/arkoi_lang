@@ -1,10 +1,15 @@
-pub mod token; 
+pub mod token;
+
+use diagnostics::{SourceDetails, Span};
+use token::Token;
 
 use crate::token::TokenKind;
 
-pub struct Lexer {
-    source: Vec<char>,
+pub struct Lexer<'a> {
+    source_details: &'a SourceDetails,
+    start: usize,
     position: usize,
+    line: usize,
 }
 
 #[derive(Debug)]
@@ -14,25 +19,32 @@ pub enum LexerError {
     UnexpectedEOF,
 }
 
-impl Lexer {
-    pub fn new(source: &str) -> Lexer {
+impl<'a> Lexer<'a> {
+    pub fn new(source_details: &'a SourceDetails) -> Lexer<'a> {
         Lexer {
-            source: source.chars().collect(),
+            source_details,
             position: 0,
+            start: 0,
+            line: 0,
         }
     }
 
-    pub fn tokenize(&mut self) -> Vec<TokenKind> {
+    pub fn tokenize(&'a mut self) -> Vec<Token<'a>> {
         let mut tokens = Vec::new();
 
-        while let Ok(token) = self.next_token() {
+        while let Ok(token_kind) = self.next_token() {
+            let token = Token::new(
+                Span::new(self.source_details, self.line, self.start, self.position),
+                token_kind,
+            );
             tokens.push(token);
+            self.start = self.position;
         }
 
         tokens
     }
 
-    fn next_token(&mut self) -> Result<TokenKind, LexerError> {
+    fn next_token(&mut self) -> Result<TokenKind<'a>, LexerError> {
         match self.current()? {
             char if char.is_alphabetic() => self.read_identifier(),
             char if char.is_numeric() => self.read_number(),
@@ -41,8 +53,12 @@ impl Lexer {
         }
     }
 
-    fn read_symbol(&mut self) -> Result<TokenKind, LexerError> {
+    fn read_symbol(&mut self) -> Result<TokenKind<'a>, LexerError> {
         let mut token = match self.consume()? {
+            '\n' => {
+                self.line += 1;
+                TokenKind::Whitespace
+            }
             char if char.is_whitespace() => TokenKind::Whitespace,
             '{' => TokenKind::OBracket,
             '}' => TokenKind::CBracket,
@@ -85,20 +101,19 @@ impl Lexer {
         Ok(token)
     }
 
-    fn read_identifier(&mut self) -> Result<TokenKind, LexerError> {
-        let mut identifier_name = String::new();
-
+    fn read_identifier(&mut self) -> Result<TokenKind<'a>, LexerError> {
         match self.consume() {
             Ok(char) if !char.is_alphabetic() => {
                 return Err(LexerError::DidntExpect(char, "a-zA-Z"))
             }
-            Ok(char) => identifier_name.push(char),
+            Ok(_) => {}
             Err(error) => return Err(error),
         }
 
-        identifier_name.push_str(&self.consume_while(char::is_alphanumeric));
+        self.consume_while(char::is_alphanumeric);
 
-        Ok(match identifier_name.as_str() {
+        let identifier_name = &self.source_details.source[self.start..self.position];
+        Ok(match identifier_name {
             "struct" => TokenKind::Struct,
             "self" => TokenKind::Self_,
             "fun" => TokenKind::Fun,
@@ -118,45 +133,44 @@ impl Lexer {
         })
     }
 
-    fn read_number(&mut self) -> Result<TokenKind, LexerError> {
-        let mut number = String::new();
-
+    fn read_number(&mut self) -> Result<TokenKind<'a>, LexerError> {
         match self.consume() {
-            Ok(char) if char.is_numeric() => number.push(char),
+            Ok(char) if char.is_numeric() => {}
             Ok(char) => return Err(LexerError::DidntExpect(char, "0-9")),
             Err(error) => return Err(error),
         }
 
-        number.push_str(&self.consume_while(char::is_numeric));
+        self.consume_while(char::is_numeric);
 
         match self.current() {
             Ok('.') => {
-                number.push(self.consume()?);
+                self.consume()?;
+                self.consume_while(char::is_numeric);
 
-                number.push_str(&self.consume_while(char::is_numeric));
-
+                let number = &self.source_details.source[self.start..self.position];
                 number
                     .parse::<f64>()
                     .map(TokenKind::Decimal)
                     .map_err(|_| LexerError::InternalError("Couldn't parse the string to a f64."))
             }
-            _ => number
-                .parse::<usize>()
-                .map(TokenKind::Integer)
-                .map_err(|_| LexerError::InternalError("Couldn't parse the string to a usize.")),
+            _ => {
+                let number = &self.source_details.source[self.start..self.position];
+                number
+                    .parse::<usize>()
+                    .map(TokenKind::Integer)
+                    .map_err(|_| LexerError::InternalError("Couldn't parse the string to a usize."))
+            }
         }
     }
 
-    fn read_string(&mut self) -> Result<TokenKind, LexerError> {
-        let mut string = String::new();
-
+    fn read_string(&mut self) -> Result<TokenKind<'a>, LexerError> {
         match self.current() {
             Ok('"') => self.consume()?,
             Ok(char) => return Err(LexerError::DidntExpect(char, "\"")),
             Err(error) => return Err(error),
         };
 
-        string.push_str(&self.consume_windowed_while(|prev, curr| curr != '"' || prev == '\\'));
+        self.consume_windowed_while(|prev, curr| curr != '"' || prev == '\\');
 
         match self.consume() {
             Ok('"') => {}
@@ -164,13 +178,15 @@ impl Lexer {
             Err(error) => return Err(error),
         };
 
+        let string = &self.source_details.source[(self.start + 1)..(self.position - 1)];
         Ok(TokenKind::QuotedString(string))
     }
 
     fn current(&self) -> Result<char, LexerError> {
-        self.source
-            .get(self.position)
-            .map(|char| *char)
+        self.source_details
+            .source
+            .chars()
+            .nth(self.position)
             .ok_or(LexerError::UnexpectedEOF)
     }
 
@@ -216,7 +232,8 @@ mod tests {
         (FAIL: $name:ident, $func:ident, $source:expr) => {
             #[test]
             fn $name() {
-                let mut lexer = Lexer::new($source);
+                let source_details = SourceDetails::new($source, "test.ark");
+                let mut lexer = Lexer::new(&source_details);
                 let token = lexer.$func();
                 assert!(token.is_err(), "{:?} should be an error", token);
             }
@@ -224,7 +241,8 @@ mod tests {
         ($name:ident, $source:expr => $expected:expr) => {
             #[test]
             fn $name() {
-                let mut lexer = Lexer::new($source);
+                let source_details = SourceDetails::new($source, "test.ark");
+                let mut lexer = Lexer::new(&source_details);
                 let expected = TokenKind::from($expected);
                 let token = lexer.next_token().unwrap();
                 assert_eq!(token, expected, "Input was {:?}", $source);
@@ -236,7 +254,7 @@ mod tests {
     test_token!(success_integer, "42" => 42);
     test_token!(FAIL: fail_number, read_number, "number");
 
-    test_token!(success_string, "\"Hello World!\"" => TokenKind::QuotedString("Hello World!".to_string()));
+    test_token!(success_string, "\"Hello World!\"" => TokenKind::QuotedString("Hello World!"));
     test_token!(FAIL: fail_string, read_string, "Hello World!");
 
     test_token!(success_obracket, "{" => TokenKind::OBracket);
@@ -282,18 +300,18 @@ mod tests {
         ($name:ident, $path:expr) => {
             #[test]
             fn $name() {
-                let source_code = match std::fs::read_to_string($path) {
-                    Ok(code) => code,
+                let source_details = match SourceDetails::read($path) {
+                    Ok(source_details) => source_details,
                     Err(err) => panic!("{err}"),
                 };
 
-                let mut lexer = Lexer::new(&source_code);
+                let mut lexer = Lexer::new(&source_details);
                 let mut tokens = lexer.tokenize();
-                tokens.retain(|token| !matches!(token, TokenKind::Whitespace));
+                tokens.retain(|token| !matches!(token.kind, TokenKind::Whitespace));
 
                 insta::assert_yaml_snapshot!(&tokens);
             }
-        }
+        };
     }
 
     insta_test!(insta_test, "test_files/insta_test.ark");
