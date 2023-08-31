@@ -1,87 +1,76 @@
 pub mod token;
+pub mod cursor;
 
 use diagnostics::{SourceDetails, Span};
-use token::Token;
-
-use crate::token::TokenKind;
+use token::{Token, TokenKind};
+use cursor::Cursor;
 
 pub struct Lexer<'a> {
     source_details: &'a SourceDetails,
-    start: usize,
-    position: usize,
-    line: usize,
+    cursor: Cursor<'a>,
 }
 
 #[derive(Debug)]
 pub enum LexerError {
     DidntExpect(char, &'static str),
     InternalError(&'static str),
-    UnexpectedEOF,
+    EndOfFile,
 }
 
 impl<'a> Lexer<'a> {
     pub fn new(source_details: &'a SourceDetails) -> Lexer<'a> {
         Lexer {
             source_details,
-            position: 0,
-            start: 0,
-            line: 0,
+            cursor: Cursor::new(source_details),
         }
     }
 
-    pub fn tokenize(&'a mut self) -> Vec<Token<'a>> {
-        let mut tokens = Vec::new();
-
-        while let Ok(token_kind) = self.next_token() {
-            let token = Token::new(
-                Span::new(self.source_details, self.line, self.start, self.position),
-                token_kind,
-            );
-            tokens.push(token);
-            self.start = self.position;
-        }
-
-        tokens
+    pub fn tokenize(&mut self) -> impl Iterator<Item = Token<'a>> + '_ {
+        std::iter::from_fn(move || {
+            let token = match self.next_token() {
+                Ok(token_kind) => Token::new(self.cursor.as_span(), token_kind),
+                Err(_) => return None,
+            };
+            self.cursor.mark_start();
+            Some(token)
+        })
     }
 
     fn next_token(&mut self) -> Result<TokenKind<'a>, LexerError> {
-        match self.current()? {
-            char if char.is_alphabetic() => self.read_identifier(),
-            char if char.is_numeric() => self.read_number(),
-            '"' => self.read_string(),
-            _ => self.read_symbol(),
+        match self.cursor.peek() {
+            Some(char) if char.is_alphabetic() => self.read_identifier(),
+            Some(char) if char.is_numeric() => self.read_number(),
+            Some('"') => self.read_string(),
+            Some(_) => self.read_symbol(),
+            None => Err(LexerError::EndOfFile),
         }
     }
 
     fn read_symbol(&mut self) -> Result<TokenKind<'a>, LexerError> {
-        let mut token = match self.consume()? {
-            '\n' => {
-                self.line += 1;
-                TokenKind::Whitespace
-            }
-            char if char.is_whitespace() => TokenKind::Whitespace,
-            '{' => TokenKind::OBracket,
-            '}' => TokenKind::CBracket,
-            '(' => TokenKind::OParent,
-            ')' => TokenKind::CParent,
-            '@' => TokenKind::At,
-            ',' => TokenKind::Comma,
-            '.' => TokenKind::Period,
-            '+' => TokenKind::Plus,
-            '-' => TokenKind::Minus,
-            '*' => TokenKind::Asterisk,
-            '/' => TokenKind::Slash,
-            '<' => TokenKind::Less,
-            '>' => TokenKind::Greater,
-            '=' => TokenKind::Assign,
-            '!' => TokenKind::Apostrophe,
-            ';' => TokenKind::Semicolon,
+        let mut token = match self.cursor.consume() {
+            Some(char) if char.is_whitespace() => TokenKind::Whitespace,
+            Some('{') => TokenKind::OBracket,
+            Some('}') => TokenKind::CBracket,
+            Some('(') => TokenKind::OParent,
+            Some(')') => TokenKind::CParent,
+            Some('@') => TokenKind::At,
+            Some(',') => TokenKind::Comma,
+            Some('.') => TokenKind::Period,
+            Some('+') => TokenKind::Plus,
+            Some('-') => TokenKind::Minus,
+            Some('*') => TokenKind::Asterisk,
+            Some('/') => TokenKind::Slash,
+            Some('<') => TokenKind::Less,
+            Some('>') => TokenKind::Greater,
+            Some('=') => TokenKind::Assign,
+            Some('!') => TokenKind::Apostrophe,
+            Some(';') => TokenKind::Semicolon,
             _ => TokenKind::Unknown,
         };
 
-        let current = match self.current() {
-            Ok(char) => char,
-            Err(_) => return Ok(token),
+        let current = match self.cursor.peek() {
+            Some(char) => char,
+            None => return Ok(token),
         };
 
         token = match (token, current) {
@@ -96,23 +85,23 @@ impl<'a> Lexer<'a> {
             (token, _) => return Ok(token),
         };
 
-        self.consume()?;
+        self.cursor.consume();
 
         Ok(token)
     }
 
     fn read_identifier(&mut self) -> Result<TokenKind<'a>, LexerError> {
-        match self.consume() {
-            Ok(char) if !char.is_alphabetic() => {
+        match self.cursor.consume() {
+            Some(char) if !char.is_alphabetic() => {
                 return Err(LexerError::DidntExpect(char, "a-zA-Z"))
             }
-            Ok(_) => {}
-            Err(error) => return Err(error),
+            Some(_) => {}
+            None => return Err(LexerError::EndOfFile),
         }
 
-        self.consume_while(char::is_alphanumeric);
+        self.cursor.eat_while(char::is_alphanumeric);
 
-        let identifier_name = &self.source_details.source[self.start..self.position];
+        let identifier_name = self.cursor.as_str();
         Ok(match identifier_name {
             "struct" => TokenKind::Struct,
             "self" => TokenKind::Self_,
@@ -134,27 +123,27 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_number(&mut self) -> Result<TokenKind<'a>, LexerError> {
-        match self.consume() {
-            Ok(char) if char.is_numeric() => {}
-            Ok(char) => return Err(LexerError::DidntExpect(char, "0-9")),
-            Err(error) => return Err(error),
+        match self.cursor.consume() {
+            Some(char) if char.is_numeric() => {}
+            Some(char) => return Err(LexerError::DidntExpect(char, "0-9")),
+            None => return Err(LexerError::EndOfFile),
         }
 
-        self.consume_while(char::is_numeric);
+        self.cursor.eat_while(char::is_numeric);
 
-        match self.current() {
-            Ok('.') => {
-                self.consume()?;
-                self.consume_while(char::is_numeric);
+        match self.cursor.peek() {
+            Some('.') => {
+                self.cursor.consume();
+                self.cursor.eat_while(char::is_numeric);
 
-                let number = &self.source_details.source[self.start..self.position];
+                let number = self.cursor.as_str();
                 number
                     .parse::<f64>()
                     .map(TokenKind::Decimal)
                     .map_err(|_| LexerError::InternalError("Couldn't parse the string to a f64."))
             }
             _ => {
-                let number = &self.source_details.source[self.start..self.position];
+                let number = self.cursor.as_str();
                 number
                     .parse::<usize>()
                     .map(TokenKind::Integer)
@@ -164,63 +153,23 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_string(&mut self) -> Result<TokenKind<'a>, LexerError> {
-        match self.current() {
-            Ok('"') => self.consume()?,
-            Ok(char) => return Err(LexerError::DidntExpect(char, "\"")),
-            Err(error) => return Err(error),
+        match self.cursor.consume() {
+            Some('"') => {},
+            Some(char) => return Err(LexerError::DidntExpect(char, "\"")),
+            None => return Err(LexerError::EndOfFile),
         };
 
-        self.consume_windowed_while(|prev, curr| curr != '"' || prev == '\\');
+        self.cursor.eat_windowed_while(|prev, curr| curr != '"' || prev == '\\');
 
-        match self.consume() {
-            Ok('"') => {}
-            Ok(char) => return Err(LexerError::DidntExpect(char, "\"")),
-            Err(error) => return Err(error),
+        match self.cursor.consume() {
+            Some('"') => {}
+            Some(char) => return Err(LexerError::DidntExpect(char, "\"")),
+            None => return Err(LexerError::EndOfFile),
         };
 
-        let string = &self.source_details.source[(self.start + 1)..(self.position - 1)];
-        Ok(TokenKind::QuotedString(string))
-    }
-
-    fn current(&self) -> Result<char, LexerError> {
-        self.source_details
-            .source
-            .chars()
-            .nth(self.position)
-            .ok_or(LexerError::UnexpectedEOF)
-    }
-
-    fn consume_while<F>(&mut self, mut predicate: F) -> String
-    where
-        F: FnMut(char) -> bool,
-    {
-        self.consume_windowed_while(|_, current| predicate(current))
-    }
-
-    fn consume_windowed_while<F>(&mut self, mut predicate: F) -> String
-    where
-        F: FnMut(char, char) -> bool,
-    {
-        let mut result = String::new();
-        let mut last: char = '\0';
-
-        while let Ok(char) = self.consume() {
-            if !predicate(last, char) {
-                self.position -= 1;
-                break;
-            }
-
-            last = char;
-            result.push(char);
-        }
-
-        result
-    }
-
-    fn consume(&mut self) -> Result<char, LexerError> {
-        let current = self.current()?;
-        self.position += 1;
-        Ok(current)
+        let string_content = self.cursor.as_str();
+        let string_content = &string_content[1..string_content.len() - 1];
+        Ok(TokenKind::QuotedString(string_content))
     }
 }
 
@@ -306,7 +255,7 @@ mod tests {
                 };
 
                 let mut lexer = Lexer::new(&source_details);
-                let mut tokens = lexer.tokenize();
+                let mut tokens = lexer.tokenize().collect::<Vec<Token>>();
                 tokens.retain(|token| !matches!(token.kind, TokenKind::Whitespace));
 
                 insta::assert_yaml_snapshot!(&tokens);
