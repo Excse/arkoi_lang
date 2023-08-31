@@ -26,9 +26,9 @@ pub enum ExpressionKind<'a> {
 }
 
 #[derive(Debug)]
-pub enum ParserError {
+pub enum ParserError<'a> {
+    DidntExpect(TokenKind<'a>, &'static [TokenKind<'static>]),
     EndOfFile,
-    DidntExpect,
 }
 
 impl<'a> Parser<'a> {
@@ -38,11 +38,11 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_expression(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    pub fn parse_expression(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
         return self.parse_equality();
     }
 
-    fn parse_equality(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    fn parse_equality(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
         let mut expression = self.parse_comparison()?;
 
         while let Some(token) = self.tokens.peek() {
@@ -58,7 +58,7 @@ impl<'a> Parser<'a> {
         Ok(expression)
     }
 
-    fn parse_comparison(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    fn parse_comparison(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
         let mut expression = self.parse_term()?;
 
         while let Some(token) = self.tokens.peek() {
@@ -77,7 +77,7 @@ impl<'a> Parser<'a> {
         Ok(expression)
     }
 
-    fn parse_term(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    fn parse_term(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
         let mut expression = self.parse_factor()?;
 
         while let Some(token) = self.tokens.peek() {
@@ -93,7 +93,7 @@ impl<'a> Parser<'a> {
         Ok(expression)
     }
 
-    fn parse_factor(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    fn parse_factor(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
         let mut expression = self.parse_unary()?;
 
         while let Some(token) = self.tokens.peek() {
@@ -109,7 +109,7 @@ impl<'a> Parser<'a> {
         Ok(expression)
     }
 
-    fn parse_unary(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    fn parse_unary(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
         if let Ok(token) = self.matches(&[TokenKind::Apostrophe, TokenKind::Minus]) {
             let right = self.parse_unary()?;
             return Ok(ExpressionKind::Unary(token, Box::new(right)));
@@ -118,8 +118,9 @@ impl<'a> Parser<'a> {
         return self.parse_primary();
     }
 
-    fn parse_primary(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
-        let expression = Ok(match self.current()?.kind {
+    fn parse_primary(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
+        let current = self.current()?;
+        let expression = Ok(match current.kind {
             TokenKind::Integer(value) => ExpressionKind::Literal(LiteralKind::Integer(value)),
             TokenKind::Decimal(value) => ExpressionKind::Literal(LiteralKind::Decimal(value)),
             TokenKind::String(value) => ExpressionKind::Literal(LiteralKind::String(value)),
@@ -129,7 +130,18 @@ impl<'a> Parser<'a> {
                 self.matches(&[TokenKind::CParent])?;
                 ExpressionKind::Grouping(Box::new(expression))
             }
-            _ => return Err(ParserError::DidntExpect),
+            token_kind => {
+                return Err(ParserError::DidntExpect(
+                    token_kind,
+                    &[
+                        TokenKind::Integer(0),
+                        TokenKind::Decimal(0.0),
+                        TokenKind::String(""),
+                        TokenKind::Boolean(false),
+                        TokenKind::OParent,
+                    ],
+                ))
+            }
         });
 
         self.tokens.next();
@@ -137,11 +149,11 @@ impl<'a> Parser<'a> {
         expression
     }
 
-    fn current(&mut self) -> Result<&Token<'a>, ParserError> {
+    fn current(&mut self) -> Result<&Token<'a>, ParserError<'a>> {
         self.tokens.peek().ok_or_else(|| ParserError::EndOfFile)
     }
 
-    fn matches(&mut self, expected: &'static [TokenKind]) -> Result<Token<'a>, ParserError> {
+    fn matches(&mut self, expected: &'static [TokenKind]) -> Result<Token<'a>, ParserError<'a>> {
         let token = match self.tokens.peek() {
             Some(token) => token,
             None => return Err(ParserError::EndOfFile),
@@ -151,6 +163,6 @@ impl<'a> Parser<'a> {
             return Ok(self.tokens.next().unwrap());
         }
 
-        Err(ParserError::DidntExpect)
+        Err(ParserError::DidntExpect(token.kind, expected))
     }
 }
