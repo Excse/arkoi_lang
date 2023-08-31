@@ -16,7 +16,9 @@ pub enum TokenKind<'a> {
     #[serde(rename = "identifier")]
     Identifier(&'a str),
     #[serde(rename = "string")]
-    QuotedString(&'a str),
+    String(&'a str),
+    #[serde(rename = "boolean")]
+    Boolean(bool),
 
     #[serde(rename = "struct")]
     Struct,
@@ -100,8 +102,6 @@ pub enum TokenKind<'a> {
     #[serde(rename = "f64")]
     F64,
 
-    #[serde(rename = "whitespace")]
-    Whitespace,
     #[serde(rename = "unknown")]
     Unknown,
 }

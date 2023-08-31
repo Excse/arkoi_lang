@@ -1,12 +1,11 @@
-pub mod token;
 pub mod cursor;
+pub mod token;
 
-use diagnostics::{SourceDetails, Span};
-use token::{Token, TokenKind};
 use cursor::Cursor;
+use diagnostics::SourceDetails;
+use token::{Token, TokenKind};
 
 pub struct Lexer<'a> {
-    source_details: &'a SourceDetails,
     cursor: Cursor<'a>,
 }
 
@@ -17,26 +16,34 @@ pub enum LexerError {
     EndOfFile,
 }
 
+pub struct TokenIter<'a> {
+    lexer: &'a mut Lexer<'a>,
+}
+
+impl<'a> Iterator for TokenIter<'a> {
+    type Item = Token<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.lexer.next_token() {
+            Ok(token_kind) => Some(Token::new(self.lexer.cursor.as_span(), token_kind)),
+            Err(_) => None,
+        }
+    }
+}
+
 impl<'a> Lexer<'a> {
     pub fn new(source_details: &'a SourceDetails) -> Lexer<'a> {
         Lexer {
-            source_details,
             cursor: Cursor::new(source_details),
         }
     }
 
-    pub fn tokenize(&mut self) -> impl Iterator<Item = Token<'a>> + '_ {
-        std::iter::from_fn(move || {
-            let token = match self.next_token() {
-                Ok(token_kind) => Token::new(self.cursor.as_span(), token_kind),
-                Err(_) => return None,
-            };
-            self.cursor.mark_start();
-            Some(token)
-        })
+    pub fn iter(&'a mut self) -> TokenIter<'a> {
+        TokenIter { lexer: self }
     }
 
     fn next_token(&mut self) -> Result<TokenKind<'a>, LexerError> {
+        self.cursor.mark_start();
         match self.cursor.peek() {
             Some(char) if char.is_alphabetic() => self.read_identifier(),
             Some(char) if char.is_numeric() => self.read_number(),
@@ -48,7 +55,7 @@ impl<'a> Lexer<'a> {
 
     fn read_symbol(&mut self) -> Result<TokenKind<'a>, LexerError> {
         let mut token = match self.cursor.consume() {
-            Some(char) if char.is_whitespace() => TokenKind::Whitespace,
+            Some(char) if char.is_whitespace() => self.next_token()?,
             Some('{') => TokenKind::OBracket,
             Some('}') => TokenKind::CBracket,
             Some('(') => TokenKind::OParent,
@@ -103,6 +110,8 @@ impl<'a> Lexer<'a> {
 
         let identifier_name = self.cursor.as_str();
         Ok(match identifier_name {
+            "true" => TokenKind::Boolean(true),
+            "false" => TokenKind::Boolean(false),
             "struct" => TokenKind::Struct,
             "self" => TokenKind::Self_,
             "fun" => TokenKind::Fun,
@@ -154,12 +163,13 @@ impl<'a> Lexer<'a> {
 
     fn read_string(&mut self) -> Result<TokenKind<'a>, LexerError> {
         match self.cursor.consume() {
-            Some('"') => {},
+            Some('"') => {}
             Some(char) => return Err(LexerError::DidntExpect(char, "\"")),
             None => return Err(LexerError::EndOfFile),
         };
 
-        self.cursor.eat_windowed_while(|prev, curr| curr != '"' || prev == '\\');
+        self.cursor
+            .eat_windowed_while(|prev, curr| curr != '"' || prev == '\\');
 
         match self.cursor.consume() {
             Some('"') => {}
@@ -169,7 +179,7 @@ impl<'a> Lexer<'a> {
 
         let string_content = self.cursor.as_str();
         let string_content = &string_content[1..string_content.len() - 1];
-        Ok(TokenKind::QuotedString(string_content))
+        Ok(TokenKind::String(string_content))
     }
 }
 
@@ -203,9 +213,13 @@ mod tests {
     test_token!(success_integer, "42" => 42);
     test_token!(FAIL: fail_number, read_number, "number");
 
-    test_token!(success_string, "\"Hello World!\"" => TokenKind::QuotedString("Hello World!"));
+    test_token!(success_string, "\"Hello World!\"" => TokenKind::String("Hello World!"));
     test_token!(FAIL: fail_string, read_string, "Hello World!");
 
+    test_token!(success_true, "true" => TokenKind::Boolean(true));
+    test_token!(success_false, "false" => TokenKind::Boolean(false));
+
+    test_token!(success_bool, "true" => TokenKind::Boolean(true));
     test_token!(success_obracket, "{" => TokenKind::OBracket);
     test_token!(success_cbracket, "}" => TokenKind::CBracket);
     test_token!(success_oparent, "(" => TokenKind::OParent);
@@ -255,8 +269,7 @@ mod tests {
                 };
 
                 let mut lexer = Lexer::new(&source_details);
-                let mut tokens = lexer.tokenize().collect::<Vec<Token>>();
-                tokens.retain(|token| !matches!(token.kind, TokenKind::Whitespace));
+                let tokens = lexer.iter().collect::<Vec<Token>>();
 
                 insta::assert_yaml_snapshot!(&tokens);
             }
