@@ -7,7 +7,7 @@ pub struct Token<'a> {
     pub kind: TokenKind<'a>, 
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Copy, Clone)]
 pub enum TokenKind<'a> {
     #[serde(rename = "int")]
     Integer(usize),
