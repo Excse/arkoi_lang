@@ -1,18 +1,17 @@
 use diagnostics::SourceDetails;
-use lexer;
 
-use lexer::token::TokenKind;
+use parser::Parser;
 use lexer::Lexer;
 
 fn main() {
-    let source_details = match SourceDetails::read("examples/struct.ark") {
+    let source_details = match SourceDetails::read("examples/parser.ark") {
         Ok(source_details) => source_details,
         Err(err) => panic!("{err}"),
     };
 
     let mut lexer = Lexer::new(&source_details);
-    let mut tokens = lexer.tokenize();
-    tokens.retain(|token| !matches!(token.kind, TokenKind::Whitespace));
+    let mut parser = Parser::new(&mut lexer);
 
-    println!("{tokens:?}");
+    let expression = parser.parse_expression().unwrap();
+    println!("{:#?}", expression);
 }

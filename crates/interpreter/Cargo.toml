@@ -11,3 +11,4 @@ version = { workspace = true }
 colored = "2.0.4"
 diagnostics = { path = "../diagnostics" }
 lexer = { path = "../lexer" }
+parser = { path = "../parser" }
