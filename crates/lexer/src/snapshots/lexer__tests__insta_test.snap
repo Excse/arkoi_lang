@@ -1,5 +1,5 @@
 ---
-source: src/lib.rs
+source: crates/lexer/src/lib.rs
 expression: "&tokens"
 ---
 - span:
@@ -585,8 +585,7 @@ expression: "&tokens"
     line: 25
     start: 317
     end: 320
-  kind:
-    identifier: let
+  kind: let
 - span:
     line: 25
     start: 321

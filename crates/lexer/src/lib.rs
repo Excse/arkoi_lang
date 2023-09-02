@@ -1,9 +1,9 @@
 pub mod cursor;
 pub mod token;
 
-use cursor::Cursor;
 use diagnostics::SourceDetails;
 use token::{Token, TokenKind};
+use cursor::Cursor;
 
 pub struct Lexer<'a> {
     cursor: Cursor<'a>,
@@ -113,6 +113,8 @@ impl<'a> Lexer<'a> {
             "true" => TokenKind::Boolean(true),
             "false" => TokenKind::Boolean(false),
             "struct" => TokenKind::Struct,
+            "return" => TokenKind::Return,
+            "let" => TokenKind::Let,
             "self" => TokenKind::Self_,
             "fun" => TokenKind::Fun,
             "u8" => TokenKind::U8,

@@ -11,3 +11,4 @@ version = { workspace = true }
 diagnostics = { path = "../diagnostics" }
 insta = { version = "1.31.0", features = ["yaml"] }
 serde = { version = "1.0.188", features = ["derive"] }
+strum = { version = "0.25.0", features = ["derive"] }

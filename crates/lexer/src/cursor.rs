@@ -1,6 +1,7 @@
-use diagnostics::{SourceDetails, Span};
 use std::iter::Peekable;
 use std::str::Chars;
+
+use diagnostics::{SourceDetails, Span};
 
 pub struct Cursor<'a> {
     source_details: &'a SourceDetails,
