@@ -10,3 +10,5 @@ version = { workspace = true }
 
 [dependencies]
 lexer = { path = "../lexer" }
+diagnostics = { path = "../diagnostics" }
+serde = { version = "1.0.188", features = ["derive"] }

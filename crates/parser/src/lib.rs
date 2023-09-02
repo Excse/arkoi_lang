@@ -1,20 +1,33 @@
+mod cursor;
+mod reports;
+
+use serde::Serialize;
+
 use lexer::token::{Token, TokenKind};
-use lexer::{Lexer, TokenIter};
-use std::iter::Peekable;
+use diagnostics::Report;
+use cursor::Cursor;
+use lexer::Lexer;
 
 pub struct Parser<'a> {
-    tokens: Peekable<TokenIter<'a>>,
+    cursor: Cursor<'a>,
+    pub errors: Vec<ParserError<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum LiteralKind<'a> {
     String(&'a str),
     Integer(usize),
     Decimal(f64),
     Boolean(bool),
+    Identifier(&'a str),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
+pub enum StatementKind<'a> {
+    ExpressionStatement(ExpressionKind<'a>),
+}
+
+#[derive(Debug, Serialize)]
 pub enum ExpressionKind<'a> {
     Equality(Box<ExpressionKind<'a>>, Token<'a>, Box<ExpressionKind<'a>>),
     Comparison(Box<ExpressionKind<'a>>, Token<'a>, Box<ExpressionKind<'a>>),
@@ -27,15 +40,45 @@ pub enum ExpressionKind<'a> {
 
 #[derive(Debug)]
 pub enum ParserError<'a> {
-    DidntExpect(TokenKind<'a>, &'static [TokenKind<'static>]),
+    Diagnostic(Report<'a>),
     EndOfFile,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(lexer: &'a mut Lexer<'a>) -> Parser<'a> {
         Parser {
-            tokens: lexer.iter().peekable(),
+            cursor: Cursor::new(lexer),
+            errors: Vec::new(),
         }
+    }
+
+    pub fn parse_program(&mut self) -> Vec<StatementKind<'a>> {
+        let mut expressions = Vec::new();
+
+        loop {
+            match self.parse_statement() {
+                Ok(expression) => {
+                    expressions.push(expression);
+                }
+                Err(ParserError::EndOfFile) => break,
+                Err(error) => {
+                    self.errors.push(error);
+                    self.cursor.synchronize();
+                }
+            };
+        }
+
+        expressions
+    }
+
+    fn parse_statement(&mut self) -> Result<StatementKind<'a>, ParserError<'a>> {
+        if let Ok(expression) = self.parse_expression() {
+            self.cursor.matches(&[TokenKind::Semicolon])?;
+            return Ok(StatementKind::ExpressionStatement(expression));
+        }
+
+        let current = self.cursor.peek()?;
+        Err(reports::didnt_expect(current, &[]))
     }
 
     pub fn parse_expression(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
@@ -45,9 +88,9 @@ impl<'a> Parser<'a> {
     fn parse_equality(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
         let mut expression = self.parse_comparison()?;
 
-        while let Some(token) = self.tokens.peek() {
+        while let Ok(token) = self.cursor.peek() {
             let token = match token.kind {
-                TokenKind::Equal | TokenKind::NotEqual => self.tokens.next().unwrap(),
+                TokenKind::Equal | TokenKind::NotEqual => self.cursor.consume().unwrap(),
                 _ => break,
             };
 
@@ -61,12 +104,12 @@ impl<'a> Parser<'a> {
     fn parse_comparison(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
         let mut expression = self.parse_term()?;
 
-        while let Some(token) = self.tokens.peek() {
+        while let Ok(token) = self.cursor.peek() {
             let token = match token.kind {
                 TokenKind::Greater
                 | TokenKind::GreaterEqual
                 | TokenKind::Less
-                | TokenKind::LessEqual => self.tokens.next().unwrap(),
+                | TokenKind::LessEqual => self.cursor.consume().unwrap(),
                 _ => break,
             };
 
@@ -80,9 +123,9 @@ impl<'a> Parser<'a> {
     fn parse_term(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
         let mut expression = self.parse_factor()?;
 
-        while let Some(token) = self.tokens.peek() {
+        while let Ok(token) = self.cursor.peek() {
             let token = match token.kind {
-                TokenKind::Minus | TokenKind::Plus => self.tokens.next().unwrap(),
+                TokenKind::Minus | TokenKind::Plus => self.cursor.consume().unwrap(),
                 _ => break,
             };
 
@@ -96,9 +139,9 @@ impl<'a> Parser<'a> {
     fn parse_factor(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
         let mut expression = self.parse_unary()?;
 
-        while let Some(token) = self.tokens.peek() {
+        while let Ok(token) = self.cursor.peek() {
             let token = match token.kind {
-                TokenKind::Slash | TokenKind::Asterisk => self.tokens.next().unwrap(),
+                TokenKind::Slash | TokenKind::Asterisk => self.cursor.consume().unwrap(),
                 _ => break,
             };
 
@@ -110,7 +153,10 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_unary(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
-        if let Ok(token) = self.matches(&[TokenKind::Apostrophe, TokenKind::Minus]) {
+        if let Ok(token) = self
+            .cursor
+            .matches(&[TokenKind::Apostrophe, TokenKind::Minus])
+        {
             let right = self.parse_unary()?;
             return Ok(ExpressionKind::Unary(token, Box::new(right)));
         }
@@ -119,50 +165,47 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_primary(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
-        let current = self.current()?;
-        let expression = Ok(match current.kind {
-            TokenKind::Integer(value) => ExpressionKind::Literal(LiteralKind::Integer(value)),
-            TokenKind::Decimal(value) => ExpressionKind::Literal(LiteralKind::Decimal(value)),
-            TokenKind::String(value) => ExpressionKind::Literal(LiteralKind::String(value)),
-            TokenKind::Boolean(value) => ExpressionKind::Literal(LiteralKind::Boolean(value)),
+        let current = self.cursor.peek()?;
+        Ok(match current.kind {
+            TokenKind::Integer(value) => {
+                self.cursor.consume();
+                ExpressionKind::Literal(LiteralKind::Integer(value))
+            }
+            TokenKind::Decimal(value) => {
+                self.cursor.consume();
+                ExpressionKind::Literal(LiteralKind::Decimal(value))
+            }
+            TokenKind::String(value) => {
+                self.cursor.consume();
+                ExpressionKind::Literal(LiteralKind::String(value))
+            }
+            TokenKind::Boolean(value) => {
+                self.cursor.consume();
+                ExpressionKind::Literal(LiteralKind::Boolean(value))
+            }
+            TokenKind::Identifier(value) => {
+                self.cursor.consume();
+                ExpressionKind::Literal(LiteralKind::Identifier(value))
+            }
             TokenKind::OParent => {
+                self.cursor.consume();
                 let expression = self.parse_expression()?;
-                self.matches(&[TokenKind::CParent])?;
+                self.cursor.matches(&[TokenKind::CParent])?;
                 ExpressionKind::Grouping(Box::new(expression))
             }
-            token_kind => {
-                return Err(ParserError::DidntExpect(
-                    token_kind,
+            _ => {
+                return Err(reports::didnt_expect(
+                    current,
                     &[
                         TokenKind::Integer(0),
                         TokenKind::Decimal(0.0),
                         TokenKind::String(""),
                         TokenKind::Boolean(false),
+                        TokenKind::Identifier(""),
                         TokenKind::OParent,
                     ],
                 ))
             }
-        });
-
-        self.tokens.next();
-
-        expression
-    }
-
-    fn current(&mut self) -> Result<&Token<'a>, ParserError<'a>> {
-        self.tokens.peek().ok_or_else(|| ParserError::EndOfFile)
-    }
-
-    fn matches(&mut self, expected: &'static [TokenKind]) -> Result<Token<'a>, ParserError<'a>> {
-        let token = match self.tokens.peek() {
-            Some(token) => token,
-            None => return Err(ParserError::EndOfFile),
-        };
-
-        if expected.iter().any(|kind| kind == &token.kind) {
-            return Ok(self.tokens.next().unwrap());
-        }
-
-        Err(ParserError::DidntExpect(token.kind, expected))
+        })
     }
 }
