@@ -11,6 +11,12 @@
 
 ## EBNF
 ```ebnf
+program = statement* EOF ;
+
+statement = expression_statement ;
+
+expression_statement = expression ";" ;
+
 expression = equality;
 
 equality = comparison ( ( "==" | "!=" ) comparison )* ;
@@ -24,5 +30,5 @@ factor = unary ( ( "/" | "*" ) unary )* ;
 unary = ( "!" | "-" ) unary
       | primary ;
 
-primary = NUMBER | STRING | "true" | "false" | "(" expression ")" ;
+primary = NUMBER | STRING | IDENTIFIER | BOOLEAN | "(" expression ")" ;
 ```
