@@ -1,14 +1,12 @@
 pub mod utils;
 
-use crate::utils::color_fmt;
-use crate::utils::Color::Red;
-use std::fmt::Formatter;
-use std::{fmt, fs, io};
-use strum_macros::AsRefStr;
-use serde::Serialize;
-use utils::Color;
+use std::{fmt::Display, fs, io};
 
-static mut CODE_COUNT: usize = 0;
+use serde::Serialize;
+use strum::EnumProperty;
+use strum_macros::AsRefStr;
+
+use utils::{color_fmt, Color};
 
 #[derive(Debug, Clone, AsRefStr, strum_macros::EnumProperty)]
 pub enum ReportKind {
@@ -27,19 +25,26 @@ pub struct SourceDetails {
 }
 
 impl SourceDetails {
-    pub fn new(source: &str, path: &str) -> SourceDetails {
+    pub fn new<S>(source: S, path: S) -> SourceDetails
+    where
+        S: Into<String>,
+    {
         SourceDetails {
-            source: source.to_string(),
-            path: path.to_string(),
+            source: source.into(),
+            path: path.into(),
         }
     }
 
-    pub fn read(file_path: &str) -> Result<SourceDetails, io::Error> {
-        let file_source = fs::read_to_string(file_path)?;
+    pub fn read<S>(file_path: S) -> Result<SourceDetails, io::Error>
+    where
+        S: Into<String>,
+    {
+        let file_path = file_path.into();
+        let file_source = fs::read_to_string(&file_path)?;
 
         Ok(SourceDetails {
             source: file_source,
-            path: file_path.to_string(),
+            path: file_path,
         })
     }
 }
@@ -72,6 +77,7 @@ impl<'a> Span<'a> {
         LabelBuilder {
             span: Span::new(source_details, line, start, end),
             message: None,
+            message_colors: None,
             color: None,
         }
     }
@@ -84,16 +90,36 @@ pub struct Label<'a> {
     color: Option<Color>,
 }
 
+impl<'a> Label<'a> {
+    pub fn new(span: Span<'a>) -> LabelBuilder<'a> {
+        LabelBuilder {
+            span,
+            message: None,
+            message_colors: None,
+            color: None,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct LabelBuilder<'a> {
     span: Span<'a>,
     message: Option<String>,
+    message_colors: Option<&'a [Color]>,
     color: Option<Color>,
 }
 
 impl<'a> LabelBuilder<'a> {
-    pub fn message(&mut self, message: &str) -> &mut Self {
-        self.message = Some(message.to_owned());
+    pub fn message<S>(&mut self, message: S) -> &mut Self
+    where
+        S: Into<String>,
+    {
+        self.message = Some(message.into());
+        self
+    }
+
+    pub fn message_colors(&mut self, colors: &'a [Color]) -> &mut Self {
+        self.message_colors = Some(colors);
         self
     }
 
@@ -116,36 +142,51 @@ pub struct Report<'a> {
     labels: Vec<Label<'a>>,
     code: usize,
     message: String,
+    message_colors: Option<&'a [Color]>,
     kind: ReportKind,
     note: Option<String>,
+    note_colors: Option<&'a [Color]>,
 }
 
-impl<'a> Report<'a> {
-    pub fn new(message: &'a str, kind: ReportKind) -> ReportBuilder {
-        ReportBuilder {
-            labels: Vec::new(),
-            code: None,
-            message: message.to_string(),
-            kind,
-            note: None,
-        }
+impl<'a> Display for Report<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let prefix = self.kind.get_str("prefix").unwrap();
+        let kind = self.kind.as_ref();
+
+        let mut header = format!("[[[{}{:04}]]] [{}]: {}", prefix, self.code, kind, self.message);
+        let colors = [&[Color::Red, Color::Red], self.message_colors.unwrap_or(&[])].concat();
+        header = color_fmt(&header, &colors);
+
+        write!(f, "{}", header)
     }
 }
 
-impl fmt::Display for Report<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", color_format!("{[{{:04}}] {{}}:}", Red))
-        // write!(f, "{}", color_format!(&format!("{{[{:04}] {}:}}", self.code, self.kind.as_ref()), Red))
+impl<'a> Report<'a> {
+    pub fn new<S>(message: S, code: usize, kind: ReportKind) -> ReportBuilder<'a>
+    where
+        S: Into<String>,
+    {
+        ReportBuilder {
+            labels: Vec::new(),
+            code,
+            message: message.into(),
+            message_colors: None,
+            kind,
+            note: None,
+            note_colors: None,
+        }
     }
 }
 
 #[derive(Debug)]
 pub struct ReportBuilder<'a> {
     labels: Vec<Label<'a>>,
-    code: Option<usize>,
+    code: usize,
     message: String,
+    message_colors: Option<&'a [Color]>,
     kind: ReportKind,
     note: Option<String>,
+    note_colors: Option<&'a [Color]>,
 }
 
 impl<'a> ReportBuilder<'a> {
@@ -154,26 +195,33 @@ impl<'a> ReportBuilder<'a> {
         self
     }
 
-    pub fn code(&mut self, code: usize) -> &mut Self {
-        self.code = Some(code);
+    pub fn note<S>(&mut self, note: S) -> &mut Self
+    where
+        S: Into<String>,
+    {
+        self.note = Some(note.into());
         self
     }
 
-    pub fn note(&mut self, note: &str) -> &mut Self {
-        self.note = Some(note.to_owned());
+    pub fn note_colors(&mut self, colors: &'a [Color]) -> &mut Self {
+        self.note_colors = Some(colors);
+        self
+    }
+
+    pub fn message_colors(&mut self, colors: &'a [Color]) -> &mut Self {
+        self.message_colors = Some(colors);
         self
     }
 
     pub fn build(&self) -> Report<'a> {
         Report {
             labels: self.labels.clone(),
-            code: self.code.unwrap_or(unsafe {
-                CODE_COUNT += 1;
-                CODE_COUNT
-            }),
-            message: self.message.to_owned(),
+            code: self.code,
+            message: self.message.clone(),
+            message_colors: self.message_colors,
             kind: self.kind.clone(),
             note: self.note.clone(),
+            note_colors: self.note_colors,
         }
     }
 }
