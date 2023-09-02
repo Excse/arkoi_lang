@@ -1,6 +1,5 @@
+use parser::{Parser, ParserError};
 use diagnostics::SourceDetails;
-
-use parser::Parser;
 use lexer::Lexer;
 
 fn main() {
@@ -12,6 +11,13 @@ fn main() {
     let mut lexer = Lexer::new(&source_details);
     let mut parser = Parser::new(&mut lexer);
 
-    let expression = parser.parse_expression().unwrap();
-    println!("{:#?}", expression);
+    let statements = parser.parse_program();
+    println!("Statements: {:#?}", statements);
+
+    for error in parser.errors {
+        match error {
+            ParserError::Diagnostic(report) => println!("{}", report),
+            error => println!("{:#?}", error),
+        }
+    }
 }
