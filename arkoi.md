@@ -35,5 +35,5 @@ factor = unary ( ( "/" | "*" ) unary )* ;
 unary = ( "!" | "-" ) unary
       | primary ;
 
-primary = NUMBER | STRING | IDENTIFIER | BOOLEAN | "(" expression ")" ;
+primary = NUMBER | STRING | IDENTIFIER | "true" | "false" | "(" expression ")" ;
 ```
