@@ -12,3 +12,4 @@ version = { workspace = true }
 lexer = { path = "../lexer" }
 diagnostics = { path = "../diagnostics" }
 serde = { version = "1.0.188", features = ["derive"] }
+serdebug = "1.0.5"
