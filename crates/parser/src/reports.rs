@@ -1,13 +1,9 @@
+use crate::ParserError;
 use diagnostics::utils::Color;
 use diagnostics::{Label, Report, ReportKind};
 use lexer::token::{Token, TokenKind};
 
-use crate::ParserError;
-
-pub(crate) fn didnt_expect<'a>(
-    got: &Token<'a>,
-    expected: &'static [TokenKind<'static>],
-) -> ParserError<'a> {
+pub(crate) fn didnt_expect<'a, S>(got: &Token<'a>, expected: &[TokenKind]) -> Result<S, ParserError<'a>> {
     let expected = expected
         .iter()
         .map(|kind| format!("{}", kind.as_ref()))
@@ -19,7 +15,7 @@ pub(crate) fn didnt_expect<'a>(
         expected,
         got.kind.as_ref()
     );
-    let label_message = format!("Expected '[{}]' instead of this character.", expected);
+    let label_message = format!("Expected '[{}]' instead of this token.", expected);
 
     let report = Report::new(report_message, 0001, ReportKind::Error)
         .message_colors(&[Color::Red, Color::Blue])
@@ -32,10 +28,10 @@ pub(crate) fn didnt_expect<'a>(
         )
         .build();
 
-    ParserError::Diagnostic(report)
+    Err(ParserError::Diagnostic(report))
 }
 
-pub(crate) fn unexpected_eof<'a>(expected: &'static [TokenKind<'static>]) -> ParserError<'a> {
+pub(crate) fn unexpected_eof<'a, S>(expected: &[TokenKind]) -> Result<S, ParserError<'a>> {
     let expected = expected
         .iter()
         .map(|kind| format!("{}", kind.as_ref()))
@@ -51,5 +47,5 @@ pub(crate) fn unexpected_eof<'a>(expected: &'static [TokenKind<'static>]) -> Par
         .message_colors(&[Color::Red])
         .build();
 
-    ParserError::Diagnostic(report)
+    Err(ParserError::Diagnostic(report))
 }

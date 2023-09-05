@@ -7,7 +7,7 @@ use lexer::{
     Lexer, TokenIter,
 };
 
-pub struct Cursor<'a> {
+pub(crate) struct Cursor<'a> {
     iterator: Peekable<TokenIter<'a>>,
 }
 
@@ -48,19 +48,39 @@ impl<'a> Cursor<'a> {
         self.iterator.peek().ok_or_else(|| ParserError::EndOfFile)
     }
 
-    pub fn consume_if(
-        &mut self,
-        expected: &'static [TokenKind],
-    ) -> Result<Token<'a>, ParserError<'a>> {
+    pub fn is_peek(&mut self, expected: TokenKind) -> Option<&Token<'a>> {
+        let current = self.peek().ok()?;
+
+        if expected == current.kind {
+            Some(current)
+        } else {
+            None
+        }
+    }
+
+    pub fn eat_all(&mut self, expected: &[TokenKind]) -> Result<Token<'a>, ParserError<'a>> {
         let token = match self.peek() {
             Ok(token) => token,
-            Err(_) => return Err(reports::unexpected_eof(expected)),
+            Err(_) => return reports::unexpected_eof(expected),
         };
 
-        if expected.iter().any(|kind| kind.same_variant(&token.kind)) {
+        if expected.iter().any(|kind| kind == &token.kind) {
             return Ok(self.iterator.next().unwrap());
         }
 
-        Err(reports::didnt_expect(token, expected))
+        reports::didnt_expect(token, expected)
+    }
+
+    pub fn eat(&mut self, expected: TokenKind) -> Result<Token<'a>, ParserError<'a>> {
+        let token = match self.peek() {
+            Ok(token) => token,
+            Err(_) => return reports::unexpected_eof(&[expected]),
+        };
+
+        if expected == token.kind {
+            return Ok(self.iterator.next().unwrap());
+        }
+
+        reports::didnt_expect(token, &[expected])
     }
 }

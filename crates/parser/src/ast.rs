@@ -1,9 +1,8 @@
 use serde::Serialize;
-
-use lexer::token::Token;
 use serdebug::SerDebug;
 
 use crate::traversel::{Visitable, Visitor};
+use lexer::token::Token;
 
 #[derive(SerDebug, Serialize)]
 pub enum LiteralKind<'a> {

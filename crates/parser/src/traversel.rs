@@ -1,5 +1,5 @@
-use serdebug::SerDebug;
 use serde::Serialize;
+use serdebug::SerDebug;
 
 use crate::ast::{ExpressionKind, LiteralKind, StatementKind};
 
