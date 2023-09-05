@@ -2,6 +2,8 @@ pub mod cursor;
 pub mod token;
 
 use diagnostics::SourceDetails;
+use serdebug::SerDebug;
+use serde::Serialize;
 use token::{Token, TokenKind};
 use cursor::Cursor;
 
@@ -9,7 +11,7 @@ pub struct Lexer<'a> {
     cursor: Cursor<'a>,
 }
 
-#[derive(Debug)]
+#[derive(SerDebug, Serialize)]
 pub enum LexerError {
     DidntExpect(char, &'static str),
     InternalError(&'static str),
@@ -206,7 +208,7 @@ mod tests {
                 let mut lexer = Lexer::new(&source_details);
                 let expected = TokenKind::from($expected);
                 let token = lexer.next_token().unwrap();
-                assert_eq!(token, expected, "Input was {:?}", $source);
+                assert!(token.same_variant(&expected), "Input was {:?}", $source);
             }
         };
     }

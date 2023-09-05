@@ -1,15 +1,16 @@
 use serde::Serialize;
+use serdebug::SerDebug;
 use strum::AsRefStr;
 
 use diagnostics::Span;
 
-#[derive(Debug, Serialize)]
+#[derive(SerDebug, Serialize)]
 pub struct Token<'a> {
     pub span: Span<'a>,
     pub kind: TokenKind<'a>,
 }
 
-#[derive(Debug, PartialEq, Serialize, Copy, Clone, AsRefStr)]
+#[derive(SerDebug, Serialize, Copy, Clone, AsRefStr)]
 pub enum TokenKind<'a> {
     #[serde(rename = "int")]
     #[strum(serialize = "int")]
@@ -157,6 +158,12 @@ pub enum TokenKind<'a> {
     #[serde(rename = "unknown")]
     #[strum(serialize = "unknown")]
     Unknown,
+}
+
+impl<'a> TokenKind<'a> {
+    pub fn same_variant(&self, other: &TokenKind) -> bool {
+        std::mem::discriminant(self) == std::mem::discriminant(other)
+    }
 }
 
 impl<'a> Token<'a> {
