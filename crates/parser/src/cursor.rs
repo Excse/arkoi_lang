@@ -1,11 +1,11 @@
 use std::iter::Peekable;
 
+use crate::reports;
+use crate::ParserError;
 use lexer::{
     token::{Token, TokenKind},
     Lexer, TokenIter,
 };
-use crate::ParserError;
-use crate::reports;
 
 pub struct Cursor<'a> {
     iterator: Peekable<TokenIter<'a>>,
@@ -20,8 +20,9 @@ impl<'a> Cursor<'a> {
 
     pub fn synchronize(&mut self) {
         if let Some(token) = self.consume() {
-            if token.kind == TokenKind::Semicolon {
-                return;
+            match token.kind {
+                TokenKind::Semicolon => return,
+                _ => {}
             }
         }
 
@@ -47,7 +48,7 @@ impl<'a> Cursor<'a> {
         self.iterator.peek().ok_or_else(|| ParserError::EndOfFile)
     }
 
-    pub fn matches(
+    pub fn consume_if(
         &mut self,
         expected: &'static [TokenKind],
     ) -> Result<Token<'a>, ParserError<'a>> {
@@ -56,7 +57,7 @@ impl<'a> Cursor<'a> {
             Err(_) => return Err(reports::unexpected_eof(expected)),
         };
 
-        if expected.iter().any(|kind| kind == &token.kind) {
+        if expected.iter().any(|kind| kind.same_variant(&token.kind)) {
             return Ok(self.iterator.next().unwrap());
         }
 

@@ -1,44 +1,22 @@
+pub mod ast;
 mod cursor;
 mod reports;
+pub mod traversel;
 
-use serde::Serialize;
-
-use lexer::token::{Token, TokenKind};
-use diagnostics::Report;
+use ast::{ExpressionKind, LiteralKind, StatementKind};
 use cursor::Cursor;
+use diagnostics::Report;
+use lexer::token::TokenKind;
 use lexer::Lexer;
+use serdebug::SerDebug;
+use serde::Serialize;
 
 pub struct Parser<'a> {
     cursor: Cursor<'a>,
     pub errors: Vec<ParserError<'a>>,
 }
 
-#[derive(Debug, Serialize)]
-pub enum LiteralKind<'a> {
-    String(&'a str),
-    Integer(usize),
-    Decimal(f64),
-    Boolean(bool),
-    Identifier(&'a str),
-}
-
-#[derive(Debug, Serialize)]
-pub enum StatementKind<'a> {
-    ExpressionStatement(ExpressionKind<'a>),
-}
-
-#[derive(Debug, Serialize)]
-pub enum ExpressionKind<'a> {
-    Equality(Box<ExpressionKind<'a>>, Token<'a>, Box<ExpressionKind<'a>>),
-    Comparison(Box<ExpressionKind<'a>>, Token<'a>, Box<ExpressionKind<'a>>),
-    Term(Box<ExpressionKind<'a>>, Token<'a>, Box<ExpressionKind<'a>>),
-    Factor(Box<ExpressionKind<'a>>, Token<'a>, Box<ExpressionKind<'a>>),
-    Unary(Token<'a>, Box<ExpressionKind<'a>>),
-    Grouping(Box<ExpressionKind<'a>>),
-    Literal(LiteralKind<'a>),
-}
-
-#[derive(Debug)]
+#[derive(SerDebug, Serialize)]
 pub enum ParserError<'a> {
     Diagnostic(Report<'a>),
     EndOfFile,
@@ -72,13 +50,30 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_statement(&mut self) -> Result<StatementKind<'a>, ParserError<'a>> {
+        if self.cursor.consume_if(&[TokenKind::Let]).is_ok() {
+            return self.parse_let_declaration();
+        }
+
         if let Ok(expression) = self.parse_expression() {
-            self.cursor.matches(&[TokenKind::Semicolon])?;
-            return Ok(StatementKind::ExpressionStatement(expression));
+            self.cursor.consume_if(&[TokenKind::Semicolon])?;
+            return Ok(StatementKind::Expression(expression));
         }
 
         let current = self.cursor.peek()?;
         Err(reports::didnt_expect(current, &[]))
+    }
+
+    pub fn parse_let_declaration(&mut self) -> Result<StatementKind<'a>, ParserError<'a>> {
+        let identifier = self.cursor.consume_if(&[TokenKind::Identifier("")])?;
+
+        let expression = match self.cursor.consume_if(&[TokenKind::Assign]) {
+            Ok(_) => Some(self.parse_expression()?),
+            Err(_) => None,
+        };
+
+        self.cursor.consume_if(&[TokenKind::Semicolon])?;
+
+        Ok(StatementKind::LetDeclaration(identifier, expression))
     }
 
     pub fn parse_expression(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
@@ -155,7 +150,7 @@ impl<'a> Parser<'a> {
     fn parse_unary(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
         if let Ok(token) = self
             .cursor
-            .matches(&[TokenKind::Apostrophe, TokenKind::Minus])
+            .consume_if(&[TokenKind::Apostrophe, TokenKind::Minus])
         {
             let right = self.parse_unary()?;
             return Ok(ExpressionKind::Unary(token, Box::new(right)));
@@ -167,30 +162,30 @@ impl<'a> Parser<'a> {
     fn parse_primary(&mut self) -> Result<ExpressionKind<'a>, ParserError<'a>> {
         let current = self.cursor.peek()?;
         Ok(match current.kind {
-            TokenKind::Integer(value) => {
-                self.cursor.consume();
-                ExpressionKind::Literal(LiteralKind::Integer(value))
+            TokenKind::Integer(_) => {
+                let current = self.cursor.consume().unwrap();
+                ExpressionKind::Literal(LiteralKind::Integer(current))
             }
-            TokenKind::Decimal(value) => {
-                self.cursor.consume();
-                ExpressionKind::Literal(LiteralKind::Decimal(value))
+            TokenKind::Decimal(_) => {
+                let current = self.cursor.consume().unwrap();
+                ExpressionKind::Literal(LiteralKind::Decimal(current))
             }
-            TokenKind::String(value) => {
-                self.cursor.consume();
-                ExpressionKind::Literal(LiteralKind::String(value))
+            TokenKind::String(_) => {
+                let current = self.cursor.consume().unwrap();
+                ExpressionKind::Literal(LiteralKind::String(current))
             }
-            TokenKind::Boolean(value) => {
-                self.cursor.consume();
-                ExpressionKind::Literal(LiteralKind::Boolean(value))
+            TokenKind::Boolean(_) => {
+                let current = self.cursor.consume().unwrap();
+                ExpressionKind::Literal(LiteralKind::Boolean(current))
             }
-            TokenKind::Identifier(value) => {
-                self.cursor.consume();
-                ExpressionKind::Literal(LiteralKind::Identifier(value))
+            TokenKind::Identifier(_) => {
+                let current = self.cursor.consume().unwrap();
+                ExpressionKind::Variable(current)
             }
             TokenKind::OParent => {
-                self.cursor.consume();
+                self.cursor.consume().unwrap();
                 let expression = self.parse_expression()?;
-                self.cursor.matches(&[TokenKind::CParent])?;
+                self.cursor.consume_if(&[TokenKind::CParent])?;
                 ExpressionKind::Grouping(Box::new(expression))
             }
             _ => {

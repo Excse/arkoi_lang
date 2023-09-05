@@ -48,7 +48,7 @@ pub(crate) fn unexpected_eof<'a>(expected: &'static [TokenKind<'static>]) -> Par
     );
 
     let report = Report::new(report_message, 0002, ReportKind::Error)
-        .message_colors(&[Color::Red, Color::Blue])
+        .message_colors(&[Color::Red])
         .build();
 
     ParserError::Diagnostic(report)
