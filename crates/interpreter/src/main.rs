@@ -2,7 +2,7 @@ mod execute;
 
 use diagnostics::SourceDetails;
 use execute::Interpreter;
-use lexer::Lexer;
+use lexer::{Lexer, LexerError};
 use parser::{traversel::Visitable, Parser, ParserError};
 
 fn main() {
@@ -12,13 +12,21 @@ fn main() {
     };
 
     let mut lexer = Lexer::new(&source_details);
-    let mut parser = Parser::new(&mut lexer);
+    if !lexer.errors.is_empty() {
+        for error in lexer.errors {
+            match error {
+                LexerError::Diagnostic(report) => println!("{}", report),
+                error => println!("{:#?}", error),
+            }
+        }
 
+        return;
+    }
+
+    let mut parser = Parser::new(&mut lexer);
     let statements = parser.parse_program();
 
     if !parser.errors.is_empty() {
-        println!("Statements: {:#?}", statements);
-
         for error in parser.errors {
             match error {
                 ParserError::Diagnostic(report) => println!("{}", report),

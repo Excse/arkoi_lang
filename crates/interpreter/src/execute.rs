@@ -1,10 +1,11 @@
-use lexer::token::TokenKind;
-use parser::{
-    ast::{ExpressionKind, LiteralKind, StatementKind},
-    traversel::{walk_expression, walk_statement, ExpressionResult, StatementResult, Visitor},
-};
-use serdebug::SerDebug;
 use serde::Serialize;
+use serdebug::SerDebug;
+
+use lexer::token::{TokenKind, TokenValue};
+use parser::ast::{ExpressionKind, LiteralKind, StatementKind};
+use parser::traversel::{
+    walk_expression, walk_statement, ExpressionResult, StatementResult, Visitor,
+};
 
 pub struct Interpreter;
 
@@ -21,11 +22,11 @@ impl<'a> Visitor<'a> for Interpreter {
 
     fn visit_literal(&mut self, literal: &LiteralKind<'a>) -> Self::Result {
         let token = literal.get_token();
-        match token.kind {
-            TokenKind::String(value) => Result::String(value),
-            TokenKind::Integer(value) => Result::Integer(value),
-            TokenKind::Decimal(value) => Result::Decimal(value),
-            TokenKind::Boolean(value) => Result::Boolean(value),
+        match token.value {
+            Some(TokenValue::String(value)) => Result::String(value),
+            Some(TokenValue::Boolean(value)) => Result::Boolean(value),
+            Some(TokenValue::Integer(value)) => Result::Integer(value),
+            Some(TokenValue::Decimal(value)) => Result::Decimal(value),
             _ => todo!("Literal kind not implemented yet."),
         }
     }
@@ -58,7 +59,7 @@ impl<'a> Visitor<'a> for Interpreter {
             ExpressionResult::Unary(rhs) => {
                 let operator = expression.get_operator_token().kind;
                 self.execute_unary(operator, rhs)
-            },
+            }
             ExpressionResult::Grouping(result) => result,
             ExpressionResult::Literal(result) => result,
             ExpressionResult::Variable => todo!(),
