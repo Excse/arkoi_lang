@@ -13,6 +13,11 @@
 ```ebnf
 program = statement* EOF ;
 
+declaration = let_declaration
+            | statement ; 
+
+let_declaration = "let" IDENTIFIER ( "=" expression )? ";" ;
+
 statement = expression_statement ;
 
 expression_statement = expression ";" ;
