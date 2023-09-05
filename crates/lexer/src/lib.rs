@@ -1,20 +1,23 @@
 pub mod cursor;
 pub mod token;
 
-use diagnostics::SourceDetails;
-use serdebug::SerDebug;
+mod reports;
+
 use serde::Serialize;
-use token::{Token, TokenKind};
+use serdebug::SerDebug;
+
 use cursor::Cursor;
+use diagnostics::{Report, SourceDetails};
+use token::{Token, TokenKind, TokenValue};
 
 pub struct Lexer<'a> {
     cursor: Cursor<'a>,
+    pub errors: Vec<LexerError<'a>>,
 }
 
 #[derive(SerDebug, Serialize)]
-pub enum LexerError {
-    DidntExpect(char, &'static str),
-    InternalError(&'static str),
+pub enum LexerError<'a> {
+    Diagnostic(Report<'a>),
     EndOfFile,
 }
 
@@ -26,10 +29,31 @@ impl<'a> Iterator for TokenIter<'a> {
     type Item = Token<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.lexer.next_token() {
-            Ok(token_kind) => Some(Token::new(self.lexer.cursor.as_span(), token_kind)),
-            Err(_) => None,
-        }
+        let token_kind = match self.lexer.next_token_kind() {
+            Ok(token_kind) => token_kind,
+            Err(error) => match error {
+                LexerError::Diagnostic(_) => {
+                    self.lexer.errors.push(error);
+                    return self.next();
+                }
+                _ => return None,
+            },
+        };
+
+        let content = self.lexer.cursor.as_str();
+        let span = self.lexer.cursor.as_span();
+
+        let value = match token_kind {
+            TokenKind::Integer => Some(TokenValue::Integer(content.parse::<usize>().unwrap())),
+            TokenKind::Decimal => Some(TokenValue::Decimal(content.parse::<f64>().unwrap())),
+            TokenKind::Identifier => Some(TokenValue::String(content)),
+            TokenKind::String => Some(TokenValue::String(&content[1..content.len() - 1])),
+            TokenKind::True => Some(TokenValue::Boolean(true)),
+            TokenKind::False => Some(TokenValue::Boolean(false)),
+            _ => None,
+        };
+
+        Some(Token::new(span, value, token_kind))
     }
 }
 
@@ -37,6 +61,7 @@ impl<'a> Lexer<'a> {
     pub fn new(source_details: &'a SourceDetails) -> Lexer<'a> {
         Lexer {
             cursor: Cursor::new(source_details),
+            errors: Vec::new(),
         }
     }
 
@@ -44,20 +69,20 @@ impl<'a> Lexer<'a> {
         TokenIter { lexer: self }
     }
 
-    fn next_token(&mut self) -> Result<TokenKind<'a>, LexerError> {
+    fn next_token_kind(&mut self) -> Result<TokenKind, LexerError<'a>> {
         self.cursor.mark_start();
         match self.cursor.peek() {
             Some(char) if char.is_alphabetic() => self.read_identifier(),
             Some(char) if char.is_numeric() => self.read_number(),
             Some('"') => self.read_string(),
             Some(_) => self.read_symbol(),
-            None => Err(LexerError::EndOfFile),
+            None => return Err(LexerError::EndOfFile),
         }
     }
 
-    fn read_symbol(&mut self) -> Result<TokenKind<'a>, LexerError> {
+    fn read_symbol(&mut self) -> Result<TokenKind, LexerError<'a>> {
         let mut token = match self.cursor.consume() {
-            Some(char) if char.is_whitespace() => self.next_token()?,
+            Some(char) if char.is_whitespace() => self.next_token_kind()?,
             Some('{') => TokenKind::OBracket,
             Some('}') => TokenKind::CBracket,
             Some('(') => TokenKind::OParent,
@@ -99,21 +124,14 @@ impl<'a> Lexer<'a> {
         Ok(token)
     }
 
-    fn read_identifier(&mut self) -> Result<TokenKind<'a>, LexerError> {
-        match self.cursor.consume() {
-            Some(char) if !char.is_alphabetic() => {
-                return Err(LexerError::DidntExpect(char, "a-zA-Z"))
-            }
-            Some(_) => {}
-            None => return Err(LexerError::EndOfFile),
-        }
+    fn read_identifier(&mut self) -> Result<TokenKind, LexerError<'a>> {
+        self.cursor.eat_if(char::is_alphabetic, "a-zA-Z")?;
 
         self.cursor.eat_while(char::is_alphanumeric);
 
-        let identifier_name = self.cursor.as_str();
-        Ok(match identifier_name {
-            "true" => TokenKind::Boolean(true),
-            "false" => TokenKind::Boolean(false),
+        Ok(match self.cursor.as_str() {
+            "true" => TokenKind::True,
+            "false" => TokenKind::False,
             "struct" => TokenKind::Struct,
             "return" => TokenKind::Return,
             "let" => TokenKind::Let,
@@ -131,59 +149,32 @@ impl<'a> Lexer<'a> {
             "isize" => TokenKind::ISize,
             "f32" => TokenKind::F32,
             "f64" => TokenKind::F64,
-            _ => TokenKind::Identifier(identifier_name),
+            _ => TokenKind::Identifier,
         })
     }
 
-    fn read_number(&mut self) -> Result<TokenKind<'a>, LexerError> {
-        match self.cursor.consume() {
-            Some(char) if char.is_numeric() => {}
-            Some(char) => return Err(LexerError::DidntExpect(char, "0-9")),
-            None => return Err(LexerError::EndOfFile),
-        }
+    fn read_number(&mut self) -> Result<TokenKind, LexerError<'a>> {
+        self.cursor.eat_if(char::is_numeric, "0-9")?;
 
         self.cursor.eat_while(char::is_numeric);
 
-        match self.cursor.peek() {
-            Some('.') => {
-                self.cursor.consume();
-                self.cursor.eat_while(char::is_numeric);
-
-                let number = self.cursor.as_str();
-                number
-                    .parse::<f64>()
-                    .map(TokenKind::Decimal)
-                    .map_err(|_| LexerError::InternalError("Couldn't parse the string to a f64."))
-            }
-            _ => {
-                let number = self.cursor.as_str();
-                number
-                    .parse::<usize>()
-                    .map(TokenKind::Integer)
-                    .map_err(|_| LexerError::InternalError("Couldn't parse the string to a usize."))
-            }
+        if self.cursor.eat('.').is_ok() {
+            self.cursor.eat_while(char::is_numeric);
+            Ok(TokenKind::Decimal)
+        } else {
+            Ok(TokenKind::Integer)
         }
     }
 
-    fn read_string(&mut self) -> Result<TokenKind<'a>, LexerError> {
-        match self.cursor.consume() {
-            Some('"') => {}
-            Some(char) => return Err(LexerError::DidntExpect(char, "\"")),
-            None => return Err(LexerError::EndOfFile),
-        };
+    fn read_string(&mut self) -> Result<TokenKind, LexerError<'a>> {
+        self.cursor.eat('"')?;
 
         self.cursor
             .eat_windowed_while(|prev, curr| curr != '"' || prev == '\\');
 
-        match self.cursor.consume() {
-            Some('"') => {}
-            Some(char) => return Err(LexerError::DidntExpect(char, "\"")),
-            None => return Err(LexerError::EndOfFile),
-        };
+        self.cursor.eat('"')?;
 
-        let string_content = self.cursor.as_str();
-        let string_content = &string_content[1..string_content.len() - 1];
-        Ok(TokenKind::String(string_content))
+        Ok(TokenKind::String)
     }
 }
 
@@ -207,23 +198,22 @@ mod tests {
                 let source_details = SourceDetails::new($source, "test.ark");
                 let mut lexer = Lexer::new(&source_details);
                 let expected = TokenKind::from($expected);
-                let token = lexer.next_token().unwrap();
-                assert!(token.same_variant(&expected), "Input was {:?}", $source);
+                let token = lexer.next_token_kind().unwrap();
+                assert!(token == expected, "Input was {:?}", $source);
             }
         };
     }
 
-    test_token!(success_decimal, "4.2" => 4.2);
-    test_token!(success_integer, "42" => 42);
+    test_token!(success_decimal, "4.2" => TokenKind::Decimal);
+    test_token!(success_integer, "42" => TokenKind::Integer);
     test_token!(FAIL: fail_number, read_number, "number");
 
-    test_token!(success_string, "\"Hello World!\"" => TokenKind::String("Hello World!"));
+    test_token!(success_string, "\"Hello World!\"" => TokenKind::String);
     test_token!(FAIL: fail_string, read_string, "Hello World!");
 
-    test_token!(success_true, "true" => TokenKind::Boolean(true));
-    test_token!(success_false, "false" => TokenKind::Boolean(false));
+    test_token!(success_true, "true" => TokenKind::True);
+    test_token!(success_false, "false" => TokenKind::False);
 
-    test_token!(success_bool, "true" => TokenKind::Boolean(true));
     test_token!(success_obracket, "{" => TokenKind::OBracket);
     test_token!(success_cbracket, "}" => TokenKind::CBracket);
     test_token!(success_oparent, "(" => TokenKind::OParent);

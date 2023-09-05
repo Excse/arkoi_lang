@@ -3,6 +3,8 @@ use std::str::Chars;
 
 use diagnostics::{SourceDetails, Span};
 
+use crate::{reports, LexerError};
+
 pub struct Cursor<'a> {
     source_details: &'a SourceDetails,
     chars: Peekable<Chars<'a>>,
@@ -47,6 +49,33 @@ impl<'a> Cursor<'a> {
         self.position += 1;
 
         Some(char)
+    }
+
+    pub fn eat(&mut self, expected: char) -> Result<char, LexerError<'a>> {
+        match self.peek() {
+            Some(char) if char == expected => Ok(self.consume().unwrap()),
+            Some(char) => reports::didnt_expect(
+                char,
+                Span::new(self.source_details, self.line, self.position, self.position),
+                char.to_string(),
+            ),
+            None => Err(LexerError::EndOfFile),
+        }
+    }
+
+    pub fn eat_if<F>(&mut self, predicate: F, message: &'static str) -> Result<char, LexerError<'a>>
+    where
+        F: FnOnce(char) -> bool,
+    {
+        match self.peek() {
+            Some(char) if predicate(char) => Ok(self.consume().unwrap()),
+            Some(char) => reports::didnt_expect(
+                char,
+                Span::new(self.source_details, self.line, self.position, self.position),
+                message.to_string(),
+            ),
+            None => Err(LexerError::EndOfFile),
+        }
     }
 
     pub fn eat_while<F>(&mut self, mut predicate: F)

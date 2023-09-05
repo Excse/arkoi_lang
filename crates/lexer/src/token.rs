@@ -7,26 +7,38 @@ use diagnostics::Span;
 #[derive(SerDebug, Serialize)]
 pub struct Token<'a> {
     pub span: Span<'a>,
-    pub kind: TokenKind<'a>,
+    pub value: Option<TokenValue<'a>>,
+    pub kind: TokenKind,
 }
 
-#[derive(SerDebug, Serialize, Copy, Clone, AsRefStr)]
-pub enum TokenKind<'a> {
+#[derive(SerDebug, Serialize)]
+pub enum TokenValue<'a> {
+    Integer(usize),
+    Decimal(f64),
+    String(&'a str),
+    Boolean(bool),
+}
+
+#[derive(SerDebug, Serialize, Eq, PartialEq, Copy, Clone, AsRefStr)]
+pub enum TokenKind {
     #[serde(rename = "int")]
     #[strum(serialize = "int")]
-    Integer(usize),
+    Integer,
     #[serde(rename = "decimal")]
     #[strum(serialize = "decimal")]
-    Decimal(f64),
+    Decimal,
     #[serde(rename = "identifier")]
     #[strum(serialize = "identifier")]
-    Identifier(&'a str),
+    Identifier,
     #[serde(rename = "string")]
     #[strum(serialize = "string")]
-    String(&'a str),
-    #[serde(rename = "boolean")]
-    #[strum(serialize = "boolean")]
-    Boolean(bool),
+    String,
+    #[serde(rename = "true")]
+    #[strum(serialize = "true")]
+    True,
+    #[serde(rename = "false")]
+    #[strum(serialize = "false")]
+    False,
 
     #[serde(rename = "struct")]
     #[strum(serialize = "struct")]
@@ -160,32 +172,8 @@ pub enum TokenKind<'a> {
     Unknown,
 }
 
-impl<'a> TokenKind<'a> {
-    pub fn same_variant(&self, other: &TokenKind) -> bool {
-        std::mem::discriminant(self) == std::mem::discriminant(other)
-    }
-}
-
 impl<'a> Token<'a> {
-    pub fn new(span: Span<'a>, kind: TokenKind<'a>) -> Token<'a> {
-        Token { span, kind }
-    }
-}
-
-impl<'a> From<&'a str> for TokenKind<'a> {
-    fn from(value: &'a str) -> Self {
-        TokenKind::Identifier(value)
-    }
-}
-
-impl From<usize> for TokenKind<'_> {
-    fn from(value: usize) -> Self {
-        TokenKind::Integer(value)
-    }
-}
-
-impl From<f64> for TokenKind<'_> {
-    fn from(value: f64) -> Self {
-        TokenKind::Decimal(value)
+    pub fn new(span: Span<'a>, value: Option<TokenValue<'a>>, kind: TokenKind) -> Token<'a> {
+        Token { span, value, kind }
     }
 }
