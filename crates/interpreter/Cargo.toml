@@ -12,3 +12,5 @@ colored = "2.0.4"
 diagnostics = { path = "../diagnostics" }
 lexer = { path = "../lexer" }
 parser = { path = "../parser" }
+serde = { version = "1.0.188", features = ["derive"] }
+serdebug = "1.0.5"
