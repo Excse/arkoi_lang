@@ -8,5 +8,6 @@ version = { workspace = true }
 [dependencies]
 colored = "2.0.4"
 serde = { version = "1.0.188", features = ["derive"] }
+serdebug = "1.0.5"
 strum = "0.25"
 strum_macros = "0.25"

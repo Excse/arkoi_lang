@@ -2,13 +2,14 @@ pub mod utils;
 
 use std::{fmt::Display, fs, io};
 
+use serdebug::SerDebug;
 use serde::Serialize;
 use strum::EnumProperty;
 use strum_macros::AsRefStr;
 
 use utils::{color_fmt, Color};
 
-#[derive(Debug, Clone, AsRefStr, strum_macros::EnumProperty)]
+#[derive(SerDebug, Serialize, Clone, AsRefStr, strum::EnumProperty)]
 pub enum ReportKind {
     #[strum(props(prefix = "I"))]
     Info,
@@ -18,27 +19,21 @@ pub enum ReportKind {
     Error,
 }
 
-#[derive(Debug)]
+#[derive(SerDebug, Serialize)]
 pub struct SourceDetails {
     pub source: String,
     path: String,
 }
 
 impl SourceDetails {
-    pub fn new<S>(source: S, path: S) -> SourceDetails
-    where
-        S: Into<String>,
-    {
+    pub fn new<S: Into<String>>(source: S, path: S) -> SourceDetails {
         SourceDetails {
             source: source.into(),
             path: path.into(),
         }
     }
 
-    pub fn read<S>(file_path: S) -> Result<SourceDetails, io::Error>
-    where
-        S: Into<String>,
-    {
+    pub fn read(file_path: impl Into<String>) -> Result<SourceDetails, io::Error> {
         let file_path = file_path.into();
         let file_source = fs::read_to_string(&file_path)?;
 
@@ -49,7 +44,7 @@ impl SourceDetails {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(SerDebug, Clone, Serialize)]
 pub struct Span<'a> {
     #[serde(skip)]
     source_details: &'a SourceDetails,
@@ -67,23 +62,9 @@ impl<'a> Span<'a> {
             end,
         }
     }
-
-    pub fn label(
-        source_details: &'a SourceDetails,
-        line: usize,
-        start: usize,
-        end: usize,
-    ) -> LabelBuilder {
-        LabelBuilder {
-            span: Span::new(source_details, line, start, end),
-            message: None,
-            message_colors: None,
-            color: None,
-        }
-    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(SerDebug, Serialize, Clone)]
 pub struct Label<'a> {
     span: Span<'a>,
     message: Option<String>,
@@ -101,7 +82,7 @@ impl<'a> Label<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(SerDebug, Serialize)]
 pub struct LabelBuilder<'a> {
     span: Span<'a>,
     message: Option<String>,
@@ -110,10 +91,7 @@ pub struct LabelBuilder<'a> {
 }
 
 impl<'a> LabelBuilder<'a> {
-    pub fn message<S>(&mut self, message: S) -> &mut Self
-    where
-        S: Into<String>,
-    {
+    pub fn message(&mut self, message: impl Into<String>) -> &mut Self {
         self.message = Some(message.into());
         self
     }
@@ -137,7 +115,7 @@ impl<'a> LabelBuilder<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(SerDebug, Serialize)]
 pub struct Report<'a> {
     labels: Vec<Label<'a>>,
     code: usize,
@@ -153,19 +131,24 @@ impl<'a> Display for Report<'a> {
         let prefix = self.kind.get_str("prefix").unwrap();
         let kind = self.kind.as_ref();
 
-        let mut header = format!("[[[{}{:04}]]] [{}]: {}", prefix, self.code, kind, self.message);
-        let colors = [&[Color::Red, Color::Red], self.message_colors.unwrap_or(&[])].concat();
-        header = color_fmt(&header, &colors);
+        let mut header = format!(
+            "[[[{}{:04}]]] [{}]: {}",
+            prefix, self.code, kind, self.message
+        );
+        match self.message_colors {
+            Some(message_colors) => {
+                let colors = [&[Color::Red, Color::Red], message_colors].concat();
+                header = color_fmt(&header, &colors);
+            }
+            None => {}
+        };
 
         write!(f, "{}", header)
     }
 }
 
 impl<'a> Report<'a> {
-    pub fn new<S>(message: S, code: usize, kind: ReportKind) -> ReportBuilder<'a>
-    where
-        S: Into<String>,
-    {
+    pub fn new(message: impl Into<String>, code: usize, kind: ReportKind) -> ReportBuilder<'a> {
         ReportBuilder {
             labels: Vec::new(),
             code,
@@ -178,7 +161,7 @@ impl<'a> Report<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(SerDebug, Serialize)]
 pub struct ReportBuilder<'a> {
     labels: Vec<Label<'a>>,
     code: usize,
@@ -195,10 +178,7 @@ impl<'a> ReportBuilder<'a> {
         self
     }
 
-    pub fn note<S>(&mut self, note: S) -> &mut Self
-    where
-        S: Into<String>,
-    {
+    pub fn note(&mut self, note: impl Into<String>) -> &mut Self {
         self.note = Some(note.into());
         self
     }

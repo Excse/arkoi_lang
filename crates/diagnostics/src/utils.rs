@@ -1,9 +1,11 @@
 use std::ops::Range;
 
 use colored::Colorize;
+use serde::Serialize;
+use serdebug::SerDebug;
 
 #[repr(u32)]
-#[derive(Debug, Clone)]
+#[derive(SerDebug, Serialize, Clone)]
 pub enum Color {
     Red = 0xE42667,
     Green = 0xAFFF5F,
