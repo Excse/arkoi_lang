@@ -1,11 +1,12 @@
 mod execute;
 
+use termcolor::{ColorChoice, StandardStream};
+use lasso::Rodeo;
+
 use diagnostics::{file::Files, renderer::Renderer};
 use execute::Interpreter;
-use lasso::Rodeo;
 use lexer::{Lexer, LexerError};
 use parser::{traversel::Visitable, Parser, ParserError};
-use termcolor::{ColorChoice, StandardStream};
 
 fn main() {
     let mut files = Files::default();

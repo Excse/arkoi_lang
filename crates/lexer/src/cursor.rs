@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::iter::Peekable;
 use std::str::Chars;
 
-use crate::LexerError;
+use crate::lexer::LexerError;
 use diagnostics::{
     file::{FileID, Files},
     positional::{Span, Spannable},
