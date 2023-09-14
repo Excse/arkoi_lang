@@ -7,51 +7,51 @@ use lexer::token::Token;
 pub trait ASTNode {}
 
 #[derive(SerDebug, Serialize)]
-pub enum LiteralKind<'a> {
-    String(Token<'a>),
-    Integer(Token<'a>),
-    Decimal(Token<'a>),
-    Boolean(Token<'a>),
+pub enum LiteralKind {
+    String(Token),
+    Integer(Token),
+    Decimal(Token),
+    Boolean(Token),
 }
 
 #[derive(SerDebug, Serialize)]
-pub enum StatementKind<'a> {
-    Expression(ExpressionKind<'a>),
-    LetDeclaration(Token<'a>, Option<ExpressionKind<'a>>),
+pub enum StatementKind {
+    Expression(ExpressionKind),
+    LetDeclaration(Token, Option<ExpressionKind>),
 }
 
 #[derive(SerDebug, Serialize)]
-pub enum ExpressionKind<'a> {
-    Equality(Box<ExpressionKind<'a>>, Token<'a>, Box<ExpressionKind<'a>>),
-    Comparison(Box<ExpressionKind<'a>>, Token<'a>, Box<ExpressionKind<'a>>),
-    Term(Box<ExpressionKind<'a>>, Token<'a>, Box<ExpressionKind<'a>>),
-    Factor(Box<ExpressionKind<'a>>, Token<'a>, Box<ExpressionKind<'a>>),
-    Unary(Token<'a>, Box<ExpressionKind<'a>>),
-    Grouping(Box<ExpressionKind<'a>>),
-    Literal(LiteralKind<'a>),
-    Variable(Token<'a>),
+pub enum ExpressionKind {
+    Equality(Box<ExpressionKind>, Token, Box<ExpressionKind>),
+    Comparison(Box<ExpressionKind>, Token, Box<ExpressionKind>),
+    Term(Box<ExpressionKind>, Token, Box<ExpressionKind>),
+    Factor(Box<ExpressionKind>, Token, Box<ExpressionKind>),
+    Unary(Token, Box<ExpressionKind>),
+    Grouping(Box<ExpressionKind>),
+    Literal(LiteralKind),
+    Variable(Token),
 }
 
-impl<'a> Visitable<'a> for LiteralKind<'a> {
+impl<'a> Visitable<'a> for LiteralKind {
     fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
         visitor.visit_literal(self)
     }
 }
 
-impl<'a> Visitable<'a> for ExpressionKind<'a> {
+impl<'a> Visitable<'a> for ExpressionKind {
     fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
         visitor.visit_expression(self)
     }
 }
 
-impl<'a> Visitable<'a> for StatementKind<'a> {
+impl<'a> Visitable<'a> for StatementKind {
     fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
         visitor.visit_statement(self)
     }
 }
 
-impl<'a> LiteralKind<'a> {
-    pub fn get_token(&self) -> &Token<'a> {
+impl LiteralKind {
+    pub fn get_token(&self) -> &Token {
         match self {
             LiteralKind::String(ref token) => token,
             LiteralKind::Integer(ref token) => token,
@@ -61,8 +61,8 @@ impl<'a> LiteralKind<'a> {
     }
 }
 
-impl<'a> ExpressionKind<'a> {
-    pub fn get_operator_token(&self) -> &Token<'a> {
+impl ExpressionKind {
+    pub fn get_operator_token(&self) -> &Token {
         match self {
             ExpressionKind::Comparison(_, ref token, _) => token,
             ExpressionKind::Term(_, ref token, _) => token,
@@ -74,8 +74,8 @@ impl<'a> ExpressionKind<'a> {
     }
 }
 
-impl<'a> ASTNode for LiteralKind<'a> {}
+impl ASTNode for LiteralKind {}
 
-impl<'a> ASTNode for ExpressionKind<'a> {}
+impl ASTNode for ExpressionKind {}
 
-impl<'a> ASTNode for StatementKind<'a> {}
+impl ASTNode for StatementKind {}

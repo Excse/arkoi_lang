@@ -41,7 +41,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// program = statement* EOF ;
     /// ```
-    pub fn parse_program(&mut self) -> Vec<StatementKind<'a>> {
+    pub fn parse_program(&mut self) -> Vec<StatementKind> {
         let mut statements = Vec::new();
 
         loop {
@@ -64,7 +64,7 @@ impl<'a> Parser<'a> {
     /// declaration = let_declaration
     ///             | statement ;
     /// ```
-    fn parse_declaration(&mut self) -> Result<StatementKind<'a>, ParserError> {
+    fn parse_declaration(&mut self) -> Result<StatementKind, ParserError> {
         if self.cursor.is_peek(TokenKind::Let).is_some() {
             return self.parse_let_declaration();
         }
@@ -75,7 +75,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// statement = expression_statement ;
     /// ```
-    fn parse_statement(&mut self) -> Result<StatementKind<'a>, ParserError> {
+    fn parse_statement(&mut self) -> Result<StatementKind, ParserError> {
         if let Ok(expression) = self.parse_expression() {
             self.cursor.eat(TokenKind::Semicolon)?;
             return Ok(StatementKind::Expression(expression));
@@ -93,7 +93,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// let_declaration = "let" IDENTIFIER ( "=" expression )? ";" ;
     /// ```
-    fn parse_let_declaration(&mut self) -> Result<StatementKind<'a>, ParserError> {
+    fn parse_let_declaration(&mut self) -> Result<StatementKind, ParserError> {
         self.cursor.eat(TokenKind::Let)?;
 
         let identifier = self.cursor.eat(TokenKind::Identifier)?;
@@ -111,14 +111,14 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// expression = equality;
     /// ```
-    fn parse_expression(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    fn parse_expression(&mut self) -> Result<ExpressionKind, ParserError> {
         self.parse_equality()
     }
 
     /// ```ebnf
     /// equality = comparison ( ( "==" | "!=" ) comparison )* ;
     /// ```
-    fn parse_equality(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    fn parse_equality(&mut self) -> Result<ExpressionKind, ParserError> {
         let mut expression = self.parse_comparison()?;
 
         while let Ok(token) = self
@@ -135,7 +135,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// comparison = term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
     /// ```
-    fn parse_comparison(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    fn parse_comparison(&mut self) -> Result<ExpressionKind, ParserError> {
         let mut expression = self.parse_term()?;
 
         while let Ok(token) = self.cursor.eat_all(&[
@@ -154,7 +154,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// term = factor ( ( "-" | "+" ) factor )* ;
     /// ```
-    fn parse_term(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    fn parse_term(&mut self) -> Result<ExpressionKind, ParserError> {
         let mut expression = self.parse_factor()?;
 
         while let Ok(token) = self.cursor.eat_all(&[TokenKind::Plus, TokenKind::Minus]) {
@@ -168,7 +168,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// factor = unary ( ( "/" | "*" ) unary )* ;
     /// ```
-    fn parse_factor(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    fn parse_factor(&mut self) -> Result<ExpressionKind, ParserError> {
         let mut expression = self.parse_unary()?;
 
         while let Ok(token) = self
@@ -186,7 +186,7 @@ impl<'a> Parser<'a> {
     /// unary = ( "!" | "-" ) unary
     ///       | primary ;
     /// ```
-    fn parse_unary(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    fn parse_unary(&mut self) -> Result<ExpressionKind, ParserError> {
         if let Ok(token) = self
             .cursor
             .eat_all(&[TokenKind::Apostrophe, TokenKind::Minus])
@@ -201,7 +201,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// primary = NUMBER | STRING | IDENTIFIER | "true" | "false" | "(" expression ")" ;
     /// ```
-    fn parse_primary(&mut self) -> Result<ExpressionKind<'a>, ParserError> {
+    fn parse_primary(&mut self) -> Result<ExpressionKind, ParserError> {
         if let Ok(token) = self.cursor.eat(TokenKind::Integer) {
             Ok(ExpressionKind::Literal(LiteralKind::Integer(token)))
         } else if let Ok(token) = self.cursor.eat(TokenKind::Decimal) {

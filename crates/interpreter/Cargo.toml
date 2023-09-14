@@ -10,9 +10,11 @@ version = { workspace = true }
 [dependencies]
 colored = "2.0.4"
 diagnostics = { path = "../diagnostics" }
+lasso = { version = "0.7.2", features = ["serialize"] }
 lexer = { path = "../lexer" }
 parser = { path = "../parser" }
 semantic = { path = "../semantic" }
 serde = { version = "1.0.188", features = ["derive"] }
 serdebug = "1.0.5"
+string-interner = "0.14.0"
 termcolor = "1.2.0"

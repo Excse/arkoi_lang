@@ -1,3 +1,4 @@
+use lasso::{Rodeo, Spur};
 use serde::Serialize;
 use serdebug::SerDebug;
 
@@ -7,23 +8,28 @@ use parser::traversel::{
     walk_expression, walk_statement, ExpressionResult, StatementResult, Visitor,
 };
 
-pub struct Interpreter;
+pub struct Interpreter<'a> {
+    interner: &'a mut Rodeo,
+}
 
 #[derive(SerDebug, Serialize)]
-pub enum Result<'a> {
-    String(&'a str),
+pub enum Result {
+    String(String),
     Integer(usize),
     Decimal(f64),
     Boolean(bool),
 }
 
-impl<'a> Visitor<'a> for Interpreter {
-    type Result = Result<'a>;
+impl<'a> Visitor<'a> for Interpreter<'a> {
+    type Result = Result;
 
-    fn visit_literal(&mut self, literal: &LiteralKind<'a>) -> Self::Result {
+    fn visit_literal(&mut self, literal: &LiteralKind) -> Self::Result {
         let token = literal.get_token();
+
         match token.value {
-            Some(TokenValue::String(value)) => Result::String(value),
+            Some(TokenValue::String(value)) => {
+                Result::String(self.interner.resolve(&value).to_string())
+            }
             Some(TokenValue::Boolean(value)) => Result::Boolean(value),
             Some(TokenValue::Integer(value)) => Result::Integer(value),
             Some(TokenValue::Decimal(value)) => Result::Decimal(value),
@@ -31,14 +37,14 @@ impl<'a> Visitor<'a> for Interpreter {
         }
     }
 
-    fn visit_statement(&mut self, statement: &StatementKind<'a>) -> Self::Result {
+    fn visit_statement(&mut self, statement: &StatementKind) -> Self::Result {
         match walk_statement(self, statement) {
             StatementResult::Expression(result) => result,
             StatementResult::LetDeclaration(result) => result,
         }
     }
 
-    fn visit_expression(&mut self, expression: &ExpressionKind<'a>) -> Self::Result {
+    fn visit_expression(&mut self, expression: &ExpressionKind) -> Self::Result {
         match walk_expression(self, expression) {
             ExpressionResult::Equality(lhs, rhs) => {
                 let operator = expression.get_operator_token().kind;
@@ -67,12 +73,12 @@ impl<'a> Visitor<'a> for Interpreter {
     }
 }
 
-impl<'a> Interpreter {
-    fn convert_numerical_operands(
-        &self,
-        lhs: Result<'a>,
-        rhs: Result<'a>,
-    ) -> (Result<'a>, Result<'a>) {
+impl<'a> Interpreter<'a> {
+    pub fn new(interner: &'a mut Rodeo) -> Self {
+        Interpreter { interner }
+    }
+
+    fn convert_numerical_operands(&self, lhs: Result, rhs: Result) -> (Result, Result) {
         match (&lhs, &rhs) {
             (Result::Integer(_), Result::Integer(_)) => (lhs, rhs),
             (Result::Decimal(_), Result::Decimal(_)) => (lhs, rhs),
@@ -88,7 +94,7 @@ impl<'a> Interpreter {
         }
     }
 
-    fn execute_equality(&self, lhs: Result, operator: TokenKind, rhs: Result) -> Result<'a> {
+    fn execute_equality(&self, lhs: Result, operator: TokenKind, rhs: Result) -> Result {
         let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
         match (lhs, operator, rhs) {
             (Result::Integer(lhs), TokenKind::Equal, Result::Integer(rhs)) => {
@@ -113,7 +119,7 @@ impl<'a> Interpreter {
         }
     }
 
-    fn execute_comparison(&self, lhs: Result, operator: TokenKind, rhs: Result) -> Result<'a> {
+    fn execute_comparison(&self, lhs: Result, operator: TokenKind, rhs: Result) -> Result {
         let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
         match (lhs, operator, rhs) {
             (Result::Integer(lhs), TokenKind::Greater, Result::Integer(rhs)) => {
@@ -144,7 +150,7 @@ impl<'a> Interpreter {
         }
     }
 
-    fn execute_term(&self, lhs: Result, operator: TokenKind, rhs: Result) -> Result<'a> {
+    fn execute_term(&self, lhs: Result, operator: TokenKind, rhs: Result) -> Result {
         let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
         match (lhs, operator, rhs) {
             (Result::Integer(lhs), TokenKind::Plus, Result::Integer(rhs)) => {
@@ -163,7 +169,7 @@ impl<'a> Interpreter {
         }
     }
 
-    fn execute_factor(&self, lhs: Result, operator: TokenKind, rhs: Result) -> Result<'a> {
+    fn execute_factor(&self, lhs: Result, operator: TokenKind, rhs: Result) -> Result {
         let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
         match (lhs, operator, rhs) {
             (Result::Integer(lhs), TokenKind::Asterisk, Result::Integer(rhs)) => {
@@ -182,7 +188,7 @@ impl<'a> Interpreter {
         }
     }
 
-    fn execute_unary(&self, operator: TokenKind, rhs: Result) -> Result<'a> {
+    fn execute_unary(&self, operator: TokenKind, rhs: Result) -> Result {
         match (operator, rhs) {
             // (TokenKind::Minus, Result::Integer(rhs)) => Result::Integer(-rhs),
             (TokenKind::Minus, Result::Decimal(rhs)) => Result::Decimal(-rhs),

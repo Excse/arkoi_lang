@@ -47,15 +47,15 @@ impl<'a> Cursor<'a> {
         }
     }
 
-    pub fn consume(&mut self) -> Option<Token<'a>> {
+    pub fn consume(&mut self) -> Option<Token> {
         self.iterator.next()
     }
 
-    pub fn peek(&mut self) -> Result<&Token<'a>, ParserError> {
+    pub fn peek(&mut self) -> Result<&Token, ParserError> {
         self.iterator.peek().ok_or(ParserError::EndOfFile)
     }
 
-    pub fn is_peek(&mut self, expected: TokenKind) -> Option<&Token<'a>> {
+    pub fn is_peek(&mut self, expected: TokenKind) -> Option<&Token> {
         let current = self.peek().ok()?;
 
         if expected == current.kind {
@@ -65,7 +65,7 @@ impl<'a> Cursor<'a> {
         }
     }
 
-    pub fn eat_all(&mut self, expected: &[TokenKind]) -> Result<Token<'a>, ParserError> {
+    pub fn eat_all(&mut self, expected: &[TokenKind]) -> Result<Token, ParserError> {
         let token = match self.peek() {
             Ok(token) => token,
             Err(_) => {
@@ -99,7 +99,7 @@ impl<'a> Cursor<'a> {
         )))
     }
 
-    pub fn eat(&mut self, expected: TokenKind) -> Result<Token<'a>, ParserError> {
+    pub fn eat(&mut self, expected: TokenKind) -> Result<Token, ParserError> {
         let token = match self.peek() {
             Ok(token) => token,
             Err(_) => return Err(ParserError::Report(unexpected_eof(expected.as_ref()))),

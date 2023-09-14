@@ -10,9 +10,9 @@ pub trait Visitable<'a> {
 pub trait Visitor<'a> {
     type Result;
 
-    fn visit_statement(&mut self, statement: &StatementKind<'a>) -> Self::Result;
-    fn visit_expression(&mut self, expression: &ExpressionKind<'a>) -> Self::Result;
-    fn visit_literal(&mut self, literal: &LiteralKind<'a>) -> Self::Result;
+    fn visit_statement(&mut self, statement: &StatementKind) -> Self::Result;
+    fn visit_expression(&mut self, expression: &ExpressionKind) -> Self::Result;
+    fn visit_literal(&mut self, literal: &LiteralKind) -> Self::Result;
 }
 
 #[derive(SerDebug, Serialize)]
@@ -35,7 +35,7 @@ pub enum ExpressionResult<'a, V: Visitor<'a>> {
 
 pub fn walk_statement<'a, V: Visitor<'a>>(
     visitor: &mut V,
-    statement: &StatementKind<'a>,
+    statement: &StatementKind,
 ) -> StatementResult<'a, V> {
     match *statement {
         StatementKind::Expression(ref expression) => {
@@ -50,7 +50,7 @@ pub fn walk_statement<'a, V: Visitor<'a>>(
 
 pub fn walk_expression<'a, V: Visitor<'a>>(
     visitor: &mut V,
-    expression: &ExpressionKind<'a>,
+    expression: &ExpressionKind,
 ) -> ExpressionResult<'a, V> {
     match *expression {
         ExpressionKind::Equality(ref lhs, _, ref rhs) => {

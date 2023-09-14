@@ -4,6 +4,8 @@ use serde::Serialize;
 pub mod cursor;
 pub mod token;
 
+use lasso::Rodeo;
+
 use cursor::Cursor;
 use diagnostics::{
     file::{FileID, Files},
@@ -15,6 +17,7 @@ use token::{Token, TokenKind, TokenValue};
 #[derive(Debug)]
 pub struct Lexer<'a> {
     cursor: Cursor<'a>,
+    interner: &'a mut Rodeo,
     pub errors: Vec<LexerError>,
 }
 
@@ -32,7 +35,7 @@ pub struct TokenIter<'a> {
 }
 
 impl<'a> Iterator for TokenIter<'a> {
-    type Item = Token<'a>;
+    type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
         let token_kind = match self.lexer.next_token_kind() {
@@ -52,8 +55,14 @@ impl<'a> Iterator for TokenIter<'a> {
         let value = match token_kind {
             TokenKind::Integer => Some(TokenValue::Integer(content.parse::<usize>().unwrap())),
             TokenKind::Decimal => Some(TokenValue::Decimal(content.parse::<f64>().unwrap())),
-            TokenKind::Identifier => Some(TokenValue::String(content)),
-            TokenKind::String => Some(TokenValue::String(&content[1..content.len() - 1])),
+            TokenKind::Identifier => Some(TokenValue::String(
+                self.lexer.interner.get_or_intern(content),
+            )),
+            TokenKind::String => Some(TokenValue::String(
+                self.lexer
+                    .interner
+                    .get_or_intern(&content[1..content.len() - 1]),
+            )),
             TokenKind::True => Some(TokenValue::Boolean(true)),
             TokenKind::False => Some(TokenValue::Boolean(false)),
             _ => None,
@@ -64,9 +73,10 @@ impl<'a> Iterator for TokenIter<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(files: &'a Files, file_id: FileID) -> Lexer<'a> {
+    pub fn new(files: &'a Files, file_id: FileID, interner: &'a mut Rodeo) -> Lexer<'a> {
         Lexer {
             cursor: Cursor::new(file_id, files),
+            interner,
             errors: Vec::new(),
         }
     }
@@ -195,7 +205,9 @@ mod tests {
                 let mut files = Files::default();
                 let file_id = files.add("test.ark", $source);
 
-                let mut lexer = Lexer::new(&files, file_id);
+                let mut interner = Rodeo::default();
+
+                let mut lexer = Lexer::new(&files, file_id, &mut interner);
                 let token = lexer.$func();
                 assert!(token.is_err(), "{:?} should be an error", token);
             }
@@ -206,7 +218,9 @@ mod tests {
                 let mut files = Files::default();
                 let file_id = files.add("test.ark", $source);
 
-                let mut lexer = Lexer::new(&files, file_id);
+                let mut interner = Rodeo::default();
+
+                let mut lexer = Lexer::new(&files, file_id, &mut interner);
                 let expected = TokenKind::from($expected);
                 let token = lexer.next_token_kind().unwrap();
                 assert!(token == expected, "Input was {:?}", $source);
@@ -265,6 +279,12 @@ mod tests {
 
     macro_rules! insta_test {
         ($name:ident, $path:expr) => {
+            #[derive(Serialize)]
+            struct InstaSnapshot<'a> {
+                tokens: &'a [Token],
+                interner: &'a Rodeo,
+            }
+
             #[test]
             fn $name() {
                 let mut files = Files::default();
@@ -272,10 +292,15 @@ mod tests {
                 let source = std::fs::read_to_string($path).expect("Couldn't read the file.");
                 let file_id = files.add($path, &source);
 
-                let mut lexer = Lexer::new(&files, file_id);
+                let mut interner = Rodeo::default();
+
+                let mut lexer = Lexer::new(&files, file_id, &mut interner);
                 let tokens = lexer.iter().collect::<Vec<Token>>();
 
-                insta::assert_yaml_snapshot!(&tokens);
+                insta::assert_yaml_snapshot!(InstaSnapshot {
+                    tokens: &tokens,
+                    interner: &interner,
+                });
             }
         };
     }

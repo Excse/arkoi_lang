@@ -67,11 +67,11 @@ pub enum ResolutionError {}
 impl<'a> Visitor<'a> for NameResolution<'a> {
     type Result = Result<(), ResolutionError>;
 
-    fn visit_literal(&mut self, literal: &LiteralKind<'a>) -> Self::Result {
+    fn visit_literal(&mut self, literal: &LiteralKind) -> Self::Result {
         Ok(())
     }
 
-    fn visit_statement(&mut self, statement: &StatementKind<'a>) -> Self::Result {
+    fn visit_statement(&mut self, statement: &StatementKind) -> Self::Result {
         // walk_statement(self, statement);
 
         // let current = self.current_scope();
@@ -92,7 +92,7 @@ impl<'a> Visitor<'a> for NameResolution<'a> {
         Ok(())
     }
 
-    fn visit_expression(&mut self, expression: &ExpressionKind<'a>) -> Self::Result {
+    fn visit_expression(&mut self, expression: &ExpressionKind) -> Self::Result {
         Ok(())
     }
 }

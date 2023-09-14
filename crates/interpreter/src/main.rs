@@ -2,6 +2,7 @@ mod execute;
 
 use diagnostics::{file::Files, renderer::Renderer};
 use execute::Interpreter;
+use lasso::Rodeo;
 use lexer::{Lexer, LexerError};
 use parser::{traversel::Visitable, Parser, ParserError};
 use termcolor::{ColorChoice, StandardStream};
@@ -16,7 +17,9 @@ fn main() {
     let stdout = StandardStream::stdout(ColorChoice::Auto);
     let mut renderer = Renderer::new(&files, stdout);
 
-    let mut lexer = Lexer::new(&files, file_id);
+    let mut interner = Rodeo::new();
+
+    let mut lexer = Lexer::new(&files, file_id, &mut interner);
     if !lexer.errors.is_empty() {
         for error in lexer.errors {
             match error {
@@ -47,7 +50,7 @@ fn main() {
     //     let _ = statement.accept::<NameResolution>(&mut name_resolution);
     // });
 
-    let mut interpreter = Interpreter;
+    let mut interpreter = Interpreter::new(&mut interner);
     statements.iter().for_each(|statement| {
         let result = statement.accept::<Interpreter>(&mut interpreter);
         println!("{:#?} with a result of {:?}", statement, result);

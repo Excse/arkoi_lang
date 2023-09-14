@@ -1,23 +1,25 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use diagnostics::positional::Span;
+use lasso::Spur;
 use strum::AsRefStr;
+
+use diagnostics::positional::Span;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub struct Token<'a> {
+pub struct Token {
     pub span: Span,
-    pub value: Option<TokenValue<'a>>,
+    pub value: Option<TokenValue>,
     pub kind: TokenKind,
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub enum TokenValue<'a> {
+pub enum TokenValue {
     Integer(usize),
     Decimal(f64),
-    String(&'a str),
+    String(Spur),
     Boolean(bool),
 }
 
@@ -175,12 +177,12 @@ pub enum TokenKind {
     Unknown,
 }
 
-impl<'a> Token<'a> {
-    pub fn new(span: Span, value: Option<TokenValue<'a>>, kind: TokenKind) -> Token<'a> {
+impl Token {
+    pub fn new(span: Span, value: Option<TokenValue>, kind: TokenKind) -> Token {
         Token { span, value, kind }
     }
 
-    pub fn get_str(&self) -> Option<&'a str> {
+    pub fn get_str(&self) -> Option<Spur> {
         match self.value {
             Some(TokenValue::String(value)) => Some(value),
             _ => None,
