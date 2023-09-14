@@ -4,6 +4,8 @@ members = [
   "crates/interpreter",
   "crates/lexer",
   "crates/parser",
+  "crates/semantic",
+  "crates/errors"
 ]
 
 [workspace.package]

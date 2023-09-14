@@ -4,6 +4,8 @@ use serdebug::SerDebug;
 use crate::traversel::{Visitable, Visitor};
 use lexer::token::Token;
 
+pub trait ASTNode {}
+
 #[derive(SerDebug, Serialize)]
 pub enum LiteralKind<'a> {
     String(Token<'a>),
@@ -55,7 +57,6 @@ impl<'a> LiteralKind<'a> {
             LiteralKind::Integer(ref token) => token,
             LiteralKind::Decimal(ref token) => token,
             LiteralKind::Boolean(ref token) => token,
-            _ => todo!("Literal is not implemented yet."),
         }
     }
 }
@@ -72,3 +73,9 @@ impl<'a> ExpressionKind<'a> {
         }
     }
 }
+
+impl<'a> ASTNode for LiteralKind<'a> {}
+
+impl<'a> ASTNode for ExpressionKind<'a> {}
+
+impl<'a> ASTNode for StatementKind<'a> {}

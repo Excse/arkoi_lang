@@ -9,7 +9,12 @@ version = { workspace = true }
 
 [dependencies]
 diagnostics = { path = "../diagnostics" }
+errors = { path = "../errors" }
+
 insta = { version = "1.31.0", features = ["yaml"] }
-serde = { version = "1.0.188", features = ["derive"] }
-serdebug = "1.0.5"
+serde = { version = "1.0.188", features = ["derive"], optional = true }
 strum = { version = "0.25.0", features = ["derive"] }
+
+[features]
+default = [ "serialize" ]
+serialize = [ "dep:serde" ]

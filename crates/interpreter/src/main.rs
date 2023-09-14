@@ -1,21 +1,26 @@
 mod execute;
 
-use diagnostics::SourceDetails;
+use diagnostics::{file::Files, renderer::Renderer};
 use execute::Interpreter;
 use lexer::{Lexer, LexerError};
 use parser::{traversel::Visitable, Parser, ParserError};
+use termcolor::{ColorChoice, StandardStream};
 
 fn main() {
-    let source_details = match SourceDetails::read("examples/parser.ark") {
-        Ok(source_details) => source_details,
-        Err(err) => panic!("{err}"),
-    };
+    let mut files = Files::default();
 
-    let mut lexer = Lexer::new(&source_details);
+    let path = "examples/parser.ark";
+    let source = std::fs::read_to_string(path).expect("Couldn't read the file.");
+    let file_id = files.add(path, &source);
+
+    let stdout = StandardStream::stdout(ColorChoice::Auto);
+    let mut renderer = Renderer::new(&files, stdout);
+
+    let mut lexer = Lexer::new(&files, file_id);
     if !lexer.errors.is_empty() {
         for error in lexer.errors {
             match error {
-                LexerError::Diagnostic(report) => println!("{}", report),
+                LexerError::Diagnostic(report) => renderer.render(&report),
                 error => println!("{:#?}", error),
             }
         }
@@ -23,19 +28,24 @@ fn main() {
         return;
     }
 
-    let mut parser = Parser::new(&mut lexer);
+    let mut parser = Parser::new(&files, file_id, &mut lexer);
     let statements = parser.parse_program();
 
     if !parser.errors.is_empty() {
         for error in parser.errors {
             match error {
-                ParserError::Diagnostic(report) => println!("{}", report),
+                ParserError::Report(report) => renderer.render(&report),
                 error => println!("{:#?}", error),
             }
         }
 
         return;
     }
+
+    // let mut name_resolution = NameResolution::new();
+    // statements.iter().for_each(|statement| {
+    //     let _ = statement.accept::<NameResolution>(&mut name_resolution);
+    // });
 
     let mut interpreter = Interpreter;
     statements.iter().for_each(|statement| {

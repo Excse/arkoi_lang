@@ -19,10 +19,10 @@ fun init(self @Test!) @void {
 }
 
 fun add(self @Test) @i64 {
-	self.hello + self.world + self.foo.foo + self.foo.bar
+	return self.hello + self.world + self.foo.foo + self.foo.bar;
 }
 
 fun main() @i32 {
 	let test @i32 = 0;
-	test
+	return test;
 }

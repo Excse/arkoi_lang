@@ -1,17 +1,19 @@
+#[cfg(feature = "serialize")]
 use serde::Serialize;
-use serdebug::SerDebug;
+
+use diagnostics::positional::Span;
 use strum::AsRefStr;
 
-use diagnostics::Span;
-
-#[derive(SerDebug, Serialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub struct Token<'a> {
-    pub span: Span<'a>,
+    pub span: Span,
     pub value: Option<TokenValue<'a>>,
     pub kind: TokenKind,
 }
 
-#[derive(SerDebug, Serialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub enum TokenValue<'a> {
     Integer(usize),
     Decimal(f64),
@@ -19,7 +21,8 @@ pub enum TokenValue<'a> {
     Boolean(bool),
 }
 
-#[derive(SerDebug, Serialize, Eq, PartialEq, Copy, Clone, AsRefStr)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, AsRefStr)]
 pub enum TokenKind {
     #[serde(rename = "int")]
     #[strum(serialize = "int")]
@@ -173,7 +176,35 @@ pub enum TokenKind {
 }
 
 impl<'a> Token<'a> {
-    pub fn new(span: Span<'a>, value: Option<TokenValue<'a>>, kind: TokenKind) -> Token<'a> {
+    pub fn new(span: Span, value: Option<TokenValue<'a>>, kind: TokenKind) -> Token<'a> {
         Token { span, value, kind }
+    }
+
+    pub fn get_str(&self) -> Option<&'a str> {
+        match self.value {
+            Some(TokenValue::String(value)) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn get_int(&self) -> Option<usize> {
+        match self.value {
+            Some(TokenValue::Integer(value)) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn get_dec(&self) -> Option<f64> {
+        match self.value {
+            Some(TokenValue::Decimal(value)) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn get_bool(&self) -> Option<bool> {
+        match self.value {
+            Some(TokenValue::Boolean(value)) => Some(value),
+            _ => None,
+        }
     }
 }

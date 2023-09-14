@@ -1,7 +1,11 @@
 use std::iter::Peekable;
 
-use crate::reports;
 use crate::ParserError;
+use diagnostics::{
+    file::{FileID, Files},
+    positional::Spannable,
+};
+use errors::parser::*;
 use lexer::{
     token::{Token, TokenKind},
     Lexer, TokenIter,
@@ -9,20 +13,23 @@ use lexer::{
 
 pub(crate) struct Cursor<'a> {
     iterator: Peekable<TokenIter<'a>>,
+    files: &'a Files,
+    file_id: FileID,
 }
 
 impl<'a> Cursor<'a> {
-    pub fn new(lexer: &'a mut Lexer<'a>) -> Cursor<'a> {
+    pub fn new(files: &'a Files, file_id: FileID, lexer: &'a mut Lexer<'a>) -> Cursor<'a> {
         Cursor {
             iterator: lexer.iter().peekable(),
+            files,
+            file_id,
         }
     }
 
     pub fn synchronize(&mut self) {
         if let Some(token) = self.consume() {
-            match token.kind {
-                TokenKind::Semicolon => return,
-                _ => {}
+            if token.kind == TokenKind::Semicolon {
+                return;
             }
         }
 
@@ -44,8 +51,8 @@ impl<'a> Cursor<'a> {
         self.iterator.next()
     }
 
-    pub fn peek(&mut self) -> Result<&Token<'a>, ParserError<'a>> {
-        self.iterator.peek().ok_or_else(|| ParserError::EndOfFile)
+    pub fn peek(&mut self) -> Result<&Token<'a>, ParserError> {
+        self.iterator.peek().ok_or(ParserError::EndOfFile)
     }
 
     pub fn is_peek(&mut self, expected: TokenKind) -> Option<&Token<'a>> {
@@ -58,29 +65,58 @@ impl<'a> Cursor<'a> {
         }
     }
 
-    pub fn eat_all(&mut self, expected: &[TokenKind]) -> Result<Token<'a>, ParserError<'a>> {
+    pub fn eat_all(&mut self, expected: &[TokenKind]) -> Result<Token<'a>, ParserError> {
         let token = match self.peek() {
             Ok(token) => token,
-            Err(_) => return reports::unexpected_eof(expected),
+            Err(_) => {
+                let expected = expected
+                    .iter()
+                    .map(|kind| kind.as_ref())
+                    .collect::<Vec<&str>>()
+                    .join(", ");
+                return Err(ParserError::Report(unexpected_eof(expected)));
+            }
         };
 
         if expected.iter().any(|kind| kind == &token.kind) {
             return Ok(self.iterator.next().unwrap());
         }
 
-        reports::didnt_expect(token, expected)
+        let expected = expected
+            .iter()
+            .map(|kind| kind.as_ref())
+            .collect::<Vec<&str>>()
+            .join(", ");
+
+        let kind = token.kind;
+        let span = token.span;
+
+        Err(ParserError::Report(didnt_expect(
+            self.files,
+            self.file_id,
+            Spannable::new(kind.as_ref(), span),
+            expected,
+        )))
     }
 
-    pub fn eat(&mut self, expected: TokenKind) -> Result<Token<'a>, ParserError<'a>> {
+    pub fn eat(&mut self, expected: TokenKind) -> Result<Token<'a>, ParserError> {
         let token = match self.peek() {
             Ok(token) => token,
-            Err(_) => return reports::unexpected_eof(&[expected]),
+            Err(_) => return Err(ParserError::Report(unexpected_eof(expected.as_ref()))),
         };
 
         if expected == token.kind {
             return Ok(self.iterator.next().unwrap());
         }
 
-        reports::didnt_expect(token, &[expected])
+        let kind = token.kind;
+        let span = token.span;
+
+        Err(ParserError::Report(didnt_expect(
+            self.files,
+            self.file_id,
+            Spannable::new(kind.as_ref(), span),
+            expected.as_ref(),
+        )))
     }
 }

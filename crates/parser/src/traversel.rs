@@ -86,6 +86,5 @@ pub fn walk_expression<'a, V: Visitor<'a>>(
             ExpressionResult::Literal(literal)
         }
         ExpressionKind::Variable(_) => ExpressionResult::Variable,
-        _ => todo!("This literal walk is not implemented yet."),
     }
 }

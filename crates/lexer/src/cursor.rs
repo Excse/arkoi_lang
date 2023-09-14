@@ -1,12 +1,22 @@
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+
 use std::iter::Peekable;
 use std::str::Chars;
 
-use diagnostics::{SourceDetails, Span};
+use crate::LexerError;
+use diagnostics::{
+    file::{FileID, Files},
+    positional::{Span, Spannable},
+};
+use errors::lexer::*;
 
-use crate::{reports, LexerError};
-
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub struct Cursor<'a> {
-    source_details: &'a SourceDetails,
+    file_id: FileID,
+    files: &'a Files,
+    #[serde(skip)]
     chars: Peekable<Chars<'a>>,
     position: usize,
     start: usize,
@@ -14,10 +24,15 @@ pub struct Cursor<'a> {
 }
 
 impl<'a> Cursor<'a> {
-    pub fn new(source_details: &'a SourceDetails) -> Cursor<'a> {
+    pub fn new(file_id: FileID, files: &'a Files) -> Cursor<'a> {
+        let source = files
+            .source(file_id)
+            .expect("Couldn't get the source of this file.");
+
         Cursor {
-            source_details,
-            chars: source_details.source.chars().peekable(),
+            file_id,
+            files,
+            chars: source.chars().peekable(),
             position: 0,
             start: 0,
             line: 0,
@@ -28,16 +43,20 @@ impl<'a> Cursor<'a> {
         self.start = self.position;
     }
 
-    pub fn as_span(&mut self) -> Span<'a> {
-        Span::new(self.source_details, self.line, self.start, self.position)
+    pub fn as_span(&self) -> Span {
+        Span::new(self.start, self.position)
     }
 
+    // TODO: Remove the expect
     pub fn as_str(&self) -> &'a str {
-        &self.source_details.source[self.start..self.position]
+        let span = self.as_span();
+        self.files
+            .slice(self.file_id, &span)
+            .expect("Couldn't slice the source")
     }
 
     pub fn peek(&mut self) -> Option<char> {
-        self.chars.peek().map(|char| *char)
+        self.chars.peek().copied()
     }
 
     pub fn consume(&mut self) -> Option<char> {
@@ -51,29 +70,31 @@ impl<'a> Cursor<'a> {
         Some(char)
     }
 
-    pub fn eat(&mut self, expected: char) -> Result<char, LexerError<'a>> {
+    pub fn eat(&mut self, expected: char) -> Result<char, LexerError> {
         match self.peek() {
             Some(char) if char == expected => Ok(self.consume().unwrap()),
-            Some(char) => reports::didnt_expect(
-                char,
-                Span::new(self.source_details, self.line, self.position, self.position),
-                char.to_string(),
-            ),
+            Some(char) => Err(LexerError::Diagnostic(didnt_expect(
+                self.files,
+                self.file_id,
+                Spannable::new(char, Span::new(self.position, self.position)),
+                expected.to_string(),
+            ))),
             None => Err(LexerError::EndOfFile),
         }
     }
 
-    pub fn eat_if<F>(&mut self, predicate: F, message: &'static str) -> Result<char, LexerError<'a>>
+    pub fn eat_if<F>(&mut self, predicate: F, message: &'static str) -> Result<char, LexerError>
     where
         F: FnOnce(char) -> bool,
     {
         match self.peek() {
             Some(char) if predicate(char) => Ok(self.consume().unwrap()),
-            Some(char) => reports::didnt_expect(
-                char,
-                Span::new(self.source_details, self.line, self.position, self.position),
+            Some(char) => Err(LexerError::Diagnostic(didnt_expect(
+                self.files,
+                self.file_id,
+                Spannable::new(char, Span::new(self.position, self.position)),
                 message.to_string(),
-            ),
+            ))),
             None => Err(LexerError::EndOfFile),
         }
     }

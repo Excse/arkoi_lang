@@ -1,26 +1,32 @@
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+
 pub mod cursor;
 pub mod token;
 
-mod reports;
-
-use serde::Serialize;
-use serdebug::SerDebug;
-
 use cursor::Cursor;
-use diagnostics::{Report, SourceDetails};
+use diagnostics::{
+    file::{FileID, Files},
+    report::Report,
+};
 use token::{Token, TokenKind, TokenValue};
 
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub struct Lexer<'a> {
     cursor: Cursor<'a>,
-    pub errors: Vec<LexerError<'a>>,
+    pub errors: Vec<LexerError>,
 }
 
-#[derive(SerDebug, Serialize)]
-pub enum LexerError<'a> {
-    Diagnostic(Report<'a>),
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub enum LexerError {
+    Diagnostic(Report),
     EndOfFile,
 }
 
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub struct TokenIter<'a> {
     lexer: &'a mut Lexer<'a>,
 }
@@ -58,9 +64,9 @@ impl<'a> Iterator for TokenIter<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(source_details: &'a SourceDetails) -> Lexer<'a> {
+    pub fn new(files: &'a Files, file_id: FileID) -> Lexer<'a> {
         Lexer {
-            cursor: Cursor::new(source_details),
+            cursor: Cursor::new(file_id, files),
             errors: Vec::new(),
         }
     }
@@ -69,18 +75,18 @@ impl<'a> Lexer<'a> {
         TokenIter { lexer: self }
     }
 
-    fn next_token_kind(&mut self) -> Result<TokenKind, LexerError<'a>> {
+    fn next_token_kind(&mut self) -> Result<TokenKind, LexerError> {
         self.cursor.mark_start();
         match self.cursor.peek() {
             Some(char) if char.is_alphabetic() => self.read_identifier(),
             Some(char) if char.is_numeric() => self.read_number(),
             Some('"') => self.read_string(),
             Some(_) => self.read_symbol(),
-            None => return Err(LexerError::EndOfFile),
+            None => Err(LexerError::EndOfFile),
         }
     }
 
-    fn read_symbol(&mut self) -> Result<TokenKind, LexerError<'a>> {
+    fn read_symbol(&mut self) -> Result<TokenKind, LexerError> {
         let mut token = match self.cursor.consume() {
             Some(char) if char.is_whitespace() => self.next_token_kind()?,
             Some('{') => TokenKind::OBracket,
@@ -124,7 +130,7 @@ impl<'a> Lexer<'a> {
         Ok(token)
     }
 
-    fn read_identifier(&mut self) -> Result<TokenKind, LexerError<'a>> {
+    fn read_identifier(&mut self) -> Result<TokenKind, LexerError> {
         self.cursor.eat_if(char::is_alphabetic, "a-zA-Z")?;
 
         self.cursor.eat_while(char::is_alphanumeric);
@@ -153,7 +159,7 @@ impl<'a> Lexer<'a> {
         })
     }
 
-    fn read_number(&mut self) -> Result<TokenKind, LexerError<'a>> {
+    fn read_number(&mut self) -> Result<TokenKind, LexerError> {
         self.cursor.eat_if(char::is_numeric, "0-9")?;
 
         self.cursor.eat_while(char::is_numeric);
@@ -166,7 +172,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn read_string(&mut self) -> Result<TokenKind, LexerError<'a>> {
+    fn read_string(&mut self) -> Result<TokenKind, LexerError> {
         self.cursor.eat('"')?;
 
         self.cursor
@@ -186,8 +192,10 @@ mod tests {
         (FAIL: $name:ident, $func:ident, $source:expr) => {
             #[test]
             fn $name() {
-                let source_details = SourceDetails::new($source, "test.ark");
-                let mut lexer = Lexer::new(&source_details);
+                let mut files = Files::default();
+                let file_id = files.add("test.ark", $source);
+
+                let mut lexer = Lexer::new(&files, file_id);
                 let token = lexer.$func();
                 assert!(token.is_err(), "{:?} should be an error", token);
             }
@@ -195,8 +203,10 @@ mod tests {
         ($name:ident, $source:expr => $expected:expr) => {
             #[test]
             fn $name() {
-                let source_details = SourceDetails::new($source, "test.ark");
-                let mut lexer = Lexer::new(&source_details);
+                let mut files = Files::default();
+                let file_id = files.add("test.ark", $source);
+
+                let mut lexer = Lexer::new(&files, file_id);
                 let expected = TokenKind::from($expected);
                 let token = lexer.next_token_kind().unwrap();
                 assert!(token == expected, "Input was {:?}", $source);
@@ -257,12 +267,12 @@ mod tests {
         ($name:ident, $path:expr) => {
             #[test]
             fn $name() {
-                let source_details = match SourceDetails::read($path) {
-                    Ok(source_details) => source_details,
-                    Err(err) => panic!("{err}"),
-                };
+                let mut files = Files::default();
 
-                let mut lexer = Lexer::new(&source_details);
+                let source = std::fs::read_to_string($path).expect("Couldn't read the file.");
+                let file_id = files.add($path, &source);
+
+                let mut lexer = Lexer::new(&files, file_id);
                 let tokens = lexer.iter().collect::<Vec<Token>>();
 
                 insta::assert_yaml_snapshot!(&tokens);
