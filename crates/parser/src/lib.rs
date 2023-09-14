@@ -1,20 +1,22 @@
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+
 pub mod ast;
 pub mod traversel;
 
 mod cursor;
 
+use ast::{ExpressionKind, LiteralKind, StatementKind};
+use cursor::Cursor;
 use diagnostics::file::{FileID, Files};
 use diagnostics::positional::Spannable;
 use diagnostics::report::Report;
 use errors::parser::didnt_expect;
-use serde::Serialize;
-use serdebug::SerDebug;
-
-use ast::{ExpressionKind, LiteralKind, StatementKind};
-use cursor::Cursor;
 use lexer::token::TokenKind;
 use lexer::Lexer;
 
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub struct Parser<'a> {
     cursor: Cursor<'a>,
     files: &'a Files,
@@ -22,7 +24,8 @@ pub struct Parser<'a> {
     pub errors: Vec<ParserError>,
 }
 
-#[derive(SerDebug, Serialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub enum ParserError {
     Report(Report),
     EndOfFile,

@@ -1,7 +1,5 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
-#[cfg(feature = "serdebug")]
-use serdebug::SerDebug;
 
 use std::ops::Range;
 
@@ -16,10 +14,8 @@ impl<C> Spannable<C> {
     }
 }
 
-#[cfg_attr(feature = "serdebug", derive(SerDebug))]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[cfg_attr(not(feature = "serdebug"), derive(Debug))]
-#[derive(Default, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Default, Eq, PartialEq, Clone, Copy)]
 pub struct Span {
     pub(crate) start: usize,
     pub(crate) end: usize,

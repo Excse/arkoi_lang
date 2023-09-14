@@ -1,15 +1,12 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
-#[cfg(feature = "serdebug")]
-use serdebug::SerDebug;
 
 use crate::positional::Span;
 
 pub type FileID = u32;
 
-#[cfg_attr(feature = "serdebug", derive(SerDebug))]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[cfg_attr(not(feature = "serdebug"), derive(Debug))]
+#[derive(Debug)]
 pub struct File {
     pub(crate) path: String,
     pub(crate) source: String,
@@ -73,9 +70,8 @@ impl File {
     }
 }
 
-#[cfg_attr(feature = "serdebug", derive(SerDebug))]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[cfg_attr(not(feature = "serdebug"), derive(Debug))]
+#[derive(Debug)]
 pub struct Files {
     files: Vec<File>,
 }

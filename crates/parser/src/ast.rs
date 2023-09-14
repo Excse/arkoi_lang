@@ -1,12 +1,13 @@
+#[cfg(feature = "serialize")]
 use serde::Serialize;
-use serdebug::SerDebug;
 
 use crate::traversel::{Visitable, Visitor};
 use lexer::token::Token;
 
 pub trait ASTNode {}
 
-#[derive(SerDebug, Serialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub enum LiteralKind {
     String(Token),
     Integer(Token),
@@ -14,13 +15,15 @@ pub enum LiteralKind {
     Boolean(Token),
 }
 
-#[derive(SerDebug, Serialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub enum StatementKind {
     Expression(ExpressionKind),
     LetDeclaration(Token, Option<ExpressionKind>),
 }
 
-#[derive(SerDebug, Serialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub enum ExpressionKind {
     Equality(Box<ExpressionKind>, Token, Box<ExpressionKind>),
     Comparison(Box<ExpressionKind>, Token, Box<ExpressionKind>),

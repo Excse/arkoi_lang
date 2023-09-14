@@ -1,7 +1,5 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
-#[cfg(feature = "serdebug")]
-use serdebug::SerDebug;
 
 use std::fmt::Display;
 
@@ -12,10 +10,8 @@ use crate::{
     positional::Span,
 };
 
-#[cfg_attr(feature = "serdebug", derive(SerDebug))]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[cfg_attr(not(feature = "serdebug"), derive(Debug))]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Serverity {
     Help,
     Note,
@@ -46,9 +42,8 @@ impl Serverity {
     }
 }
 
-#[cfg_attr(feature = "serdebug", derive(SerDebug))]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[cfg_attr(not(feature = "serdebug"), derive(Debug))]
+#[derive(Debug)]
 pub enum ReportBuilderError {
     UninitializedField(&'static str),
     OverlappingLabels(Vec<(Span, Span)>),
@@ -71,10 +66,8 @@ impl Display for ReportBuilderError {
     }
 }
 
-#[cfg_attr(feature = "serdebug", derive(SerDebug))]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[cfg_attr(not(feature = "serdebug"), derive(Debug))]
-#[derive(Builder)]
+#[derive(Debug, Builder)]
 #[builder(build_fn(private, name = "build_report", error = "ReportBuilderError"))]
 pub struct Report {
     #[builder(setter(into))]
@@ -117,9 +110,8 @@ impl ReportBuilder {
     }
 }
 
-#[cfg_attr(feature = "serdebug", derive(SerDebug))]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[cfg_attr(not(feature = "serdebug"), derive(Debug))]
+#[derive(Debug)]
 pub enum LabelBuilderError {
     UninitializedField(&'static str),
     FileNotFound(FileID),
@@ -145,10 +137,8 @@ impl Display for LabelBuilderError {
         }
     }
 }
-#[cfg_attr(feature = "serdebug", derive(SerDebug))]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[cfg_attr(not(feature = "serdebug"), derive(Debug))]
-#[derive(Builder, Clone, PartialEq)]
+#[derive(Debug, Builder, Clone, PartialEq)]
 #[builder(build_fn(private, name = "build_label", error = "LabelBuilderError"))]
 pub struct Label {
     pub(crate) file: FileID,

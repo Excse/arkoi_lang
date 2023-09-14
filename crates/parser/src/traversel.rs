@@ -1,5 +1,5 @@
+#[cfg(feature = "serialize")]
 use serde::Serialize;
-use serdebug::SerDebug;
 
 use crate::ast::{ExpressionKind, LiteralKind, StatementKind};
 
@@ -15,13 +15,15 @@ pub trait Visitor<'a> {
     fn visit_literal(&mut self, literal: &LiteralKind) -> Self::Result;
 }
 
-#[derive(SerDebug, Serialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub enum StatementResult<'a, V: Visitor<'a>> {
     Expression(V::Result),
     LetDeclaration(V::Result),
 }
 
-#[derive(SerDebug, Serialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub enum ExpressionResult<'a, V: Visitor<'a>> {
     Equality(V::Result, V::Result),
     Comparison(V::Result, V::Result),

@@ -1,6 +1,7 @@
-use lasso::{Rodeo, Spur};
+#[cfg(feature = "serialize")]
 use serde::Serialize;
-use serdebug::SerDebug;
+
+use lasso::Rodeo;
 
 use lexer::token::{TokenKind, TokenValue};
 use parser::ast::{ExpressionKind, LiteralKind, StatementKind};
@@ -8,11 +9,14 @@ use parser::traversel::{
     walk_expression, walk_statement, ExpressionResult, StatementResult, Visitor,
 };
 
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub struct Interpreter<'a> {
     interner: &'a mut Rodeo,
 }
 
-#[derive(SerDebug, Serialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub enum Result {
     String(String),
     Integer(usize),

@@ -1,3 +1,6 @@
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+
 use std::iter::Peekable;
 
 use crate::ParserError;
@@ -11,7 +14,10 @@ use lexer::{
     Lexer, TokenIter,
 };
 
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub(crate) struct Cursor<'a> {
+    #[serde(skip)]
     iterator: Peekable<TokenIter<'a>>,
     files: &'a Files,
     file_id: FileID,

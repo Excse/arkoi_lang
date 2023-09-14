@@ -13,8 +13,8 @@ use crate::{
     report::{Label, Report, Serverity},
 };
 
-#[cfg_attr(feature = "serdebug", derive(SerDebug))]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub struct Renderer<'a, Writer: WriteColor> {
     writer: Writer,
     files: &'a Files,
