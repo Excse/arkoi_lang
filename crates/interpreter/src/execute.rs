@@ -4,9 +4,9 @@ use serde::Serialize;
 use lasso::Rodeo;
 
 use lexer::token::{TokenKind, TokenValue};
-use parser::ast::{ExpressionKind, LiteralKind, StatementKind};
+use parser::ast::{ExpressionKind, LiteralKind, Program, StatementKind};
 use parser::traversel::{
-    walk_expression, walk_statement, ExpressionResult, StatementResult, Visitor,
+    walk_expression, walk_statement, ExpressionResult, StatementResult, Visitable, Visitor,
 };
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -22,10 +22,19 @@ pub enum Result {
     Integer(usize),
     Decimal(f64),
     Boolean(bool),
+    Undefined,
 }
 
 impl<'a> Visitor<'a> for Interpreter<'a> {
     type Result = Result;
+
+    fn visit_program(&mut self, program: &Program) -> Self::Result {
+        for statement in program.statements.iter() {
+            statement.accept(self);
+        }
+
+        Result::Undefined
+    }
 
     fn visit_literal(&mut self, literal: &LiteralKind) -> Self::Result {
         let token = literal.get_token();

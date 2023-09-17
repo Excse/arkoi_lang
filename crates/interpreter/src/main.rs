@@ -1,7 +1,8 @@
 mod execute;
 
-use termcolor::{ColorChoice, StandardStream};
 use lasso::Rodeo;
+use semantic::{NameResolution, ResolutionError};
+use termcolor::{ColorChoice, StandardStream};
 
 use diagnostics::{file::Files, renderer::Renderer};
 use execute::Interpreter;
@@ -33,7 +34,7 @@ fn main() {
     }
 
     let mut parser = Parser::new(&files, file_id, &mut lexer);
-    let statements = parser.parse_program();
+    let program = parser.parse_program();
 
     if !parser.errors.is_empty() {
         for error in parser.errors {
@@ -46,14 +47,20 @@ fn main() {
         return;
     }
 
-    // let mut name_resolution = NameResolution::new();
-    // statements.iter().for_each(|statement| {
-    //     let _ = statement.accept::<NameResolution>(&mut name_resolution);
-    // });
+    let mut name_resolution = NameResolution::default();
+    program.accept(&mut name_resolution);
+
+    if !name_resolution.errors.is_empty() {
+        for error in name_resolution.errors {
+            match error {
+                ResolutionError::Report(report) => renderer.render(&report),
+                error => println!("{:#?}", error),
+            }
+        }
+
+        return;
+    }
 
     let mut interpreter = Interpreter::new(&mut interner);
-    statements.iter().for_each(|statement| {
-        let result = statement.accept::<Interpreter>(&mut interpreter);
-        println!("{:#?} with a result of {:?}", statement, result);
-    });
+    program.accept(&mut interpreter);
 }

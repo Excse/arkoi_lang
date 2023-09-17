@@ -94,7 +94,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_symbol(&mut self) -> Result<TokenKind, LexerError> {
-        let mut token = match self.cursor.consume() {
+        let mut token = match self.cursor.try_consume() {
             Some(char) if char.is_whitespace() => self.next_token_kind()?,
             Some('{') => TokenKind::OBracket,
             Some('}') => TokenKind::CBracket,
@@ -132,7 +132,7 @@ impl<'a> Lexer<'a> {
             (token, _) => return Ok(token),
         };
 
-        self.cursor.consume();
+        self.cursor.try_consume();
 
         Ok(token)
     }
@@ -171,7 +171,7 @@ impl<'a> Lexer<'a> {
 
         self.cursor.eat_while(char::is_numeric);
 
-        if self.cursor.eat('.').is_ok() {
+        if self.cursor.try_eat('.').is_ok() {
             self.cursor.eat_while(char::is_numeric);
             Ok(TokenKind::Decimal)
         } else {
@@ -180,12 +180,12 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_string(&mut self) -> Result<TokenKind, LexerError> {
-        self.cursor.eat('"')?;
+        self.cursor.try_eat('"')?;
 
         self.cursor
             .eat_windowed_while(|prev, curr| curr != '"' || prev == '\\');
 
-        self.cursor.eat('"')?;
+        self.cursor.try_eat('"')?;
 
         Ok(TokenKind::String)
     }

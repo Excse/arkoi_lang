@@ -7,6 +7,20 @@ use lexer::token::Token;
 pub trait ASTNode {}
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Default)]
+pub struct Program {
+    pub statements: Vec<StatementKind>,
+}
+
+impl ASTNode for Program {}
+
+impl<'a> Visitable<'a> for Program {
+    fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
+        visitor.visit_program(self)
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub enum LiteralKind {
     String(Token),
@@ -15,11 +29,38 @@ pub enum LiteralKind {
     Boolean(Token),
 }
 
+impl ASTNode for LiteralKind {}
+
+impl<'a> Visitable<'a> for LiteralKind {
+    fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
+        visitor.visit_literal(self)
+    }
+}
+
+impl LiteralKind {
+    pub fn get_token(&self) -> &Token {
+        match self {
+            LiteralKind::String(ref token) => token,
+            LiteralKind::Integer(ref token) => token,
+            LiteralKind::Decimal(ref token) => token,
+            LiteralKind::Boolean(ref token) => token,
+        }
+    }
+}
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub enum StatementKind {
     Expression(ExpressionKind),
     LetDeclaration(Token, Option<ExpressionKind>),
+}
+
+impl ASTNode for StatementKind {}
+
+impl<'a> Visitable<'a> for StatementKind {
+    fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
+        visitor.visit_statement(self)
+    }
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -35,32 +76,11 @@ pub enum ExpressionKind {
     Variable(Token),
 }
 
-impl<'a> Visitable<'a> for LiteralKind {
-    fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
-        visitor.visit_literal(self)
-    }
-}
+impl ASTNode for ExpressionKind {}
 
 impl<'a> Visitable<'a> for ExpressionKind {
     fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
         visitor.visit_expression(self)
-    }
-}
-
-impl<'a> Visitable<'a> for StatementKind {
-    fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
-        visitor.visit_statement(self)
-    }
-}
-
-impl LiteralKind {
-    pub fn get_token(&self) -> &Token {
-        match self {
-            LiteralKind::String(ref token) => token,
-            LiteralKind::Integer(ref token) => token,
-            LiteralKind::Decimal(ref token) => token,
-            LiteralKind::Boolean(ref token) => token,
-        }
     }
 }
 
@@ -76,9 +96,3 @@ impl ExpressionKind {
         }
     }
 }
-
-impl ASTNode for LiteralKind {}
-
-impl ASTNode for ExpressionKind {}
-
-impl ASTNode for StatementKind {}

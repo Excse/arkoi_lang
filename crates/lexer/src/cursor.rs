@@ -59,7 +59,7 @@ impl<'a> Cursor<'a> {
         self.chars.peek().copied()
     }
 
-    pub fn consume(&mut self) -> Option<char> {
+    pub fn try_consume(&mut self) -> Option<char> {
         let char = self.chars.next()?;
         if char == '\n' {
             self.line += 1;
@@ -70,9 +70,9 @@ impl<'a> Cursor<'a> {
         Some(char)
     }
 
-    pub fn eat(&mut self, expected: char) -> Result<char, LexerError> {
+    pub fn try_eat(&mut self, expected: char) -> Result<char, LexerError> {
         match self.peek() {
-            Some(char) if char == expected => Ok(self.consume().unwrap()),
+            Some(char) if char == expected => Ok(self.try_consume().unwrap()),
             Some(char) => Err(LexerError::Diagnostic(didnt_expect(
                 self.files,
                 self.file_id,
@@ -88,7 +88,7 @@ impl<'a> Cursor<'a> {
         F: FnOnce(char) -> bool,
     {
         match self.peek() {
-            Some(char) if predicate(char) => Ok(self.consume().unwrap()),
+            Some(char) if predicate(char) => Ok(self.try_consume().unwrap()),
             Some(char) => Err(LexerError::Diagnostic(didnt_expect(
                 self.files,
                 self.file_id,
@@ -117,7 +117,7 @@ impl<'a> Cursor<'a> {
             }
 
             last = char;
-            self.consume();
+            self.try_consume();
         }
     }
 }

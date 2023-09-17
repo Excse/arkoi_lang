@@ -1,7 +1,7 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::ast::{ExpressionKind, LiteralKind, StatementKind};
+use crate::ast::{ExpressionKind, LiteralKind, Program, StatementKind};
 
 pub trait Visitable<'a> {
     fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result;
@@ -10,6 +10,7 @@ pub trait Visitable<'a> {
 pub trait Visitor<'a> {
     type Result;
 
+    fn visit_program(&mut self, program: &Program) -> Self::Result;
     fn visit_statement(&mut self, statement: &StatementKind) -> Self::Result;
     fn visit_expression(&mut self, expression: &ExpressionKind) -> Self::Result;
     fn visit_literal(&mut self, literal: &LiteralKind) -> Self::Result;

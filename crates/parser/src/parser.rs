@@ -1,7 +1,7 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::ast::{ExpressionKind, LiteralKind, StatementKind};
+use crate::ast::{ExpressionKind, LiteralKind, StatementKind, Program};
 use crate::cursor::Cursor;
 use diagnostics::file::{FileID, Files};
 use diagnostics::positional::Spannable;
@@ -39,13 +39,13 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// program = statement* EOF ;
     /// ```
-    pub fn parse_program(&mut self) -> Vec<StatementKind> {
-        let mut statements = Vec::new();
+    pub fn parse_program(&mut self) -> Program {
+        let mut program = Program::default();
 
         loop {
             match self.parse_declaration() {
                 Ok(expression) => {
-                    statements.push(expression);
+                    program.statements.push(expression);
                 }
                 Err(ParserError::EndOfFile) => break,
                 Err(error) => {
@@ -55,7 +55,7 @@ impl<'a> Parser<'a> {
             };
         }
 
-        statements
+        program
     }
 
     /// ```ebnf

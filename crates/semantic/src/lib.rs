@@ -1,93 +1,151 @@
-use std::{collections::HashMap, rc::Rc, borrow::BorrowMut, cell::RefCell};
+use std::collections::HashMap;
 
+use diagnostics::report::Report;
+use lasso::Spur;
 use parser::{
-    ast::{ASTNode, ExpressionKind, LiteralKind, StatementKind},
-    traversel::{walk_statement, Visitor},
+    ast::{ExpressionKind, LiteralKind, Program, StatementKind},
+    traversel::{walk_statement, Visitable, Visitor},
 };
 
-struct Symbol<'a> {
-    name: &'a str,
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+struct Symbol {
+    name: Spur,
     kind: SymbolKind,
-    reference: &'a dyn ASTNode,
 }
 
+impl Symbol {
+    pub fn new(name: Spur, kind: SymbolKind) -> Self {
+        Symbol { name, kind }
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 enum SymbolKind {
     LocalVar,
     GlobalVar,
     Parameter,
 }
 
-struct SymbolTable<'a> {
-    symbols: HashMap<&'a str, Symbol<'a>>,
-    parent: Option<Rc<SymbolTable<'a>>>,
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Default)]
+struct Scope {
+    symbols: HashMap<Spur, Symbol>,
 }
 
-impl<'a> SymbolTable<'a> {
-    pub fn new() -> Self {
-        SymbolTable {
-            symbols: HashMap::new(),
-            parent: None,
-        }
-    }
-
-    pub fn with_parent(parent: Rc<SymbolTable<'a>>) -> Self {
-        SymbolTable {
-            symbols: HashMap::new(),
-            parent: Some(parent),
-        }
-    }
-
-    pub fn insert(
-        &mut self,
-        name: &'a str,
-        kind: SymbolKind,
-        reference: &'a dyn ASTNode,
-    ) -> Result<&Symbol<'a>, ()> {
-        let symbol = Symbol {
-            name,
-            kind,
-            reference,
-        };
-
-        if self.symbols.get(name).is_some() {
-            return Err(());
+impl Scope {
+    fn insert(&mut self, name: Spur, symbol: Symbol, shadow: bool) -> Result<(), ResolutionError> {
+        if !shadow && self.lookup(name).is_some() {
+            // TODO: Pass symbol and other into the CannotShadow to give a more clearer report
+            return Err(ResolutionError::CannotShadow(name));
         }
 
         self.symbols.insert(name, symbol);
-        Ok(self.symbols.get(name).unwrap())
+        Ok(())
+    }
+
+    fn lookup(&self, name: Spur) -> Option<&Symbol> {
+        self.symbols.get(&name)
     }
 }
 
-pub struct NameResolution<'a> {
-    scopes: Vec<RefCell<SymbolTable<'a>>>,
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct SymbolTable {
+    scopes: Vec<Scope>,
 }
 
-pub enum ResolutionError {}
+impl Default for SymbolTable {
+    fn default() -> Self {
+        let mut table = SymbolTable { scopes: Vec::new() };
+        table.enter();
+        table
+    }
+}
 
-impl<'a> Visitor<'a> for NameResolution<'a> {
+impl SymbolTable {
+    fn enter(&mut self) {
+        self.scopes.push(Scope::default());
+    }
+
+    fn exit(&mut self) -> Option<Scope> {
+        self.scopes.pop()
+    }
+
+    fn is_global(&self) -> bool {
+        self.scopes.len() == 1
+    }
+
+    fn insert(&mut self, name: Spur, symbol: Symbol, shadow: bool) -> Result<(), ResolutionError> {
+        let scope = self
+            .scopes
+            .last_mut()
+            .expect("There should at least be one scope (global).");
+        scope.insert(name, symbol, shadow)
+    }
+
+    fn lookup(&self, name: Spur) -> Result<&Symbol, ResolutionError> {
+        for scope in self.scopes.iter().rev() {
+            if let Some(symbol) = scope.lookup(name) {
+                return Ok(symbol);
+            }
+        }
+
+        Err(ResolutionError::SymbolNotFound)
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Default)]
+pub struct NameResolution {
+    table: SymbolTable,
+    pub errors: Vec<ResolutionError>,
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub enum ResolutionError {
+    Report(Report),
+    SymbolNotFound,
+    CannotShadow(Spur),
+}
+
+impl<'a> Visitor<'a> for NameResolution {
     type Result = Result<(), ResolutionError>;
+
+    fn visit_program(&mut self, program: &Program) -> Self::Result {
+        for statement in program.statements.iter() {
+            if let Err(error) = statement.accept(self) {
+                self.errors.push(error);
+            }
+        }
+
+        Ok(())
+    }
 
     fn visit_literal(&mut self, literal: &LiteralKind) -> Self::Result {
         Ok(())
     }
 
     fn visit_statement(&mut self, statement: &StatementKind) -> Self::Result {
-        // walk_statement(self, statement);
+        walk_statement(self, statement);
 
-        // let current = self.current_scope();
-        // match statement {
-        //     StatementKind::LetDeclaration(name, _) => {
-        //         let name = name.get_str().unwrap();
-        //         let kind = if self.is_global_scope() {
-        //             SymbolKind::GlobalVar
-        //         } else {
-        //             SymbolKind::LocalVar
-        //         };
-        //         current.borrow_mut().insert(name, kind, statement);
-        //         println!("{}", name);
-        //     }
-        //     _ => {}
-        // }
+        let is_global = self.table.is_global();
+        match statement {
+            StatementKind::LetDeclaration(name, _) => {
+                let name = name.get_str().unwrap();
+                let kind = if is_global {
+                    SymbolKind::GlobalVar
+                } else {
+                    SymbolKind::LocalVar
+                };
+
+                self.table
+                    .insert(name, Symbol::new(name, kind), !is_global)?;
+            }
+            _ => {}
+        }
 
         Ok(())
     }
@@ -95,33 +153,4 @@ impl<'a> Visitor<'a> for NameResolution<'a> {
     fn visit_expression(&mut self, expression: &ExpressionKind) -> Self::Result {
         Ok(())
     }
-}
-
-impl<'a> NameResolution<'a> {
-    pub fn new() -> Self {
-        NameResolution { scopes: Vec::new() }
-    }
-
-    // fn enter_scope(&mut self) -> &SymbolTable<'a> {
-    //     let current = Rc::clone(self.current_scope());
-    //     let new_scope = Rc::new(SymbolTable::with_parent(current));
-    //     self.scopes.push(new_scope);
-    //     self.current_scope()
-    // }
-
-    // fn exit_scope(&'a mut self) -> RefCell<SymbolTable<'a>> {
-    //     self.scopes
-    //         .pop()
-    //         .expect("Couldn't find any available scope.")
-    // }
-
-    // fn current_scope(&self) -> &Rc<SymbolTable<'a>> {
-    //     self.scopes
-    //         .last()
-    //         .expect("Couldn't find any available scope.")
-    // }
-
-    // fn is_global_scope(&self) -> bool {
-    //     self.scopes.len() == 1
-    // }
 }
