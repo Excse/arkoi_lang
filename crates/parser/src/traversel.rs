@@ -1,7 +1,7 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::ast::{ExpressionKind, LiteralKind, Program, StatementKind};
+use crate::ast::{ExpressionKind, LiteralKind, Program, StatementKind, Parameter};
 
 pub trait Visitable<'a> {
     fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result;
@@ -14,6 +14,7 @@ pub trait Visitor<'a> {
     fn visit_statement(&mut self, statement: &StatementKind) -> Self::Result;
     fn visit_expression(&mut self, expression: &ExpressionKind) -> Self::Result;
     fn visit_literal(&mut self, literal: &LiteralKind) -> Self::Result;
+    fn visit_parameter(&mut self, argument: &Parameter) -> Self::Result;
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -47,7 +48,6 @@ pub fn walk_statement<'a, V: Visitor<'a>>(
         StatementKind::LetDeclaration(_, Some(ref expression)) => {
             StatementResult::LetDeclaration(visitor.visit_expression(expression))
         }
-        _ => todo!("This statement walk is not implemented yet."),
     }
 }
 

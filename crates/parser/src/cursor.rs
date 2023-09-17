@@ -61,16 +61,6 @@ impl<'a> Cursor<'a> {
         self.iterator.peek().ok_or(ParserError::EndOfFile)
     }
 
-    pub fn is_peek(&mut self, expected: TokenKind) -> Option<&Token> {
-        let current = self.peek().ok()?;
-
-        if expected == current.kind {
-            Some(current)
-        } else {
-            None
-        }
-    }
-
     pub fn eat_all(&mut self, expected: &[TokenKind]) -> Result<Token, ParserError> {
         let token = match self.peek() {
             Ok(token) => token,

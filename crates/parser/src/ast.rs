@@ -8,9 +8,7 @@ pub trait ASTNode {}
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
-pub struct Program {
-    pub statements: Vec<StatementKind>,
-}
+pub struct Program(pub Vec<StatementKind>);
 
 impl ASTNode for Program {}
 
@@ -53,6 +51,8 @@ impl LiteralKind {
 pub enum StatementKind {
     Expression(ExpressionKind),
     LetDeclaration(Token, Option<ExpressionKind>),
+    FunDeclaration(Token, Vec<Parameter>, Type),
+    Block(Vec<StatementKind>),
 }
 
 impl ASTNode for StatementKind {}
@@ -61,6 +61,35 @@ impl<'a> Visitable<'a> for StatementKind {
     fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
         visitor.visit_statement(self)
     }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct Parameter(Token, Type);
+
+impl ASTNode for Parameter {}
+
+impl<'a> Visitable<'a> for Parameter {
+    fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
+        visitor.visit_parameter(self)
+    }
+}
+
+impl Parameter {
+    pub fn new(identifier: Token, type_: Type) -> Self {
+        Parameter(identifier, type_)
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub enum Type {
+    U8, I8,
+    U16, I16,
+    U32, I32,
+    U64, I64,
+    F32, F64,
+    Bool,
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
