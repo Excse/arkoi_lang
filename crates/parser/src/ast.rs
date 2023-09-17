@@ -71,6 +71,7 @@ pub enum ExpressionKind {
     Term(Box<ExpressionKind>, Token, Box<ExpressionKind>),
     Factor(Box<ExpressionKind>, Token, Box<ExpressionKind>),
     Unary(Token, Box<ExpressionKind>),
+    Call(Box<ExpressionKind>, Vec<ExpressionKind>),
     Grouping(Box<ExpressionKind>),
     Literal(LiteralKind),
     Variable(Token),

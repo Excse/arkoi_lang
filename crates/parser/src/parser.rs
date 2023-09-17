@@ -1,7 +1,7 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::ast::{ExpressionKind, LiteralKind, StatementKind, Program};
+use crate::ast::{ExpressionKind, LiteralKind, Program, StatementKind};
 use crate::cursor::Cursor;
 use diagnostics::file::{FileID, Files};
 use diagnostics::positional::Spannable;
@@ -181,8 +181,8 @@ impl<'a> Parser<'a> {
     }
 
     /// ```ebnf
-    /// unary = ( "!" | "-" ) unary
-    ///       | primary ;
+    /// unary = ( ( "!" | "-" ) unary )
+    ///       | call ;
     /// ```
     fn parse_unary(&mut self) -> Result<ExpressionKind, ParserError> {
         if let Ok(token) = self
@@ -193,7 +193,43 @@ impl<'a> Parser<'a> {
             return Ok(ExpressionKind::Unary(token, Box::new(right)));
         }
 
-        self.parse_primary()
+        self.parse_call()
+    }
+
+    ///```ebnf
+    /// call = primary ( "(" arguments? ")" )* ;
+    ///```
+    fn parse_call(&mut self) -> Result<ExpressionKind, ParserError> {
+        let mut primary = self.parse_primary()?;
+
+        while let Ok(token) = self.cursor.eat(TokenKind::OParent) {
+            primary = self.finish_parse_call(Box::new(primary))?;
+        }
+
+        Ok(primary)
+    }
+
+    ///```ebnf
+    /// call = primary ( "(" arguments? ")" )* ;
+    ///```
+    fn finish_parse_call(
+        &mut self,
+        callee: Box<ExpressionKind>,
+    ) -> Result<ExpressionKind, ParserError> {
+        if self.cursor.eat(TokenKind::CParent).is_ok() {
+            return Ok(ExpressionKind::Call(callee, Vec::new()));
+        }
+
+        let mut arguments = Vec::new();
+        loop {
+            arguments.push(self.parse_expression()?);
+
+            if self.cursor.eat(TokenKind::Comma).is_err() {
+                break;
+            }
+        }
+
+        Ok(ExpressionKind::Call(callee, arguments))
     }
 
     /// ```ebnf
