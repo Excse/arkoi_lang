@@ -8,7 +8,7 @@ use termcolor::{ColorChoice, StandardStream};
 
 use diagnostics::{file::Files, renderer::Renderer};
 use execute::Interpreter;
-use lexer::{Lexer, LexerError};
+use lexer::{error::LexerError, Lexer};
 use parser::{traversel::Visitable, Parser};
 
 fn main() {

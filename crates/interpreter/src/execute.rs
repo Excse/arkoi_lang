@@ -43,7 +43,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
             Some(TokenValue::String(value)) => {
                 Result::String(self.interner.resolve(&value).to_string())
             }
-            Some(TokenValue::Boolean(value)) => Result::Boolean(value),
+            Some(TokenValue::Bool(value)) => Result::Boolean(value),
             Some(TokenValue::Integer(value)) => Result::Integer(value),
             Some(TokenValue::Decimal(value)) => Result::Decimal(value),
             _ => todo!("Literal kind not implemented yet."),

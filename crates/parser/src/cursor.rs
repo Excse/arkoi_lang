@@ -10,8 +10,9 @@ use diagnostics::{
 };
 use errors::parser::*;
 use lexer::{
+    iter::TokenIter,
     token::{Token, TokenKind},
-    Lexer, TokenIter,
+    Lexer,
 };
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]

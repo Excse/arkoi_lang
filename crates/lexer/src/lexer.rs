@@ -4,6 +4,8 @@ use serde::Serialize;
 use lasso::Rodeo;
 
 use crate::cursor::Cursor;
+use crate::error::{LexerError, Result};
+use crate::iter::TokenIter;
 use crate::token::{Token, TokenKind, TokenValue};
 use diagnostics::{
     file::{FileID, Files},
@@ -13,60 +15,9 @@ use diagnostics::{
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct Lexer<'a> {
-    cursor: Cursor<'a>,
-    interner: &'a mut Rodeo,
+    pub(crate) cursor: Cursor<'a>,
+    pub(crate) interner: &'a mut Rodeo,
     pub errors: Vec<LexerError>,
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
-pub enum LexerError {
-    Diagnostic(Report),
-    EndOfFile,
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
-pub struct TokenIter<'a> {
-    lexer: &'a mut Lexer<'a>,
-}
-
-impl<'a> Iterator for TokenIter<'a> {
-    type Item = Token;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let token_kind = match self.lexer.next_token_kind() {
-            Ok(token_kind) => token_kind,
-            Err(error) => match error {
-                LexerError::Diagnostic(_) => {
-                    self.lexer.errors.push(error);
-                    return self.next();
-                }
-                _ => return None,
-            },
-        };
-
-        let content = self.lexer.cursor.as_str();
-        let span = self.lexer.cursor.as_span();
-
-        let value = match token_kind {
-            TokenKind::Integer => Some(TokenValue::Integer(content.parse::<usize>().unwrap())),
-            TokenKind::Decimal => Some(TokenValue::Decimal(content.parse::<f64>().unwrap())),
-            TokenKind::Identifier => Some(TokenValue::String(
-                self.lexer.interner.get_or_intern(content),
-            )),
-            TokenKind::String => Some(TokenValue::String(
-                self.lexer
-                    .interner
-                    .get_or_intern(&content[1..content.len() - 1]),
-            )),
-            TokenKind::True => Some(TokenValue::Boolean(true)),
-            TokenKind::False => Some(TokenValue::Boolean(false)),
-            _ => None,
-        };
-
-        Some(Token::new(span, value, token_kind))
-    }
 }
 
 impl<'a> Lexer<'a> {
@@ -79,10 +30,10 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn iter(&'a mut self) -> TokenIter<'a> {
-        TokenIter { lexer: self }
+        TokenIter::new(self)
     }
 
-    fn next_token_kind(&mut self) -> Result<TokenKind, LexerError> {
+    pub(crate) fn next_token_kind(&mut self) -> Result<TokenKind> {
         let current = match self.cursor.peek() {
             Some(char) => char,
             None => return Err(LexerError::EndOfFile),
@@ -97,7 +48,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn read_symbol(&mut self) -> Result<TokenKind, LexerError> {
+    fn read_symbol(&mut self) -> Result<TokenKind> {
         let mut token = match self.cursor.try_consume() {
             Some(char) if char.is_whitespace() => self.next_token_kind()?,
             Some('{') => TokenKind::OBracket,
@@ -141,7 +92,7 @@ impl<'a> Lexer<'a> {
         Ok(token)
     }
 
-    fn read_identifier(&mut self) -> Result<TokenKind, LexerError> {
+    fn read_identifier(&mut self) -> Result<TokenKind> {
         self.cursor.eat_if(char::is_alphabetic, "a-zA-Z")?;
 
         self.cursor.eat_while(char::is_alphanumeric);
@@ -171,7 +122,7 @@ impl<'a> Lexer<'a> {
         })
     }
 
-    fn read_number(&mut self) -> Result<TokenKind, LexerError> {
+    fn read_number(&mut self) -> Result<TokenKind> {
         self.cursor.eat_if(char::is_numeric, "0-9")?;
 
         self.cursor.eat_while(char::is_numeric);
@@ -184,7 +135,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn read_string(&mut self) -> Result<TokenKind, LexerError> {
+    fn read_string(&mut self) -> Result<TokenKind> {
         self.cursor.try_eat('"')?;
 
         self.cursor

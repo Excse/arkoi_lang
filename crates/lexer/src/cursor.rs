@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::str::Chars;
 use std::{iter::Peekable, str::CharIndices};
 
-use crate::lexer::LexerError;
+use crate::error::{LexerError, Result};
 use diagnostics::{
     file::{FileID, Files},
     positional::{Span, Spannable},
@@ -72,7 +72,7 @@ impl<'a> Cursor<'a> {
         Some(char)
     }
 
-    pub fn try_eat(&mut self, expected: char) -> Result<char, LexerError> {
+    pub fn try_eat(&mut self, expected: char) -> Result<char> {
         match self.peek_indexed() {
             Some((_, char)) if char == expected => Ok(self.try_consume().unwrap()),
             Some((index, char)) => Err(LexerError::Diagnostic(didnt_expect(
@@ -85,7 +85,7 @@ impl<'a> Cursor<'a> {
         }
     }
 
-    pub fn eat_if<F>(&mut self, predicate: F, message: &'static str) -> Result<char, LexerError>
+    pub fn eat_if<F>(&mut self, predicate: F, message: &'static str) -> Result<char>
     where
         F: FnOnce(char) -> bool,
     {

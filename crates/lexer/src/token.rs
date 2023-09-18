@@ -14,13 +14,71 @@ pub struct Token {
     pub kind: TokenKind,
 }
 
+impl Token {
+    pub fn new(span: Span, value: Option<TokenValue>, kind: TokenKind) -> Token {
+        Token { span, value, kind }
+    }
+
+    pub fn get_str(&self) -> Option<Spur> {
+        match self.value {
+            Some(TokenValue::String(value)) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn get_int(&self) -> Option<usize> {
+        match self.value {
+            Some(TokenValue::Integer(value)) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn get_dec(&self) -> Option<f64> {
+        match self.value {
+            Some(TokenValue::Decimal(value)) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn get_bool(&self) -> Option<bool> {
+        match self.value {
+            Some(TokenValue::Bool(value)) => Some(value),
+            _ => None,
+        }
+    }
+}
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub enum TokenValue {
     Integer(usize),
     Decimal(f64),
     String(Spur),
-    Boolean(bool),
+    Bool(bool),
+}
+
+impl From<usize> for TokenValue {
+    fn from(value: usize) -> Self {
+        TokenValue::Integer(value)
+    }
+}
+
+impl From<f64> for TokenValue {
+    fn from(value: f64) -> Self {
+        TokenValue::Decimal(value)
+    }
+}
+
+impl From<Spur> for TokenValue {
+    fn from(value: Spur) -> Self {
+        TokenValue::String(value)
+    }
+}
+
+impl From<bool> for TokenValue {
+    fn from(value: bool) -> Self {
+        TokenValue::Bool(value)
+    }
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -180,36 +238,3 @@ pub enum TokenKind {
     Unknown,
 }
 
-impl Token {
-    pub fn new(span: Span, value: Option<TokenValue>, kind: TokenKind) -> Token {
-        Token { span, value, kind }
-    }
-
-    pub fn get_str(&self) -> Option<Spur> {
-        match self.value {
-            Some(TokenValue::String(value)) => Some(value),
-            _ => None,
-        }
-    }
-
-    pub fn get_int(&self) -> Option<usize> {
-        match self.value {
-            Some(TokenValue::Integer(value)) => Some(value),
-            _ => None,
-        }
-    }
-
-    pub fn get_dec(&self) -> Option<f64> {
-        match self.value {
-            Some(TokenValue::Decimal(value)) => Some(value),
-            _ => None,
-        }
-    }
-
-    pub fn get_bool(&self) -> Option<bool> {
-        match self.value {
-            Some(TokenValue::Boolean(value)) => Some(value),
-            _ => None,
-        }
-    }
-}
