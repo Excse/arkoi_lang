@@ -1,8 +1,8 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use std::iter::Peekable;
 use std::str::Chars;
+use std::{iter::Peekable, str::CharIndices};
 
 use crate::lexer::LexerError;
 use diagnostics::{
@@ -17,10 +17,9 @@ pub struct Cursor<'a> {
     file_id: FileID,
     files: &'a Files,
     #[serde(skip)]
-    chars: Peekable<Chars<'a>>,
-    position: usize,
+    chars: Peekable<CharIndices<'a>>,
+    length: usize,
     start: usize,
-    line: usize,
 }
 
 impl<'a> Cursor<'a> {
@@ -32,51 +31,54 @@ impl<'a> Cursor<'a> {
         Cursor {
             file_id,
             files,
-            chars: source.chars().peekable(),
-            position: 0,
+            chars: source.char_indices().peekable(),
+            length: source.len(),
             start: 0,
-            line: 0,
         }
     }
 
-    pub fn mark_start(&mut self) {
-        self.start = self.position;
+    pub fn current_index(&mut self) -> usize {
+        self.peek_indexed()
+            .map(|(index, _)| index)
+            .unwrap_or(self.length)
     }
 
-    pub fn as_span(&self) -> Span {
-        Span::new(self.start, self.position)
+    pub fn mark_start(&mut self) {
+        self.start = self.current_index()
+    }
+
+    pub fn as_span(&mut self) -> Span {
+        Span::new(self.start, self.current_index())
     }
 
     // TODO: Remove the expect
-    pub fn as_str(&self) -> &'a str {
+    pub fn as_str(&mut self) -> &'a str {
         let span = self.as_span();
         self.files
             .slice(self.file_id, &span)
             .expect("Couldn't slice the source")
     }
 
-    pub fn peek(&mut self) -> Option<char> {
+    pub fn peek_indexed(&mut self) -> Option<(usize, char)> {
         self.chars.peek().copied()
     }
 
+    pub fn peek(&mut self) -> Option<char> {
+        self.peek_indexed().map(|(_, char)| char)
+    }
+
     pub fn try_consume(&mut self) -> Option<char> {
-        let char = self.chars.next()?;
-        if char == '\n' {
-            self.line += 1;
-        }
-
-        self.position += 1;
-
+        let char = self.chars.next().map(|(_, char)| char)?;
         Some(char)
     }
 
     pub fn try_eat(&mut self, expected: char) -> Result<char, LexerError> {
-        match self.peek() {
-            Some(char) if char == expected => Ok(self.try_consume().unwrap()),
-            Some(char) => Err(LexerError::Diagnostic(didnt_expect(
+        match self.peek_indexed() {
+            Some((_, char)) if char == expected => Ok(self.try_consume().unwrap()),
+            Some((index, char)) => Err(LexerError::Diagnostic(didnt_expect(
                 self.files,
                 self.file_id,
-                Spannable::new(char, Span::new(self.position, self.position)),
+                Spannable::new(char, Span::empty(index)),
                 expected.to_string(),
             ))),
             None => Err(LexerError::EndOfFile),
@@ -87,12 +89,12 @@ impl<'a> Cursor<'a> {
     where
         F: FnOnce(char) -> bool,
     {
-        match self.peek() {
-            Some(char) if predicate(char) => Ok(self.try_consume().unwrap()),
-            Some(char) => Err(LexerError::Diagnostic(didnt_expect(
+        match self.peek_indexed() {
+            Some((_, char)) if predicate(char) => Ok(self.try_consume().unwrap()),
+            Some((index, char)) => Err(LexerError::Diagnostic(didnt_expect(
                 self.files,
                 self.file_id,
-                Spannable::new(char, Span::new(self.position, self.position)),
+                Spannable::new(char, Span::empty(index)),
                 message.to_string(),
             ))),
             None => Err(LexerError::EndOfFile),

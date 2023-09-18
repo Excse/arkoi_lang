@@ -3,6 +3,8 @@ use serde::Serialize;
 
 use std::ops::Range;
 
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub struct Spannable<C> {
     pub content: C,
     pub span: Span,
@@ -26,6 +28,10 @@ impl Span {
         assert!(end >= start);
 
         Span { start, end }
+    }
+
+    pub fn empty(index: usize) -> Self {
+        Span::new(index, index)
     }
 
     pub fn is_inside(&self, index: usize) -> bool {

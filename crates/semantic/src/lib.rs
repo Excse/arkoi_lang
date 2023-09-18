@@ -1,9 +1,11 @@
+#![allow(unused)]
+
 use std::collections::HashMap;
 
 use diagnostics::report::Report;
 use lasso::Spur;
 use parser::{
-    ast::{ExpressionKind, LiteralKind, Program, StatementKind},
+    ast::{ExpressionKind, Literal, Program, StatementKind},
     traversel::{walk_statement, Visitable, Visitor},
 };
 
@@ -115,7 +117,7 @@ impl<'a> Visitor<'a> for NameResolution {
     type Result = Result<(), ResolutionError>;
 
     fn visit_program(&mut self, program: &Program) -> Self::Result {
-        for statement in program.statements.iter() {
+        for statement in program.0.iter() {
             if let Err(error) = statement.accept(self) {
                 self.errors.push(error);
             }
@@ -124,7 +126,7 @@ impl<'a> Visitor<'a> for NameResolution {
         Ok(())
     }
 
-    fn visit_literal(&mut self, literal: &LiteralKind) -> Self::Result {
+    fn visit_literal(&mut self, literal: &Literal) -> Self::Result {
         Ok(())
     }
 
@@ -151,6 +153,10 @@ impl<'a> Visitor<'a> for NameResolution {
     }
 
     fn visit_expression(&mut self, expression: &ExpressionKind) -> Self::Result {
+        Ok(())
+    }
+
+    fn visit_parameter(&mut self, argument: &parser::ast::Parameter) -> Self::Result {
         Ok(())
     }
 }

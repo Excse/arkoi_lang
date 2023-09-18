@@ -11,14 +11,29 @@
 
 ## EBNF
 ```ebnf
-program = statement* EOF ;
+program = declaration* EOF ;
 
-declaration = let_declaration
-            | statement ; 
+declaration = fun_declaration 
+            | let_declaration
+            | statement ;
+
+fun_declaration = "fun" IDENTIFIER "(" parameters? ")" type block ;
+
+parameters = IDENTIFIER type ( "," IDENTIFIER type )* ;
+
+type = "@" ( "u8" | "i8" 
+           | "u16" | "i16" 
+           | "u32" | "i32" 
+           | "u64" | "i64" 
+           | "f32" | "f64" 
+           | "bool" ) ;
 
 let_declaration = "let" IDENTIFIER ( "=" expression )? ";" ;
 
-statement = expression_statement ;
+statement = expression_statement 
+          | block ;
+
+block = "{" declaration* "}" ;
 
 expression_statement = expression ";" ;
 
@@ -32,8 +47,12 @@ term = factor ( ( "-" | "+" ) factor )* ;
 
 factor = unary ( ( "/" | "*" ) unary )* ;
 
-unary = ( "!" | "-" ) unary
-      | primary ;
+unary = ( ( "!" | "-" ) unary ) 
+      | call ;
+
+call = primary ( "(" arguments? ")" )* ;
+
+arguments = expression ( "," expression )* ;
 
 primary = NUMBER | STRING | IDENTIFIER | "true" | "false" | "(" expression ")" ;
 ```

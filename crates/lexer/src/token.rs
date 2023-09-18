@@ -171,6 +171,9 @@ pub enum TokenKind {
     #[serde(rename = "f64")]
     #[strum(serialize = "f64")]
     F64,
+    #[serde(rename = "bool")]
+    #[strum(serialize = "bool")]
+    Bool,
 
     #[serde(rename = "unknown")]
     #[strum(serialize = "unknown")]

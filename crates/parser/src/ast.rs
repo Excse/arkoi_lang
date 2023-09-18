@@ -2,7 +2,7 @@
 use serde::Serialize;
 
 use crate::traversel::{Visitable, Visitor};
-use lexer::token::Token;
+use lexer::token::{Token, TokenKind};
 
 pub trait ASTNode {}
 
@@ -20,28 +20,28 @@ impl<'a> Visitable<'a> for Program {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub enum LiteralKind {
+pub enum Literal {
     String(Token),
     Integer(Token),
     Decimal(Token),
     Boolean(Token),
 }
 
-impl ASTNode for LiteralKind {}
+impl ASTNode for Literal {}
 
-impl<'a> Visitable<'a> for LiteralKind {
+impl<'a> Visitable<'a> for Literal {
     fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
         visitor.visit_literal(self)
     }
 }
 
-impl LiteralKind {
+impl Literal {
     pub fn get_token(&self) -> &Token {
         match self {
-            LiteralKind::String(ref token) => token,
-            LiteralKind::Integer(ref token) => token,
-            LiteralKind::Decimal(ref token) => token,
-            LiteralKind::Boolean(ref token) => token,
+            Literal::String(ref token) => token,
+            Literal::Integer(ref token) => token,
+            Literal::Decimal(ref token) => token,
+            Literal::Boolean(ref token) => token,
         }
     }
 }
@@ -83,13 +83,49 @@ impl Parameter {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub enum Type {
-    U8, I8,
-    U16, I16,
-    U32, I32,
-    U64, I64,
-    F32, F64,
+pub enum TypeKind {
+    U8,
+    I8,
+    U16,
+    I16,
+    U32,
+    I32,
+    U64,
+    I64,
+    F32,
+    F64,
     Bool,
+}
+
+impl From<TokenKind> for TypeKind {
+    fn from(value: TokenKind) -> Self {
+        match value {
+            TokenKind::U8 => TypeKind::U8,
+            TokenKind::I8 => TypeKind::I8,
+            TokenKind::U16 => TypeKind::U16,
+            TokenKind::I16 => TypeKind::I16,
+            TokenKind::U32 => TypeKind::U32,
+            TokenKind::I32 => TypeKind::I32,
+            TokenKind::U64 => TypeKind::U64,
+            TokenKind::I64 => TypeKind::I64,
+            TokenKind::F32 => TypeKind::F32,
+            TokenKind::F64 => TypeKind::F64,
+            TokenKind::Bool => TypeKind::Bool,
+            _ => panic!("This tokenkind can't be converted to a typekind."),
+        }
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct Type {
+    kind: TypeKind,
+}
+
+impl Type {
+    pub fn new(kind: impl Into<TypeKind>) -> Self {
+        Type { kind: kind.into() }
+    }
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -102,7 +138,7 @@ pub enum ExpressionKind {
     Unary(Token, Box<ExpressionKind>),
     Call(Box<ExpressionKind>, Vec<ExpressionKind>),
     Grouping(Box<ExpressionKind>),
-    Literal(LiteralKind),
+    Literal(Literal),
     Variable(Token),
 }
 

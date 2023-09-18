@@ -4,7 +4,7 @@ use serde::Serialize;
 use lasso::Rodeo;
 
 use lexer::token::{TokenKind, TokenValue};
-use parser::ast::{ExpressionKind, LiteralKind, Program, StatementKind};
+use parser::ast::{ExpressionKind, Literal, Program, StatementKind};
 use parser::traversel::{
     walk_expression, walk_statement, ExpressionResult, StatementResult, Visitable, Visitor,
 };
@@ -29,14 +29,14 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
     type Result = Result;
 
     fn visit_program(&mut self, program: &Program) -> Self::Result {
-        for statement in program.statements.iter() {
+        for statement in program.0.iter() {
             statement.accept(self);
         }
 
         Result::Undefined
     }
 
-    fn visit_literal(&mut self, literal: &LiteralKind) -> Self::Result {
+    fn visit_literal(&mut self, literal: &Literal) -> Self::Result {
         let token = literal.get_token();
 
         match token.value {
@@ -53,7 +53,8 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
     fn visit_statement(&mut self, statement: &StatementKind) -> Self::Result {
         match walk_statement(self, statement) {
             StatementResult::Expression(result) => result,
-            StatementResult::LetDeclaration(result) => result,
+            StatementResult::LetDeclaration(Some(result)) => result,
+            _ => todo!()
         }
     }
 
@@ -82,7 +83,12 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
             ExpressionResult::Grouping(result) => result,
             ExpressionResult::Literal(result) => result,
             ExpressionResult::Variable => todo!(),
+            ExpressionResult::Call(callee, arguments) => todo!(),
         }
+    }
+
+    fn visit_parameter(&mut self, argument: &parser::ast::Parameter) -> Self::Result {
+        todo!()
     }
 }
 

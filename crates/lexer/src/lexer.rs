@@ -83,13 +83,17 @@ impl<'a> Lexer<'a> {
     }
 
     fn next_token_kind(&mut self) -> Result<TokenKind, LexerError> {
+        let current = match self.cursor.peek() {
+            Some(char) => char,
+            None => return Err(LexerError::EndOfFile),
+        };
+
         self.cursor.mark_start();
-        match self.cursor.peek() {
-            Some(char) if char.is_alphabetic() => self.read_identifier(),
-            Some(char) if char.is_numeric() => self.read_number(),
-            Some('"') => self.read_string(),
-            Some(_) => self.read_symbol(),
-            None => Err(LexerError::EndOfFile),
+        match current {
+            char if char.is_alphabetic() => self.read_identifier(),
+            char if char.is_numeric() => self.read_number(),
+            '"' => self.read_string(),
+            _ => self.read_symbol(),
         }
     }
 
@@ -162,6 +166,7 @@ impl<'a> Lexer<'a> {
             "isize" => TokenKind::ISize,
             "f32" => TokenKind::F32,
             "f64" => TokenKind::F64,
+            "bool" => TokenKind::Bool,
             _ => TokenKind::Identifier,
         })
     }
@@ -273,6 +278,7 @@ mod tests {
     test_token!(success_isize, "isize" => TokenKind::ISize);
     test_token!(success_f32, "f32" => TokenKind::F32);
     test_token!(success_f64, "f64" => TokenKind::F64);
+    test_token!(success_bool, "bool" => TokenKind::Bool);
 
     macro_rules! insta_test {
         ($name:ident, $path:expr) => {

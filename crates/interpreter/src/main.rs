@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 mod execute;
 
 use lasso::Rodeo;
@@ -39,7 +41,7 @@ fn main() {
     if !parser.errors.is_empty() {
         for error in parser.errors {
             match error {
-                ParserError::Report(report) => renderer.render(&report),
+                // ParserError::Report(report) => renderer.render(&report),
                 error => println!("{:#?}", error),
             }
         }

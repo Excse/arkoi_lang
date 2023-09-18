@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use std::iter::Peekable;
 
-use crate::ParserError;
+use crate::{ErrorKind, ParserError};
 use diagnostics::{
     file::{FileID, Files},
     positional::Spannable,
@@ -58,10 +58,12 @@ impl<'a> Cursor<'a> {
     }
 
     pub fn peek(&mut self) -> Result<&Token, ParserError> {
-        self.iterator.peek().ok_or(ParserError::EndOfFile)
+        self.iterator
+            .peek()
+            .ok_or(ParserError::new(ErrorKind::EndOfFile))
     }
 
-    pub fn eat_all(&mut self, expected: &[TokenKind]) -> Result<Token, ParserError> {
+    pub fn eat_any(&mut self, expected: &[TokenKind]) -> Result<Token, ParserError> {
         let token = match self.peek() {
             Ok(token) => token,
             Err(_) => {
@@ -70,7 +72,7 @@ impl<'a> Cursor<'a> {
                     .map(|kind| kind.as_ref())
                     .collect::<Vec<&str>>()
                     .join(", ");
-                return Err(ParserError::Report(unexpected_eof(expected)));
+                return Err(ParserError::new(ErrorKind::UnexpectedEOF(expected)));
             }
         };
 
@@ -87,10 +89,8 @@ impl<'a> Cursor<'a> {
         let kind = token.kind;
         let span = token.span;
 
-        Err(ParserError::Report(didnt_expect(
-            self.files,
-            self.file_id,
-            Spannable::new(kind.as_ref(), span),
+        Err(ParserError::new(ErrorKind::DidntExpect(
+            Spannable::new(kind.as_ref().to_string(), span),
             expected,
         )))
     }
@@ -98,7 +98,11 @@ impl<'a> Cursor<'a> {
     pub fn eat(&mut self, expected: TokenKind) -> Result<Token, ParserError> {
         let token = match self.peek() {
             Ok(token) => token,
-            Err(_) => return Err(ParserError::Report(unexpected_eof(expected.as_ref()))),
+            Err(_) => {
+                return Err(ParserError::new(ErrorKind::UnexpectedEOF(
+                    expected.as_ref().to_string(),
+                )))
+            }
         };
 
         if expected == token.kind {
@@ -108,11 +112,9 @@ impl<'a> Cursor<'a> {
         let kind = token.kind;
         let span = token.span;
 
-        Err(ParserError::Report(didnt_expect(
-            self.files,
-            self.file_id,
-            Spannable::new(kind.as_ref(), span),
-            expected.as_ref(),
+        Err(ParserError::new(ErrorKind::DidntExpect(
+            Spannable::new(kind.as_ref().to_string(), span),
+            expected.as_ref().to_string(),
         )))
     }
 }
