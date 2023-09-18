@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use std::iter::Peekable;
 
-use crate::{ErrorKind, ParserError};
+use crate::error::{ErrorKind, ParserError, Result};
 use diagnostics::{
     file::{FileID, Files},
     positional::Spannable,
@@ -57,13 +57,13 @@ impl<'a> Cursor<'a> {
         self.iterator.next()
     }
 
-    pub fn peek(&mut self) -> Result<&Token, ParserError> {
+    pub fn peek(&mut self) -> Result<&Token> {
         self.iterator
             .peek()
             .ok_or(ParserError::new(ErrorKind::EndOfFile))
     }
 
-    pub fn eat_any(&mut self, expected: &[TokenKind]) -> Result<Token, ParserError> {
+    pub fn eat_any(&mut self, expected: &[TokenKind]) -> Result<Token> {
         let token = match self.peek() {
             Ok(token) => token,
             Err(_) => {
@@ -95,7 +95,7 @@ impl<'a> Cursor<'a> {
         )))
     }
 
-    pub fn eat(&mut self, expected: TokenKind) -> Result<Token, ParserError> {
+    pub fn eat(&mut self, expected: TokenKind) -> Result<Token> {
         let token = match self.peek() {
             Ok(token) => token,
             Err(_) => {
