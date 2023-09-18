@@ -1,5 +1,5 @@
 [package]
-name = "semantic"
+name = "name_resolution"
 authors = { workspace = true }
 categories = { workspace = true }
 edition = { workspace = true }

@@ -11,7 +11,7 @@ version = { workspace = true }
 diagnostics = { path = "../diagnostics" }
 lexer = { path = "../lexer" }
 parser = { path = "../parser" }
-semantic = { path = "../semantic" }
+name_resolution = { path = "../name_resolution" }
 
 serde = { version = "1.0.188", features = ["derive"], optional = true }
 lasso = { version = "0.7.2", features = ["serialize"] }
