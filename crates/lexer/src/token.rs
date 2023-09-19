@@ -148,7 +148,7 @@ pub enum TokenKind {
     #[strum(serialize = "+=")]
     AddAssign,
     #[serde(rename = "+")]
-    #[strum(serialize = "+=")]
+    #[strum(serialize = "+")]
     Plus,
     #[serde(rename = "-=")]
     #[strum(serialize = "-=")]
