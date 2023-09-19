@@ -355,6 +355,10 @@ impl<'a> Parser<'a> {
     fn parse_call(&mut self, start: bool) -> Result<ExpressionKind> {
         let mut primary = self.parse_primary(start)?;
 
+        if let ExpressionKind::Variable(ref mut node) = primary {
+            node.is_function = true;
+        }
+
         while let Ok(token) = self.cursor.eat(TokenKind::OParent) {
             primary = self.finish_parse_call(primary)?;
         }

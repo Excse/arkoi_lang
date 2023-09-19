@@ -394,12 +394,16 @@ impl GroupingNode {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct VariableNode {
-    pub token: Token,
+    pub identifier: Token,
+    pub is_function: bool,
 }
 
 impl VariableNode {
-    pub fn expression(token: Token) -> ExpressionKind {
-        ExpressionKind::Variable(VariableNode { token })
+    pub fn expression(identifier: Token) -> ExpressionKind {
+        ExpressionKind::Variable(VariableNode {
+            identifier,
+            is_function: false,
+        })
     }
 }
 
