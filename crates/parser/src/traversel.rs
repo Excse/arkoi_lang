@@ -1,242 +1,236 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::ast::{ExpressionKind, Literal, Parameter, Program, Statement};
+use crate::ast::{
+    BlockNode, CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode, FactorNode,
+    FunDeclarationNode, GroupingNode, LetDeclarationNode, LiteralNode, ParameterNode, ProgramNode,
+    StatementKind, TermNode, TypeNode, UnaryNode, VariableNode,
+};
 
 pub trait Visitor<'a>: Sized {
     type Result;
 
-    fn visit_program(&mut self, program: &'a Program) {
-        walk_program(self, program)
+    fn default_result() -> Self::Result;
+
+    fn visit_program(&mut self, node: &'a mut ProgramNode) -> Self::Result {
+        walk_program(self, node)
     }
 
-    fn visit_statement(&mut self, statement: &'a Statement) -> StatementResult<'a, Self> {
-        statement.walk(self)
+    fn visit_statement(&mut self, node: &'a mut StatementKind) -> Self::Result {
+        walk_statement(self, node)
     }
 
-    fn visit_expression(&mut self, expression: &'a ExpressionKind) -> ExpressionResult<'a, Self> {
-        expression.walk(self)
+    fn visit_expression_statement(&mut self, node: &'a mut ExpressionNode) -> Self::Result {
+        walk_expression_statement(self, node)
     }
 
-    fn visit_literal(&mut self, literal: &'a Literal);
+    fn visit_let_declaration(&mut self, node: &'a mut LetDeclarationNode) -> Self::Result {
+        walk_let_declaration(self, node)
+    }
 
-    fn visit_parameter(&mut self, argument: &'a Parameter);
+    fn visit_fun_declaration(&mut self, node: &'a mut FunDeclarationNode) -> Self::Result {
+        walk_fun_declaration(self, node)
+    }
+
+    fn visit_parameter(&mut self, node: &'a mut ParameterNode) -> Self::Result {
+        walk_parameter(self, node)
+    }
+
+    fn visit_block(&mut self, node: &'a mut BlockNode) -> Self::Result {
+        walk_block(self, node)
+    }
+
+    fn visit_expression(&mut self, node: &'a mut ExpressionKind) -> Self::Result {
+        walk_expression(self, node)
+    }
+
+    fn visit_equality(&mut self, node: &'a mut EqualityNode) -> Self::Result {
+        walk_equality(self, node)
+    }
+
+    fn visit_comparison(&mut self, node: &'a mut ComparisonNode) -> Self::Result {
+        walk_comparison(self, node)
+    }
+
+    fn visit_term(&mut self, node: &'a mut TermNode) -> Self::Result {
+        walk_term(self, node)
+    }
+
+    fn visit_factor(&mut self, node: &'a mut FactorNode) -> Self::Result {
+        walk_factor(self, node)
+    }
+
+    fn visit_unary(&mut self, node: &'a mut UnaryNode) -> Self::Result {
+        walk_unary(self, node)
+    }
+
+    fn visit_call(&mut self, node: &'a mut CallNode) -> Self::Result {
+        walk_call(self, node)
+    }
+
+    fn visit_grouping(&mut self, node: &'a mut GroupingNode) -> Self::Result {
+        walk_grouping(self, node)
+    }
+
+    fn visit_literal(&mut self, node: &'a mut LiteralNode) -> Self::Result {
+        walk_literal(self, node)
+    }
+
+    fn visit_variable(&mut self, node: &'a mut VariableNode) -> Self::Result {
+        walk_variable(self, node)
+    }
+
+    fn visit_type(&mut self, node: &'a mut TypeNode) -> Self::Result {
+        walk_type(self, node)
+    }
 }
 
-pub fn walk_program<'a, V: Visitor<'a>>(visitor: &mut V, program: &'a Program) {
-    // program
-    //     .0
-    //     .iter()
-    //     .for_each(|statement| visitor.visit_statement(statement));
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
-pub enum StatementResult<'a, V: Visitor<'a>> {
-    Expression(V::Result),
-    LetDeclaration(Option<V::Result>),
-    FunDeclaration(Vec<V::Result>),
-    Block(Vec<V::Result>),
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
-pub enum ExpressionResult<'a, V: Visitor<'a>> {
-    Equality(V::Result, V::Result),
-    Comparison(V::Result, V::Result),
-    Term(V::Result, V::Result),
-    Factor(V::Result, V::Result),
-    Unary(V::Result),
-    Grouping(V::Result),
-    Literal(V::Result),
-    Variable,
-    Call(V::Result, Vec<V::Result>),
+pub fn walk_program<'a, V: Visitor<'a>>(visitor: &mut V, node: &'a mut ProgramNode) -> V::Result {
+    node.statements
+        .iter_mut()
+        .map(|statement| visitor.visit_statement(statement));
+    V::default_result()
 }
 
 pub fn walk_statement<'a, V: Visitor<'a>>(
     visitor: &mut V,
-    statement: &Statement,
-) -> StatementResult<'a, V> {
-    match *statement {
-        Statement::Expression(ref expression) => {
-            let expression = visitor.visit_expression(expression);
-            StatementResult::Expression(expression)
-        }
-        Statement::LetDeclaration(_, Some(ref expression)) => {
-            let expression = visitor.visit_expression(expression);
-            StatementResult::LetDeclaration(Some(expression))
-        }
-        Statement::LetDeclaration(_, None) => StatementResult::LetDeclaration(None),
-        Statement::FunDeclaration(_, ref parameters, _) => {
-            let parameters = parameters
-                .iter()
-                .map(|parameter| visitor.visit_parameter(parameter))
-                .collect();
-            StatementResult::FunDeclaration(parameters)
-        }
-        Statement::Block(ref statements) => {
-            let statements = statements
-                .iter()
-                .map(|statement| visitor.visit_statement(statement))
-                .collect();
-            StatementResult::Block(statements)
-        }
+    node: &'a mut StatementKind,
+) -> V::Result {
+    match node {
+        StatementKind::Expression(node) => visitor.visit_expression_statement(node),
+        StatementKind::LetDeclaration(node) => visitor.visit_let_declaration(node),
+        StatementKind::FunDeclaration(node) => visitor.visit_fun_declaration(node),
+        StatementKind::Block(node) => visitor.visit_block(node),
     }
+}
+
+pub fn walk_expression_statement<'a, V: Visitor<'a>>(
+    visitor: &mut V,
+    node: &'a mut ExpressionNode,
+) -> V::Result {
+    visitor.visit_expression(&mut node.expression)
+}
+
+pub fn walk_let_declaration<'a, V: Visitor<'a>>(
+    visitor: &mut V,
+    node: &'a mut LetDeclarationNode,
+) -> V::Result {
+    visitor.visit_type(&mut node.type_);
+
+    if let Some(ref mut expression) = node.expression {
+        visitor.visit_expression(expression);
+    }
+
+    V::default_result()
+}
+
+pub fn walk_fun_declaration<'a, V: Visitor<'a>>(
+    visitor: &mut V,
+    node: &'a mut FunDeclarationNode,
+) -> V::Result {
+    node.parameters
+        .iter_mut()
+        .map(|parameter| visitor.visit_parameter(parameter));
+
+    visitor.visit_type(&mut node.type_);
+
+    visitor.visit_statement(&mut node.block);
+
+    V::default_result()
+}
+
+pub fn walk_parameter<'a, V: Visitor<'a>>(
+    visitor: &mut V,
+    node: &'a mut ParameterNode,
+) -> V::Result {
+    visitor.visit_type(&mut node.type_);
+
+    V::default_result()
+}
+
+pub fn walk_block<'a, V: Visitor<'a>>(visitor: &mut V, node: &'a mut BlockNode) -> V::Result {
+    node.statements
+        .iter_mut()
+        .map(|statement| visitor.visit_statement(statement));
+
+    V::default_result()
 }
 
 pub fn walk_expression<'a, V: Visitor<'a>>(
     visitor: &mut V,
-    expression: &ExpressionKind,
-) -> ExpressionResult<'a, V> {
-    match *expression {
-        ExpressionKind::Equality(ref lhs, _, ref rhs) => {
-            let lhs = visitor.visit_expression(lhs);
-            let rhs = visitor.visit_expression(rhs);
-            ExpressionResult::Equality(lhs, rhs)
-        }
-        ExpressionKind::Comparison(ref lhs, _, ref rhs) => {
-            let lhs = visitor.visit_expression(lhs);
-            let rhs = visitor.visit_expression(rhs);
-            ExpressionResult::Comparison(lhs, rhs)
-        }
-        ExpressionKind::Term(ref lhs, _, ref rhs) => {
-            let lhs = visitor.visit_expression(lhs);
-            let rhs = visitor.visit_expression(rhs);
-            ExpressionResult::Term(lhs, rhs)
-        }
-        ExpressionKind::Factor(ref lhs, _, ref rhs) => {
-            let lhs = visitor.visit_expression(lhs);
-            let rhs = visitor.visit_expression(rhs);
-            ExpressionResult::Factor(lhs, rhs)
-        }
-        ExpressionKind::Unary(_, ref rhs) => {
-            let rhs = visitor.visit_expression(rhs);
-            ExpressionResult::Unary(rhs)
-        }
-        ExpressionKind::Grouping(ref expression) => {
-            let expression = visitor.visit_expression(expression);
-            ExpressionResult::Grouping(expression)
-        }
-        ExpressionKind::Literal(ref literal) => {
-            let literal = visitor.visit_literal(literal);
-            ExpressionResult::Literal(literal)
-        }
-        ExpressionKind::Variable(_) => ExpressionResult::Variable,
-        ExpressionKind::Call(ref callee, ref arguments) => {
-            let callee = visitor.visit_expression(callee);
-            let arguments = arguments
-                .iter()
-                .map(|argument| visitor.visit_expression(argument))
-                .collect();
-            ExpressionResult::Call(callee, arguments)
-        }
+    node: &'a mut ExpressionKind,
+) -> V::Result {
+    match node {
+        ExpressionKind::Equality(node) => visitor.visit_equality(node.as_mut()),
+        ExpressionKind::Comparison(node) => visitor.visit_comparison(node.as_mut()),
+        ExpressionKind::Term(node) => visitor.visit_term(node.as_mut()),
+        ExpressionKind::Factor(node) => visitor.visit_factor(node.as_mut()),
+        ExpressionKind::Unary(node) => visitor.visit_unary(node.as_mut()),
+        ExpressionKind::Call(node) => visitor.visit_call(node.as_mut()),
+        ExpressionKind::Grouping(node) => visitor.visit_grouping(node.as_mut()),
+        ExpressionKind::Literal(node) => visitor.visit_literal(node),
+        ExpressionKind::Variable(node) => visitor.visit_variable(node),
     }
 }
 
-// #[cfg_attr(feature = "serialize", derive(Serialize))]
-// #[derive(Debug)]
-// pub enum StatementResult<'a, V: Visitor<'a>> {
-//     Expression(V::Result),
-//     LetDeclaration(Option<V::Result>),
-//     FunDeclaration(Vec<V::Result>, Box<StatementResult<'a, V>>),
-//     Block(Vec<V::Result>),
-// }
+pub fn walk_equality<'a, V: Visitor<'a>>(visitor: &mut V, node: &'a mut EqualityNode) -> V::Result {
+    visitor.visit_expression(&mut node.lhs);
+    visitor.visit_expression(&mut node.rhs);
 
-// impl Statement {
-//     pub fn walk<'a, V>(&self, visitor: &mut V) -> StatementResult<'a, V>
-//     where
-//         V: Visitor<'a>,
-//     {
-//         match *self {
-//             Self::Expression(ref expression) => {
-//                 let expression = visitor.visit_expression(expression);
-//                 StatementResult::Expression(expression)
-//             }
-//             Self::LetDeclaration(_, Some(ref expression)) => {
-//                 let expression = visitor.visit_expression(expression);
-//                 StatementResult::LetDeclaration(Some(expression))
-//             }
-//             Self::LetDeclaration(_, None) => StatementResult::LetDeclaration(None),
-//             Self::FunDeclaration(_, ref parameters, _, ref block) => {
-//                 let parameters = parameters
-//                     .iter()
-//                     .map(|parameter| visitor.visit_parameter(parameter))
-//                     .collect();
-//                 let block = visitor.visit_statement(block);
-//                 StatementResult::FunDeclaration(parameters, Box::new(block))
-//             }
-//             Self::Block(ref statements) => {
-//                 let statements = statements
-//                     .iter()
-//                     .map(|statement| visitor.visit_statement(statement))
-//                     .collect();
-//                 StatementResult::Block(statements)
-//             }
-//         }
-//     }
-// }
+    V::default_result()
+}
 
-// #[cfg_attr(feature = "serialize", derive(Serialize))]
-// #[derive(Debug)]
-// pub enum ExpressionResult<'a, V: Visitor<'a>> {
-//     Equality(V::Result, V::Result),
-//     Comparison(V::Result, V::Result),
-//     Term(V::Result, V::Result),
-//     Factor(V::Result, V::Result),
-//     Unary(V::Result),
-//     Grouping(V::Result),
-//     Literal(V::Result),
-//     Variable,
-//     Call(V::Result, Vec<V::Result>),
-// }
+pub fn walk_comparison<'a, V: Visitor<'a>>(
+    visitor: &mut V,
+    node: &'a mut ComparisonNode,
+) -> V::Result {
+    visitor.visit_expression(&mut node.lhs);
+    visitor.visit_expression(&mut node.rhs);
 
-// impl ExpressionKind {
-//     pub fn walk<'a, V>(&self, visitor: &mut V) -> ExpressionResult<'a, V>
-//     where
-//         V: Visitor<'a>,
-//     {
-//         match *self {
-//             ExpressionKind::Equality(ref lhs, _, ref rhs) => {
-//                 let lhs = visitor.visit_expression(lhs);
-//                 let rhs = visitor.visit_expression(rhs);
-//                 ExpressionResult::Equality(lhs, rhs)
-//             }
-//             ExpressionKind::Comparison(ref lhs, _, ref rhs) => {
-//                 let lhs = visitor.visit_expression(lhs);
-//                 let rhs = visitor.visit_expression(rhs);
-//                 ExpressionResult::Comparison(lhs, rhs)
-//             }
-//             ExpressionKind::Term(ref lhs, _, ref rhs) => {
-//                 let lhs = visitor.visit_expression(lhs);
-//                 let rhs = visitor.visit_expression(rhs);
-//                 ExpressionResult::Term(lhs, rhs)
-//             }
-//             ExpressionKind::Factor(ref lhs, _, ref rhs) => {
-//                 let lhs = visitor.visit_expression(lhs);
-//                 let rhs = visitor.visit_expression(rhs);
-//                 ExpressionResult::Factor(lhs, rhs)
-//             }
-//             ExpressionKind::Unary(_, ref rhs) => {
-//                 let rhs = visitor.visit_expression(rhs);
-//                 ExpressionResult::Unary(rhs)
-//             }
-//             ExpressionKind::Grouping(ref expression) => {
-//                 let expression = visitor.visit_expression(expression);
-//                 ExpressionResult::Grouping(expression)
-//             }
-//             ExpressionKind::Literal(ref literal) => {
-//                 let literal = visitor.visit_literal(literal);
-//                 ExpressionResult::Literal(literal)
-//             }
-//             ExpressionKind::Variable(_) => ExpressionResult::Variable,
-//             ExpressionKind::Call(ref callee, ref arguments) => {
-//                 let callee = visitor.visit_expression(callee);
-//                 let arguments = arguments
-//                     .iter()
-//                     .map(|argument| visitor.visit_expression(argument))
-//                     .collect();
-//                 ExpressionResult::Call(callee, arguments)
-//             }
-//         }
-//     }
-// }
+    V::default_result()
+}
+
+pub fn walk_term<'a, V: Visitor<'a>>(visitor: &mut V, node: &'a mut TermNode) -> V::Result {
+    visitor.visit_expression(&mut node.lhs);
+    visitor.visit_expression(&mut node.rhs);
+
+    V::default_result()
+}
+
+pub fn walk_factor<'a, V: Visitor<'a>>(visitor: &mut V, node: &'a mut FactorNode) -> V::Result {
+    visitor.visit_expression(&mut node.lhs);
+    visitor.visit_expression(&mut node.rhs);
+
+    V::default_result()
+}
+
+pub fn walk_unary<'a, V: Visitor<'a>>(visitor: &mut V, node: &'a mut UnaryNode) -> V::Result {
+    visitor.visit_expression(&mut node.expression);
+
+    V::default_result()
+}
+
+pub fn walk_call<'a, V: Visitor<'a>>(visitor: &mut V, node: &'a mut CallNode) -> V::Result {
+    visitor.visit_expression(&mut node.callee);
+    node.arguments
+        .iter_mut()
+        .map(|argument| visitor.visit_expression(argument));
+
+    V::default_result()
+}
+
+pub fn walk_grouping<'a, V: Visitor<'a>>(visitor: &mut V, node: &'a mut GroupingNode) -> V::Result {
+    visitor.visit_expression(&mut node.expression)
+}
+
+pub fn walk_literal<'a, V: Visitor<'a>>(visitor: &mut V, node: &'a mut LiteralNode) -> V::Result {
+    V::default_result()
+}
+
+pub fn walk_variable<'a, V: Visitor<'a>>(visitor: &mut V, node: &'a mut VariableNode) -> V::Result {
+    V::default_result()
+}
+
+pub fn walk_type<'a, V: Visitor<'a>>(visitor: &mut V, node: &'a mut TypeNode) -> V::Result {
+    V::default_result()
+}

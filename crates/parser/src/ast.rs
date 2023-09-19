@@ -6,44 +6,106 @@ use lexer::token::{Token, TokenKind};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
-pub struct Program(pub Vec<Statement>);
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
-pub enum Literal {
-    String(Token),
-    Integer(Token),
-    Decimal(Token),
-    Boolean(Token),
+pub struct ProgramNode {
+    pub(crate) statements: Vec<StatementKind>,
 }
 
-impl Literal {
-    pub fn get_token(&self) -> &Token {
-        match self {
-            Literal::String(ref token)
-            | Literal::Integer(ref token)
-            | Literal::Decimal(ref token)
-            | Literal::Boolean(ref token) => token,
-        }
+impl ProgramNode {
+    pub fn new(statements: Vec<StatementKind>) -> Self {
+        ProgramNode { statements }
     }
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub enum Statement {
-    Expression(ExpressionKind),
-    LetDeclaration(Token, Option<ExpressionKind>),
-    FunDeclaration(Token, Vec<Parameter>, Type, Box<Statement>),
-    Block(Vec<Statement>),
+pub enum StatementKind {
+    Expression(ExpressionNode),
+    LetDeclaration(LetDeclarationNode),
+    FunDeclaration(Box<FunDeclarationNode>),
+    Block(BlockNode),
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub struct Parameter(Token, Type);
+pub struct ExpressionNode {
+    pub(crate) expression: ExpressionKind,
+}
 
-impl Parameter {
-    pub fn new(identifier: Token, type_: Type) -> Self {
-        Parameter(identifier, type_)
+impl ExpressionNode {
+    pub fn statement(expression: ExpressionKind) -> StatementKind {
+        StatementKind::Expression(ExpressionNode { expression })
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct LetDeclarationNode {
+    pub(crate) name: Token,
+    pub(crate) type_: TypeNode,
+    pub(crate) expression: Option<ExpressionKind>,
+}
+
+impl LetDeclarationNode {
+    pub fn statement(
+        name: Token,
+        type_: TypeNode,
+        expression: Option<ExpressionKind>,
+    ) -> StatementKind {
+        StatementKind::LetDeclaration(LetDeclarationNode {
+            name,
+            type_,
+            expression,
+        })
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct FunDeclarationNode {
+    pub(crate) name: Token,
+    pub(crate) parameters: Vec<ParameterNode>,
+    pub(crate) type_: TypeNode,
+    pub(crate) block: StatementKind,
+}
+
+impl FunDeclarationNode {
+    pub fn statement(
+        name: Token,
+        parameters: Vec<ParameterNode>,
+        type_: TypeNode,
+        block: StatementKind,
+    ) -> StatementKind {
+        StatementKind::FunDeclaration(Box::new(FunDeclarationNode {
+            name,
+            parameters,
+            type_,
+            block,
+        }))
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct BlockNode {
+    pub(crate) statements: Vec<StatementKind>,
+}
+
+impl BlockNode {
+    pub fn statement(statements: Vec<StatementKind>) -> StatementKind {
+        StatementKind::Block(BlockNode { statements })
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct ParameterNode {
+    pub(crate) name: Token,
+    pub(crate) type_: TypeNode,
+}
+
+impl ParameterNode {
+    pub fn new(name: Token, type_: TypeNode) -> Self {
+        ParameterNode { name, type_ }
     }
 }
 
@@ -84,50 +146,281 @@ impl From<TokenKind> for TypeKind {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub struct Type {
-    kind: TypeKind,
+pub struct TypeNode {
+    pub(crate) kind: TypeKind,
 }
 
-impl Type {
+impl TypeNode {
     pub fn new(kind: impl Into<TypeKind>) -> Self {
-        Type { kind: kind.into() }
+        TypeNode { kind: kind.into() }
     }
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub enum ExpressionKind {
-    Equality(Box<ExpressionKind>, Token, Box<ExpressionKind>),
-    Comparison(Box<ExpressionKind>, Token, Box<ExpressionKind>),
-    Term(Box<ExpressionKind>, Token, Box<ExpressionKind>),
-    Factor(Box<ExpressionKind>, Token, Box<ExpressionKind>),
-    Unary(Token, Box<ExpressionKind>),
-    Call(Box<ExpressionKind>, Vec<ExpressionKind>),
-    Grouping(Box<ExpressionKind>),
-    Literal(Literal),
-    Variable(Token),
+    Equality(Box<EqualityNode>),
+    Comparison(Box<ComparisonNode>),
+    Term(Box<TermNode>),
+    Factor(Box<FactorNode>),
+    Unary(Box<UnaryNode>),
+    Call(Box<CallNode>),
+    Grouping(Box<GroupingNode>),
+    Literal(LiteralNode),
+    Variable(VariableNode),
 }
 
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub enum EqualityOperator {
     Equal,
     NotEqual,
 }
 
-pub struct EqualityNode {
-    lhs: ExpressionKind,
-    operator: EqualityOperator,
-    rhs: ExpressionKind,
+impl From<Token> for EqualityOperator {
+    fn from(value: Token) -> Self {
+        match value.kind {
+            TokenKind::Equal => Self::Equal,
+            TokenKind::NotEqual => Self::NotEqual,
+            _ => todo!("This convertion is not implemented."),
+        }
+    }
 }
 
-impl ExpressionKind {
-    pub fn get_operator_token(&self) -> &Token {
-        match self {
-            ExpressionKind::Comparison(_, ref token, _)
-            | ExpressionKind::Term(_, ref token, _)
-            | ExpressionKind::Factor(_, ref token, _)
-            | ExpressionKind::Unary(ref token, _)
-            | ExpressionKind::Equality(_, ref token, _) => token,
-            _ => todo!("Operator token for this expression not implemented yet."),
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct EqualityNode {
+    pub(crate) lhs: ExpressionKind,
+    pub(crate) operator: EqualityOperator,
+    pub(crate) rhs: ExpressionKind,
+}
+
+impl EqualityNode {
+    pub fn expression(
+        lhs: ExpressionKind,
+        operator: impl Into<EqualityOperator>,
+        rhs: ExpressionKind,
+    ) -> ExpressionKind {
+        ExpressionKind::Equality(Box::new(EqualityNode {
+            lhs,
+            operator: operator.into(),
+            rhs,
+        }))
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub enum ComparisonOperator {
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
+}
+
+impl From<Token> for ComparisonOperator {
+    fn from(value: Token) -> Self {
+        match value.kind {
+            TokenKind::Greater => Self::Greater,
+            TokenKind::GreaterEqual => Self::GreaterEqual,
+            TokenKind::Less => Self::Less,
+            TokenKind::LessEqual => Self::LessEqual,
+            _ => todo!("This convertion is not implemented."),
         }
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct ComparisonNode {
+    pub(crate) lhs: ExpressionKind,
+    pub(crate) operator: ComparisonOperator,
+    pub(crate) rhs: ExpressionKind,
+}
+
+impl ComparisonNode {
+    pub fn expression(
+        lhs: ExpressionKind,
+        operator: impl Into<ComparisonOperator>,
+        rhs: ExpressionKind,
+    ) -> ExpressionKind {
+        ExpressionKind::Comparison(Box::new(ComparisonNode {
+            lhs,
+            operator: operator.into(),
+            rhs,
+        }))
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub enum TermOperator {
+    Add,
+    Sub,
+}
+
+impl From<Token> for TermOperator {
+    fn from(value: Token) -> Self {
+        match value.kind {
+            TokenKind::Plus => Self::Add,
+            TokenKind::Minus => Self::Sub,
+            _ => todo!("This convertion is not implemented."),
+        }
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct TermNode {
+    pub(crate) lhs: ExpressionKind,
+    pub(crate) operator: TermOperator,
+    pub(crate) rhs: ExpressionKind,
+}
+
+impl TermNode {
+    pub fn expression(
+        lhs: ExpressionKind,
+        operator: impl Into<TermOperator>,
+        rhs: ExpressionKind,
+    ) -> ExpressionKind {
+        ExpressionKind::Term(Box::new(TermNode {
+            lhs,
+            operator: operator.into(),
+            rhs,
+        }))
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub enum FactorOperator {
+    Mul,
+    Div,
+}
+
+impl From<Token> for FactorOperator {
+    fn from(value: Token) -> Self {
+        match value.kind {
+            TokenKind::Asterisk => Self::Mul,
+            TokenKind::Slash => Self::Div,
+            _ => todo!("This convertion is not implemented."),
+        }
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct FactorNode {
+    pub(crate) lhs: ExpressionKind,
+    pub(crate) operator: FactorOperator,
+    pub(crate) rhs: ExpressionKind,
+}
+
+impl FactorNode {
+    pub fn expression(
+        lhs: ExpressionKind,
+        operator: impl Into<FactorOperator>,
+        rhs: ExpressionKind,
+    ) -> ExpressionKind {
+        ExpressionKind::Factor(Box::new(FactorNode {
+            lhs,
+            operator: operator.into(),
+            rhs,
+        }))
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub enum UnaryOperator {
+    Neg,
+    LogNeg,
+}
+
+impl From<Token> for UnaryOperator {
+    fn from(value: Token) -> Self {
+        match value.kind {
+            TokenKind::Minus => Self::Neg,
+            TokenKind::Apostrophe => Self::LogNeg,
+            _ => todo!("This convertion is not implemented."),
+        }
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct UnaryNode {
+    pub(crate) operator: UnaryOperator,
+    pub(crate) expression: ExpressionKind,
+}
+
+impl UnaryNode {
+    pub fn expression(
+        operator: impl Into<UnaryOperator>,
+        expression: ExpressionKind,
+    ) -> ExpressionKind {
+        ExpressionKind::Unary(Box::new(UnaryNode {
+            operator: operator.into(),
+            expression,
+        }))
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct CallNode {
+    pub(crate) callee: ExpressionKind,
+    pub(crate) arguments: Vec<ExpressionKind>,
+}
+
+impl CallNode {
+    pub fn expression(callee: ExpressionKind, arguments: Vec<ExpressionKind>) -> ExpressionKind {
+        ExpressionKind::Call(Box::new(CallNode { callee, arguments }))
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct GroupingNode {
+    pub(crate) expression: ExpressionKind,
+}
+
+impl GroupingNode {
+    pub fn expression(expression: ExpressionKind) -> ExpressionKind {
+        ExpressionKind::Grouping(Box::new(GroupingNode { expression }))
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct VariableNode {
+    pub(crate) token: Token,
+}
+
+impl VariableNode {
+    pub fn expression(token: Token) -> ExpressionKind {
+        ExpressionKind::Variable(VariableNode { token })
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub enum LiteralKind {
+    String,
+    Integer,
+    Decimal,
+    Bool,
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct LiteralNode {
+    pub(crate) token: Token,
+    pub(crate) kind: LiteralKind,
+}
+
+impl LiteralNode {
+    pub fn expression(token: Token, kind: LiteralKind) -> ExpressionKind {
+        ExpressionKind::Literal(LiteralNode { token, kind })
     }
 }
