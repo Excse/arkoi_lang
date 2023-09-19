@@ -1,14 +1,16 @@
-use diagnostics::{positional::{Spannable, Span}, report::Report};
 use lasso::Spur;
-use parser::{
-    ast::{
-        BlockNode, CallNode, ExpressionKind, FunDeclarationNode, LetDeclarationNode, LiteralKind,
-        ParameterNode, ProgramNode, StatementKind, VariableNode,
-    },
-    traversal::{Visitor, Walkable},
-};
 
-use crate::symbol_table::{Symbol, SymbolKind, SymbolTable};
+use crate::symbol_table::SymbolTable;
+use ast::{
+    symbol::{Symbol, SymbolKind},
+    traversal::{Visitor, Walkable},
+    BlockNode, CallNode, ExpressionKind, FunDeclarationNode, LetDeclarationNode, LiteralKind,
+    ParameterNode, ProgramNode, StatementKind, VariableNode,
+};
+use diagnostics::{
+    positional::{Span, Spannable},
+    report::Report,
+};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]

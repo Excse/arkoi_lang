@@ -11,4 +11,6 @@ version = { workspace = true }
 diagnostics = { path = "../diagnostics/" }
 parser = { path = "../parser/" }
 lexer = { path = "../lexer/" }
+ast = { path = "../ast" }
+
 lasso = { version = "0.7.2", features = ["serialize"] }

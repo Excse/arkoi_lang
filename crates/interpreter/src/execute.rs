@@ -3,14 +3,12 @@ use serde::Serialize;
 
 use lasso::Rodeo;
 
-use lexer::token::{TokenKind, TokenValue};
-use parser::{
-    ast::{
-        ComparisonNode, ComparisonOperator, EqualityOperator, ExpressionKind, FactorOperator,
-        LiteralKind, LiteralNode, ProgramNode, StatementKind, TermOperator, UnaryOperator,
-    },
-    traversal::Visitor,
+use ast::{
+    traversal::Visitor, CallNode, ComparisonNode, ComparisonOperator, EqualityNode,
+    EqualityOperator, ExpressionKind, FactorNode, FactorOperator, LiteralKind, LiteralNode,
+    ProgramNode, StatementKind, TermNode, TermOperator, UnaryNode, UnaryOperator, VariableNode,
 };
+use lexer::token::{TokenKind, TokenValue};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
@@ -53,10 +51,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_equality(
-        &mut self,
-        node: &'a mut parser::ast::EqualityNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_equality(&mut self, node: &'a mut EqualityNode) -> Result<Self::Return, Self::Error> {
         let lhs = self.visit_expression(&mut node.lhs)?;
         let rhs = self.visit_expression(&mut node.rhs)?;
 
@@ -121,10 +116,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_term(
-        &mut self,
-        node: &'a mut parser::ast::TermNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_term(&mut self, node: &'a mut TermNode) -> Result<Self::Return, Self::Error> {
         let lhs = self.visit_expression(&mut node.lhs)?;
         let rhs = self.visit_expression(&mut node.rhs)?;
 
@@ -146,10 +138,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_factor(
-        &mut self,
-        node: &'a mut parser::ast::FactorNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_factor(&mut self, node: &'a mut FactorNode) -> Result<Self::Return, Self::Error> {
         let lhs = self.visit_expression(&mut node.lhs)?;
         let rhs = self.visit_expression(&mut node.rhs)?;
 
@@ -171,10 +160,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_unary(
-        &mut self,
-        node: &'a mut parser::ast::UnaryNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_unary(&mut self, node: &'a mut UnaryNode) -> Result<Self::Return, Self::Error> {
         let expression = self.visit_expression(&mut node.expression)?;
 
         Ok(match (node.operator, expression) {
@@ -185,17 +171,11 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_variable(
-        &mut self,
-        node: &'a mut parser::ast::VariableNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_variable(&mut self, node: &'a mut VariableNode) -> Result<Self::Return, Self::Error> {
         todo!()
     }
 
-    fn visit_call(
-        &mut self,
-        node: &'a mut parser::ast::CallNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_call(&mut self, node: &'a mut CallNode) -> Result<Self::Return, Self::Error> {
         todo!()
     }
 }

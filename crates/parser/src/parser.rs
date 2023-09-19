@@ -1,13 +1,13 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::ast::{
+use crate::cursor::Cursor;
+use crate::error::{ErrorKind, ParserError, Result};
+use ast::{
     BlockNode, CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode, FactorNode,
     FunDeclarationNode, GroupingNode, LetDeclarationNode, LiteralKind, LiteralNode, ParameterNode,
     ProgramNode, StatementKind, TermNode, TypeKind, TypeNode, UnaryNode, VariableNode,
 };
-use crate::cursor::Cursor;
-use crate::error::{ErrorKind, ParserError, Result};
 use diagnostics::file::{FileID, Files};
 use diagnostics::positional::Spannable;
 use diagnostics::report::Report;

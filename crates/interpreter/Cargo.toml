@@ -12,6 +12,7 @@ diagnostics = { path = "../diagnostics" }
 lexer = { path = "../lexer" }
 parser = { path = "../parser" }
 name_resolution = { path = "../name_resolution" }
+ast = { path = "../ast" }
 
 serde = { version = "1.0.188", features = ["derive"], optional = true }
 lasso = { version = "0.7.2", features = ["serialize"] }

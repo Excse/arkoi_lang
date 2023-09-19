@@ -3,13 +3,14 @@
 mod execute;
 
 use lasso::Rodeo;
-use name_resolution::{NameResolution, ResolutionError};
-use parser::{traversal::Visitor, Parser};
 use termcolor::{ColorChoice, StandardStream};
 
+use ast::traversal::Visitor;
 use diagnostics::{file::Files, renderer::Renderer};
 use execute::Interpreter;
 use lexer::{error::LexerError, Lexer};
+use name_resolution::{NameResolution, ResolutionError};
+use parser::Parser;
 
 fn main() {
     let mut files = Files::default();

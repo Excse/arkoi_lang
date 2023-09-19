@@ -1,31 +1,10 @@
 use std::collections::HashMap;
 
-use diagnostics::positional::Spannable;
 use lasso::Spur;
 
 use crate::name_resolution::ResolutionError;
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
-pub struct Symbol {
-    pub name: Spannable<Spur>,
-    pub kind: SymbolKind,
-}
-
-impl Symbol {
-    pub fn new(name: Spannable<Spur>, kind: SymbolKind) -> Self {
-        Symbol { name, kind }
-    }
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq)]
-pub enum SymbolKind {
-    LocalVar,
-    GlobalVar,
-    Parameter,
-    Function,
-}
+use ast::symbol::Symbol;
+use diagnostics::positional::Spannable;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
