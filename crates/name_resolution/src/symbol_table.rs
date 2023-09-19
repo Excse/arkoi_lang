@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use diagnostics::positional::Spannable;
 use lasso::Spur;
 
 use crate::name_resolution::ResolutionError;
@@ -7,22 +8,23 @@ use crate::name_resolution::ResolutionError;
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct Symbol {
-    name: Spur,
-    kind: SymbolKind,
+    pub name: Spannable<Spur>,
+    pub kind: SymbolKind,
 }
 
 impl Symbol {
-    pub fn new(name: Spur, kind: SymbolKind) -> Self {
+    pub fn new(name: Spannable<Spur>, kind: SymbolKind) -> Self {
         Symbol { name, kind }
     }
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum SymbolKind {
     LocalVar,
     GlobalVar,
     Parameter,
+    Function,
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -32,17 +34,27 @@ pub struct Scope {
 }
 
 impl Scope {
-    fn insert(&mut self, name: Spur, symbol: Symbol, shadow: bool) -> Result<(), ResolutionError> {
-        if !shadow && self.lookup(name).is_some() {
-            // TODO: Pass symbol and other into the CannotShadow to give a more clearer report
-            return Err(ResolutionError::CannotShadow(name));
+    pub fn insert(
+        &mut self,
+        name: Spannable<Spur>,
+        symbol: Symbol,
+        shadow: bool,
+    ) -> Result<(), ResolutionError> {
+        if !shadow {
+            if let Some(other) = self.lookup(name.content) {
+                return Err(ResolutionError::NameAlreadyUsed(
+                    name.content,
+                    other.name.span,
+                    name.span,
+                ));
+            }
         }
 
-        self.symbols.insert(name, symbol);
+        self.symbols.insert(name.content, symbol);
         Ok(())
     }
 
-    fn lookup(&self, name: Spur) -> Option<&Symbol> {
+    pub fn lookup(&self, name: Spur) -> Option<&Symbol> {
         self.symbols.get(&name)
     }
 }
@@ -62,6 +74,10 @@ impl Default for SymbolTable {
 }
 
 impl SymbolTable {
+    pub fn global_scope(&mut self) -> &mut Scope {
+        self.scopes.first_mut().unwrap()
+    }
+
     pub fn enter(&mut self) {
         self.scopes.push(Scope::default());
     }
@@ -76,7 +92,7 @@ impl SymbolTable {
 
     pub fn insert(
         &mut self,
-        name: Spur,
+        name: Spannable<Spur>,
         symbol: Symbol,
         shadow: bool,
     ) -> Result<(), ResolutionError> {
