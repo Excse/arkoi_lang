@@ -1,8 +1,8 @@
 use diagnostics::report::Report;
 use lasso::Spur;
 use parser::{
-    ast::{ExpressionKind, Literal, Parameter, Program, Statement},
-    traversel::{walk_statement, Visitable, Visitor},
+    ast::{ExpressionKind, LiteralKind, ParameterNode, ProgramNode, StatementKind},
+    traversel::{Visitor, Walkable},
 };
 
 use crate::symbol_table::{Symbol, SymbolKind, SymbolTable};
@@ -25,47 +25,26 @@ pub enum ResolutionError {
 impl<'a> Visitor<'a> for NameResolution {
     type Result = Result<(), ResolutionError>;
 
-    fn visit_program(&mut self, program: &Program) -> Self::Result {
-        for statement in program.0.iter() {
-            if let Err(error) = statement.accept(self) {
-                self.errors.push(error);
-            }
-        }
-
+    fn default_result() -> Self::Result {
         Ok(())
     }
 
-    fn visit_literal(&mut self, literal: &Literal) -> Self::Result {
-        Ok(())
-    }
-
-    fn visit_statement(&mut self, statement: &Statement) -> Self::Result {
-        walk_statement(self, statement);
-
+    fn visit_let_declaration(
+        &mut self,
+        node: &'a mut parser::ast::LetDeclarationNode,
+    ) -> Self::Result {
         let is_global = self.table.is_global();
-        match statement {
-            Statement::LetDeclaration(name, _) => {
-                let name = name.get_str().unwrap();
-                let kind = if is_global {
-                    SymbolKind::GlobalVar
-                } else {
-                    SymbolKind::LocalVar
-                };
 
-                self.table
-                    .insert(name, Symbol::new(name, kind), !is_global)?;
-            }
-            _ => {}
-        }
+        let name = node.name.get_str().unwrap();
+        let kind = if is_global {
+            SymbolKind::GlobalVar
+        } else {
+            SymbolKind::LocalVar
+        };
 
-        Ok(())
-    }
+        self.table
+            .insert(name, Symbol::new(name, kind), !is_global)?;
 
-    fn visit_expression(&mut self, expression: &ExpressionKind) -> Self::Result {
-        Ok(())
-    }
-
-    fn visit_parameter(&mut self, argument: &Parameter) -> Self::Result {
         Ok(())
     }
 }

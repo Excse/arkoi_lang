@@ -7,7 +7,7 @@ use lexer::token::{Token, TokenKind};
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
 pub struct ProgramNode {
-    pub(crate) statements: Vec<StatementKind>,
+    pub statements: Vec<StatementKind>,
 }
 
 impl ProgramNode {
@@ -28,7 +28,7 @@ pub enum StatementKind {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct ExpressionNode {
-    pub(crate) expression: ExpressionKind,
+    pub expression: ExpressionKind,
 }
 
 impl ExpressionNode {
@@ -40,9 +40,9 @@ impl ExpressionNode {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct LetDeclarationNode {
-    pub(crate) name: Token,
-    pub(crate) type_: TypeNode,
-    pub(crate) expression: Option<ExpressionKind>,
+    pub name: Token,
+    pub type_: TypeNode,
+    pub expression: Option<ExpressionKind>,
 }
 
 impl LetDeclarationNode {
@@ -62,10 +62,10 @@ impl LetDeclarationNode {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct FunDeclarationNode {
-    pub(crate) name: Token,
-    pub(crate) parameters: Vec<ParameterNode>,
-    pub(crate) type_: TypeNode,
-    pub(crate) block: StatementKind,
+    pub name: Token,
+    pub parameters: Vec<ParameterNode>,
+    pub type_: TypeNode,
+    pub block: StatementKind,
 }
 
 impl FunDeclarationNode {
@@ -87,7 +87,7 @@ impl FunDeclarationNode {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct BlockNode {
-    pub(crate) statements: Vec<StatementKind>,
+    pub statements: Vec<StatementKind>,
 }
 
 impl BlockNode {
@@ -99,8 +99,8 @@ impl BlockNode {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct ParameterNode {
-    pub(crate) name: Token,
-    pub(crate) type_: TypeNode,
+    pub name: Token,
+    pub type_: TypeNode,
 }
 
 impl ParameterNode {
@@ -147,7 +147,7 @@ impl From<TokenKind> for TypeKind {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct TypeNode {
-    pub(crate) kind: TypeKind,
+    pub kind: TypeKind,
 }
 
 impl TypeNode {
@@ -190,9 +190,9 @@ impl From<Token> for EqualityOperator {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct EqualityNode {
-    pub(crate) lhs: ExpressionKind,
-    pub(crate) operator: EqualityOperator,
-    pub(crate) rhs: ExpressionKind,
+    pub lhs: ExpressionKind,
+    pub operator: EqualityOperator,
+    pub rhs: ExpressionKind,
 }
 
 impl EqualityNode {
@@ -233,9 +233,9 @@ impl From<Token> for ComparisonOperator {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct ComparisonNode {
-    pub(crate) lhs: ExpressionKind,
-    pub(crate) operator: ComparisonOperator,
-    pub(crate) rhs: ExpressionKind,
+    pub lhs: ExpressionKind,
+    pub operator: ComparisonOperator,
+    pub rhs: ExpressionKind,
 }
 
 impl ComparisonNode {
@@ -272,9 +272,9 @@ impl From<Token> for TermOperator {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct TermNode {
-    pub(crate) lhs: ExpressionKind,
-    pub(crate) operator: TermOperator,
-    pub(crate) rhs: ExpressionKind,
+    pub lhs: ExpressionKind,
+    pub operator: TermOperator,
+    pub rhs: ExpressionKind,
 }
 
 impl TermNode {
@@ -311,9 +311,9 @@ impl From<Token> for FactorOperator {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct FactorNode {
-    pub(crate) lhs: ExpressionKind,
-    pub(crate) operator: FactorOperator,
-    pub(crate) rhs: ExpressionKind,
+    pub lhs: ExpressionKind,
+    pub operator: FactorOperator,
+    pub rhs: ExpressionKind,
 }
 
 impl FactorNode {
@@ -350,8 +350,8 @@ impl From<Token> for UnaryOperator {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct UnaryNode {
-    pub(crate) operator: UnaryOperator,
-    pub(crate) expression: ExpressionKind,
+    pub operator: UnaryOperator,
+    pub expression: ExpressionKind,
 }
 
 impl UnaryNode {
@@ -369,8 +369,8 @@ impl UnaryNode {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct CallNode {
-    pub(crate) callee: ExpressionKind,
-    pub(crate) arguments: Vec<ExpressionKind>,
+    pub callee: ExpressionKind,
+    pub arguments: Vec<ExpressionKind>,
 }
 
 impl CallNode {
@@ -382,7 +382,7 @@ impl CallNode {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct GroupingNode {
-    pub(crate) expression: ExpressionKind,
+    pub expression: ExpressionKind,
 }
 
 impl GroupingNode {
@@ -394,7 +394,7 @@ impl GroupingNode {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct VariableNode {
-    pub(crate) token: Token,
+    pub token: Token,
 }
 
 impl VariableNode {
@@ -415,8 +415,8 @@ pub enum LiteralKind {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct LiteralNode {
-    pub(crate) token: Token,
-    pub(crate) kind: LiteralKind,
+    pub token: Token,
+    pub kind: LiteralKind,
 }
 
 impl LiteralNode {

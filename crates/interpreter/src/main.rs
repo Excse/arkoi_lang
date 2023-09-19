@@ -4,15 +4,12 @@ mod execute;
 
 use lasso::Rodeo;
 use name_resolution::{NameResolution, ResolutionError};
+use parser::{traversel::Visitor, Parser};
 use termcolor::{ColorChoice, StandardStream};
 
 use diagnostics::{file::Files, renderer::Renderer};
 use execute::Interpreter;
 use lexer::{error::LexerError, Lexer};
-use parser::{
-    traversel::{Visitable, Visitor},
-    Parser,
-};
 
 fn main() {
     let mut files = Files::default();
@@ -39,7 +36,7 @@ fn main() {
     }
 
     let mut parser = Parser::new(&files, file_id, &mut lexer);
-    let program = parser.parse_program();
+    let mut program = parser.parse_program();
 
     if !parser.errors.is_empty() {
         for error in parser.errors {
@@ -53,7 +50,7 @@ fn main() {
     }
 
     let mut name_resolution = NameResolution::default();
-    name_resolution.visit_program(&program);
+    name_resolution.visit_program(&mut program);
 
     if !name_resolution.errors.is_empty() {
         for error in name_resolution.errors {
@@ -67,5 +64,5 @@ fn main() {
     }
 
     let mut interpreter = Interpreter::new(&mut interner);
-    interpreter.visit_program(&program);
+    interpreter.visit_program(&mut program);
 }

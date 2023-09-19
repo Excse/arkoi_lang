@@ -4,9 +4,9 @@ use serde::Serialize;
 use lasso::Rodeo;
 
 use lexer::token::{TokenKind, TokenValue};
-use parser::ast::{ExpressionKind, Literal, Program, Statement};
-use parser::traversel::{
-    walk_expression, walk_statement, ExpressionResult, StatementResult, Visitable, Visitor,
+use parser::{
+    ast::{ExpressionKind, LiteralKind, LiteralNode, ProgramNode, StatementKind},
+    traversel::Visitor,
 };
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -28,18 +28,12 @@ pub enum Result {
 impl<'a> Visitor<'a> for Interpreter<'a> {
     type Result = Result;
 
-    fn visit_program(&mut self, program: &Program) -> Self::Result {
-        for statement in program.0.iter() {
-            statement.accept(self);
-        }
-
+    fn default_result() -> Self::Result {
         Result::Undefined
     }
 
-    fn visit_literal(&mut self, literal: &Literal) -> Self::Result {
-        let token = literal.get_token();
-
-        match token.value {
+    fn visit_literal(&mut self, node: &'a mut LiteralNode) -> Self::Result {
+        match node.token.value {
             Some(TokenValue::String(value)) => {
                 Result::String(self.interner.resolve(&value).to_string())
             }
@@ -50,46 +44,34 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         }
     }
 
-    fn visit_statement(&mut self, statement: &Statement) -> Self::Result {
-        match walk_statement(self, statement) {
-            StatementResult::Expression(result) => result,
-            StatementResult::LetDeclaration(Some(result)) => result,
-            _ => todo!()
-        }
-    }
-
-    fn visit_expression(&mut self, expression: &ExpressionKind) -> Self::Result {
-        match walk_expression(self, expression) {
-            ExpressionResult::Equality(lhs, rhs) => {
-                let operator = expression.get_operator_token().kind;
-                self.execute_equality(lhs, operator, rhs)
-            }
-            ExpressionResult::Comparison(lhs, rhs) => {
-                let operator = expression.get_operator_token().kind;
-                self.execute_comparison(lhs, operator, rhs)
-            }
-            ExpressionResult::Term(lhs, rhs) => {
-                let operator = expression.get_operator_token().kind;
-                self.execute_term(lhs, operator, rhs)
-            }
-            ExpressionResult::Factor(lhs, rhs) => {
-                let operator = expression.get_operator_token().kind;
-                self.execute_factor(lhs, operator, rhs)
-            }
-            ExpressionResult::Unary(rhs) => {
-                let operator = expression.get_operator_token().kind;
-                self.execute_unary(operator, rhs)
-            }
-            ExpressionResult::Grouping(result) => result,
-            ExpressionResult::Literal(result) => result,
-            ExpressionResult::Variable => todo!(),
-            ExpressionResult::Call(callee, arguments) => todo!(),
-        }
-    }
-
-    fn visit_parameter(&mut self, argument: &parser::ast::Parameter) -> Self::Result {
-        todo!()
-    }
+    // fn visit_expression(&mut self, expression: &'a mut ExpressionKind) -> Self::Result {
+    //     match walk_expression(self, expression) {
+    //         ExpressionResult::Equality(lhs, rhs) => {
+    //             let operator = expression.get_operator_token().kind;
+    //             self.execute_equality(lhs, operator, rhs)
+    //         }
+    //         ExpressionResult::Comparison(lhs, rhs) => {
+    //             let operator = expression.get_operator_token().kind;
+    //             self.execute_comparison(lhs, operator, rhs)
+    //         }
+    //         ExpressionResult::Term(lhs, rhs) => {
+    //             let operator = expression.get_operator_token().kind;
+    //             self.execute_term(lhs, operator, rhs)
+    //         }
+    //         ExpressionResult::Factor(lhs, rhs) => {
+    //             let operator = expression.get_operator_token().kind;
+    //             self.execute_factor(lhs, operator, rhs)
+    //         }
+    //         ExpressionResult::Unary(rhs) => {
+    //             let operator = expression.get_operator_token().kind;
+    //             self.execute_unary(operator, rhs)
+    //         }
+    //         ExpressionResult::Grouping(result) => result,
+    //         ExpressionResult::Literal(result) => result,
+    //         ExpressionResult::Variable => todo!(),
+    //         ExpressionResult::Call(callee, arguments) => todo!(),
+    //     }
+    // }
 }
 
 impl<'a> Interpreter<'a> {
