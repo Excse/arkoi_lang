@@ -1,7 +1,7 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::traversel::Visitor;
+use crate::traversal::Visitor;
 use lexer::token::{Token, TokenKind};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]

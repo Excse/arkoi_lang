@@ -4,7 +4,7 @@ mod execute;
 
 use lasso::Rodeo;
 use name_resolution::{NameResolution, ResolutionError};
-use parser::{traversel::Visitor, Parser};
+use parser::{traversal::Visitor, Parser};
 use termcolor::{ColorChoice, StandardStream};
 
 use diagnostics::{file::Files, renderer::Renderer};

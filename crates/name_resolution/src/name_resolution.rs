@@ -5,7 +5,7 @@ use parser::{
         BlockNode, CallNode, ExpressionKind, FunDeclarationNode, LetDeclarationNode, LiteralKind,
         ParameterNode, ProgramNode, StatementKind, VariableNode,
     },
-    traversel::{Visitor, Walkable},
+    traversal::{Visitor, Walkable},
 };
 
 use crate::symbol_table::{Symbol, SymbolKind, SymbolTable};

@@ -9,7 +9,7 @@ use parser::{
         ComparisonNode, ComparisonOperator, EqualityOperator, ExpressionKind, FactorOperator,
         LiteralKind, LiteralNode, ProgramNode, StatementKind, TermOperator, UnaryOperator,
     },
-    traversel::Visitor,
+    traversal::Visitor,
 };
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
