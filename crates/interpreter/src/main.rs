@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+mod error;
 mod execute;
 
 use lasso::Rodeo;
@@ -9,7 +10,7 @@ use ast::traversal::Visitor;
 use diagnostics::{file::Files, renderer::Renderer};
 use execute::Interpreter;
 use lexer::{error::LexerError, Lexer};
-use name_resolution::{NameResolution, ResolutionError};
+use name_resolution::{error::ResolutionError, NameResolution};
 use parser::Parser;
 
 fn main() {

@@ -2,9 +2,10 @@ use std::collections::HashMap;
 
 use lasso::Spur;
 
-use crate::name_resolution::ResolutionError;
 use ast::symbol::Symbol;
 use diagnostics::positional::Spannable;
+
+use crate::error::ResolutionError;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]

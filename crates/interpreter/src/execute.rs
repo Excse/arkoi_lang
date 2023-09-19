@@ -3,6 +3,7 @@ use serde::Serialize;
 
 use lasso::Rodeo;
 
+use crate::error::{InterpreterError, Result};
 use ast::{
     traversal::{Visitable, Visitor},
     CallNode, ComparisonNode, ComparisonOperator, EqualityNode, EqualityOperator, ExpressionKind,
@@ -26,21 +27,15 @@ pub enum Output {
     Bool(bool),
 }
 
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
-pub enum InterpreterError {
-    Undefined,
-}
-
 impl<'a> Visitor<'a> for Interpreter<'a> {
     type Return = Output;
     type Error = InterpreterError;
 
-    fn default_result() -> Result<Self::Return, Self::Error> {
+    fn default_result() -> Result {
         Err(InterpreterError::Undefined)
     }
 
-    fn visit_literal(&mut self, node: &'a mut LiteralNode) -> Result<Self::Return, Self::Error> {
+    fn visit_literal(&mut self, node: &'a mut LiteralNode) -> Result {
         Ok(match node.token.value {
             Some(TokenValue::String(value)) => {
                 Output::String(self.interner.resolve(&value).to_string())
@@ -52,7 +47,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_equality(&mut self, node: &'a mut EqualityNode) -> Result<Self::Return, Self::Error> {
+    fn visit_equality(&mut self, node: &'a mut EqualityNode) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -80,10 +75,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_comparison(
-        &mut self,
-        node: &'a mut ComparisonNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_comparison(&mut self, node: &'a mut ComparisonNode) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -117,7 +109,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_term(&mut self, node: &'a mut TermNode) -> Result<Self::Return, Self::Error> {
+    fn visit_term(&mut self, node: &'a mut TermNode) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -139,7 +131,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_factor(&mut self, node: &'a mut FactorNode) -> Result<Self::Return, Self::Error> {
+    fn visit_factor(&mut self, node: &'a mut FactorNode) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -161,7 +153,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_unary(&mut self, node: &'a mut UnaryNode) -> Result<Self::Return, Self::Error> {
+    fn visit_unary(&mut self, node: &'a mut UnaryNode) -> Result {
         let expression = node.expression.accept(self)?;
 
         Ok(match (node.operator, expression) {
@@ -172,11 +164,11 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_variable(&mut self, node: &'a mut VariableNode) -> Result<Self::Return, Self::Error> {
+    fn visit_variable(&mut self, node: &'a mut VariableNode) -> Result {
         todo!()
     }
 
-    fn visit_call(&mut self, node: &'a mut CallNode) -> Result<Self::Return, Self::Error> {
+    fn visit_call(&mut self, node: &'a mut CallNode) -> Result {
         todo!()
     }
 }

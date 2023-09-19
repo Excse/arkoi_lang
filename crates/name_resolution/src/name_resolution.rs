@@ -1,6 +1,9 @@
 use lasso::Spur;
 
-use crate::symbol_table::SymbolTable;
+use crate::{
+    error::{ResolutionError, Result},
+    symbol_table::SymbolTable,
+};
 use ast::{
     symbol::{Symbol, SymbolKind},
     traversal::{Visitable, Visitor},
@@ -19,25 +22,15 @@ pub struct NameResolution {
     pub errors: Vec<ResolutionError>,
 }
 
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
-pub enum ResolutionError {
-    Report(Report),
-    VariableCantBeAFunction,
-    VariableMustBeAFunction,
-    SymbolNotFound,
-    NameAlreadyUsed(Spur, Span, Span),
-}
-
 impl<'a> Visitor<'a> for NameResolution {
     type Return = ();
     type Error = ResolutionError;
 
-    fn default_result() -> Result<Self::Return, Self::Error> {
+    fn default_result() -> Result {
         Ok(())
     }
 
-    fn visit_program(&mut self, node: &'a mut ProgramNode) -> Result<Self::Return, Self::Error> {
+    fn visit_program(&mut self, node: &'a mut ProgramNode) -> Result {
         node.statements
             .iter_mut()
             .for_each(|statement| match self.visit_statement(statement) {
@@ -48,10 +41,7 @@ impl<'a> Visitor<'a> for NameResolution {
         Ok(())
     }
 
-    fn visit_let_declaration(
-        &mut self,
-        node: &'a mut LetDeclarationNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_let_declaration(&mut self, node: &'a mut LetDeclarationNode) -> Result {
         let should_shadow = !self.table.is_global();
 
         let name = node.name.get_spur().unwrap();
@@ -75,10 +65,7 @@ impl<'a> Visitor<'a> for NameResolution {
         Ok(())
     }
 
-    fn visit_fun_declaration(
-        &mut self,
-        node: &'a mut FunDeclarationNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_fun_declaration(&mut self, node: &'a mut FunDeclarationNode) -> Result {
         let mut global = self.table.global_scope();
 
         let name = node.name.get_spur().unwrap();
@@ -105,10 +92,7 @@ impl<'a> Visitor<'a> for NameResolution {
         Ok(())
     }
 
-    fn visit_parameter(
-        &mut self,
-        node: &'a mut ParameterNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_parameter(&mut self, node: &'a mut ParameterNode) -> Result {
         let name = node.name.get_spur().unwrap();
         let name = Spannable::new(name, node.name.span);
 
@@ -120,7 +104,7 @@ impl<'a> Visitor<'a> for NameResolution {
         Ok(())
     }
 
-    fn visit_block(&mut self, node: &'a mut BlockNode) -> Result<Self::Return, Self::Error> {
+    fn visit_block(&mut self, node: &'a mut BlockNode) -> Result {
         self.table.enter();
 
         node.statements
@@ -135,7 +119,7 @@ impl<'a> Visitor<'a> for NameResolution {
         Ok(())
     }
 
-    fn visit_variable(&mut self, node: &'a mut VariableNode) -> Result<Self::Return, Self::Error> {
+    fn visit_variable(&mut self, node: &'a mut VariableNode) -> Result {
         let name = node.identifier.get_spur().unwrap();
         let symbol = self.table.lookup(name)?;
 
