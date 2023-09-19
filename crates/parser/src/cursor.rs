@@ -33,7 +33,8 @@ impl<'a> Cursor<'a> {
         }
     }
 
-    pub fn synchronize(&mut self) {
+    // TODO: Improve this method
+    pub fn synchronize_program(&mut self) {
         if let Some(token) = self.consume() {
             if token.kind == TokenKind::Semicolon {
                 return;
@@ -42,8 +43,30 @@ impl<'a> Cursor<'a> {
 
         while let Ok(token) = self.peek() {
             match token.kind {
-                TokenKind::Fun | TokenKind::Struct | TokenKind::Let | TokenKind::Return => return,
-                TokenKind::Semicolon => {
+                TokenKind::Fun | TokenKind::Struct | TokenKind::Let => return,
+                TokenKind::Semicolon | TokenKind::CBracket => {
+                    self.consume();
+                    return;
+                }
+                _ => {}
+            };
+
+            self.consume();
+        }
+    }
+
+    // TODO: Improve this method
+    pub fn synchronize_block(&mut self) {
+        if let Some(token) = self.consume() {
+            if token.kind == TokenKind::Semicolon {
+                return;
+            }
+        }
+
+        while let Ok(token) = self.peek() {
+            match token.kind {
+                TokenKind::Let | TokenKind::Return => return,
+                TokenKind::Semicolon | TokenKind::CBracket => {
                     self.consume();
                     return;
                 }

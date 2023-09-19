@@ -11,11 +11,10 @@
 
 ## EBNF
 ```ebnf
-program = declaration* EOF ;
+program = program_declaration* EOF ;
 
-declaration = fun_declaration 
-            | let_declaration
-            | statement ;
+program_statements = fun_declaration
+                   | let_declaration ;
 
 fun_declaration = "fun" IDENTIFIER "(" parameters? ")" type block ;
 
@@ -34,6 +33,9 @@ statement = expression_statement
           | block ;
 
 block = "{" declaration* "}" ;
+
+block_statements = let_declaration 
+                 | statement ;
 
 expression_statement = expression ";" ;
 

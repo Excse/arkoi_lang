@@ -37,12 +37,12 @@ impl<'a> Parser<'a> {
     }
 
     /// ```ebnf
-    /// program = declarations* EOF ;
+    /// program = program_declaration* EOF ;
     /// ```
     pub fn parse_program(&mut self) -> ProgramNode {
         let mut statements = Vec::new();
         loop {
-            match self.parse_declaration() {
+            match self.parse_program_declaration() {
                 Ok(expression) => {
                     statements.push(expression);
                 }
@@ -52,7 +52,7 @@ impl<'a> Parser<'a> {
                 }) => break,
                 Err(error) => {
                     self.errors.push(error);
-                    self.cursor.synchronize();
+                    self.cursor.synchronize_program();
                 }
             };
         }
@@ -61,11 +61,10 @@ impl<'a> Parser<'a> {
     }
 
     /// ```ebnf
-    /// declaration = fun_declaration
-    ///             | let_declaration
-    ///             | statement ;
+    /// program_statements = fun_declaration
+    ///                    | let_declaration ;
     /// ```
-    fn parse_declaration(&mut self) -> Result<StatementKind> {
+    fn parse_program_declaration(&mut self) -> Result<StatementKind> {
         match self.parse_let_declaration() {
             Ok(result) => return Ok(result),
             Err(error) if error.wrong_start => {}
@@ -78,14 +77,10 @@ impl<'a> Parser<'a> {
             Err(error) => return Err(error),
         }
 
-        if let Ok(result) = self.parse_statement() {
-            return Ok(result);
-        }
-
         let token = self.cursor.peek()?;
         Err(ParserError::new(ErrorKind::DidntExpect(
             Spannable::new(token.kind.as_ref().to_string(), token.span),
-            "statement, fun or let declaration".to_string(),
+            "fun or let declaration".to_string(),
         )))
     }
 
@@ -125,7 +120,7 @@ impl<'a> Parser<'a> {
     }
 
     /// ```ebnf
-    /// block = "{" declaration* "}" ;
+    /// block = "{" block_declaration* "}" ;
     /// ```
     fn parse_block(&mut self) -> Result<StatementKind> {
         self.cursor
@@ -138,7 +133,11 @@ impl<'a> Parser<'a> {
 
         let mut statements = Vec::new();
         loop {
-            match self.parse_declaration() {
+            if self.cursor.eat(TokenKind::CBracket).is_ok() {
+                break;
+            }
+
+            match self.parse_block_declaration() {
                 Ok(expression) => {
                     statements.push(expression);
                 }
@@ -148,14 +147,34 @@ impl<'a> Parser<'a> {
                 }) => break,
                 Err(error) => {
                     self.errors.push(error);
-                    self.cursor.synchronize();
+                    self.cursor.synchronize_block();
                 }
             };
         }
 
-        self.cursor.eat(TokenKind::CBracket)?;
-
         Ok(BlockNode::statement(statements))
+    }
+
+    /// ```ebnf
+    /// block_declaration = let_declaration
+    ///                   | statement ;
+    /// ```
+    fn parse_block_declaration(&mut self) -> Result<StatementKind> {
+        match self.parse_let_declaration() {
+            Ok(result) => return Ok(result),
+            Err(error) if error.wrong_start => {}
+            Err(error) => return Err(error),
+        }
+
+        if let Ok(result) = self.parse_statement() {
+            return Ok(result);
+        }
+
+        let token = self.cursor.peek()?;
+        Err(ParserError::new(ErrorKind::DidntExpect(
+            Spannable::new(token.kind.as_ref().to_string(), token.span),
+            "statement, let declaration".to_string(),
+        )))
     }
 
     /// ```ebnf
@@ -179,7 +198,6 @@ impl<'a> Parser<'a> {
         } else {
             Vec::new()
         };
-
 
         let type_ = self.parse_type()?;
 
