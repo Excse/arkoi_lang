@@ -132,6 +132,10 @@ impl<'a> Parser<'a> {
             .eat(TokenKind::OBracket)
             .map_err(|error| error.wrong_start(true))?;
 
+        if self.cursor.eat(TokenKind::CBracket).is_ok() {
+            return Ok(BlockNode::statement(Vec::new()));
+        }
+
         let mut statements = Vec::new();
         loop {
             match self.parse_declaration() {
@@ -167,12 +171,15 @@ impl<'a> Parser<'a> {
         self.cursor.eat(TokenKind::OParent)?;
 
         let parameters = if self.cursor.eat(TokenKind::CParent).is_err() {
-            self.parse_parameters()?
+            let parameters = self.parse_parameters()?;
+
+            self.cursor.eat(TokenKind::CParent)?;
+
+            parameters
         } else {
             Vec::new()
         };
 
-        self.cursor.eat(TokenKind::CParent)?;
 
         let type_ = self.parse_type()?;
 
