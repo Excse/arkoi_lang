@@ -4,4 +4,4 @@ pub mod name_resolution;
 pub mod symbol_table;
 pub mod error;
 
-pub use name_resolution::*;
+pub use crate::name_resolution::*;
