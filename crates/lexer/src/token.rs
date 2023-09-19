@@ -19,7 +19,7 @@ impl Token {
         Token { span, value, kind }
     }
 
-    pub fn get_str(&self) -> Option<Spur> {
+    pub fn get_spur(&self) -> Option<Spur> {
         match self.value {
             Some(TokenValue::String(value)) => Some(value),
             _ => None,
