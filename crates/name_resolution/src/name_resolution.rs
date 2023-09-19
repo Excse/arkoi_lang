@@ -3,7 +3,7 @@ use lasso::Spur;
 use crate::symbol_table::SymbolTable;
 use ast::{
     symbol::{Symbol, SymbolKind},
-    traversal::{Visitor, Walkable},
+    traversal::{Visitable, Visitor},
     BlockNode, CallNode, ExpressionKind, FunDeclarationNode, LetDeclarationNode, LiteralKind,
     ParameterNode, ProgramNode, StatementKind, VariableNode,
 };
@@ -40,7 +40,7 @@ impl<'a> Visitor<'a> for NameResolution {
     fn visit_program(&mut self, node: &'a mut ProgramNode) -> Result<Self::Return, Self::Error> {
         node.statements
             .iter_mut()
-            .for_each(|statement| match statement.walk(self) {
+            .for_each(|statement| match self.visit_statement(statement) {
                 Ok(_) => {}
                 Err(error) => self.errors.push(error),
             });
@@ -66,10 +66,10 @@ impl<'a> Visitor<'a> for NameResolution {
         let symbol = Symbol::new(name.clone(), kind);
         self.table.insert(name.clone(), symbol, should_shadow)?;
 
-        node.type_.walk(self);
+        node.type_.accept(self)?;
 
         if let Some(ref mut expression) = node.expression {
-            expression.walk(self);
+            expression.accept(self)?;
         }
 
         Ok(())
@@ -89,16 +89,16 @@ impl<'a> Visitor<'a> for NameResolution {
 
         self.table.enter();
 
-        node.type_.walk(self);
+        node.type_.accept(self)?;
 
         node.parameters
             .iter_mut()
-            .for_each(|parameter| match parameter.walk(self) {
+            .for_each(|parameter| match parameter.accept(self) {
                 Ok(_) => {}
                 Err(error) => self.errors.push(error),
             });
 
-        node.block.walk(self);
+        node.block.accept(self)?;
 
         self.table.exit();
 
@@ -115,7 +115,7 @@ impl<'a> Visitor<'a> for NameResolution {
         let symbol = Symbol::new(name.clone(), SymbolKind::Parameter);
         self.table.insert(name.clone(), symbol, false)?;
 
-        node.type_.walk(self);
+        node.type_.accept(self)?;
 
         Ok(())
     }
@@ -125,7 +125,7 @@ impl<'a> Visitor<'a> for NameResolution {
 
         node.statements
             .iter_mut()
-            .for_each(|statement| match statement.walk(self) {
+            .for_each(|statement| match statement.accept(self) {
                 Ok(_) => {}
                 Err(error) => self.errors.push(error),
             });

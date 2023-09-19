@@ -4,9 +4,10 @@ use serde::Serialize;
 use lasso::Rodeo;
 
 use ast::{
-    traversal::Visitor, CallNode, ComparisonNode, ComparisonOperator, EqualityNode,
-    EqualityOperator, ExpressionKind, FactorNode, FactorOperator, LiteralKind, LiteralNode,
-    ProgramNode, StatementKind, TermNode, TermOperator, UnaryNode, UnaryOperator, VariableNode,
+    traversal::{Visitable, Visitor},
+    CallNode, ComparisonNode, ComparisonOperator, EqualityNode, EqualityOperator, ExpressionKind,
+    FactorNode, FactorOperator, LiteralKind, LiteralNode, ProgramNode, StatementKind, TermNode,
+    TermOperator, UnaryNode, UnaryOperator, VariableNode,
 };
 use lexer::token::{TokenKind, TokenValue};
 
@@ -52,8 +53,8 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
     }
 
     fn visit_equality(&mut self, node: &'a mut EqualityNode) -> Result<Self::Return, Self::Error> {
-        let lhs = self.visit_expression(&mut node.lhs)?;
-        let rhs = self.visit_expression(&mut node.rhs)?;
+        let lhs = node.lhs.accept(self)?;
+        let rhs = node.rhs.accept(self)?;
 
         let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
         Ok(match (lhs, node.operator, rhs) {
@@ -83,8 +84,8 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         &mut self,
         node: &'a mut ComparisonNode,
     ) -> Result<Self::Return, Self::Error> {
-        let lhs = self.visit_expression(&mut node.lhs)?;
-        let rhs = self.visit_expression(&mut node.rhs)?;
+        let lhs = node.lhs.accept(self)?;
+        let rhs = node.rhs.accept(self)?;
 
         let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
         Ok(match (lhs, node.operator, rhs) {
@@ -117,8 +118,8 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
     }
 
     fn visit_term(&mut self, node: &'a mut TermNode) -> Result<Self::Return, Self::Error> {
-        let lhs = self.visit_expression(&mut node.lhs)?;
-        let rhs = self.visit_expression(&mut node.rhs)?;
+        let lhs = node.lhs.accept(self)?;
+        let rhs = node.rhs.accept(self)?;
 
         let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
         Ok(match (lhs, node.operator, rhs) {
@@ -139,8 +140,8 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
     }
 
     fn visit_factor(&mut self, node: &'a mut FactorNode) -> Result<Self::Return, Self::Error> {
-        let lhs = self.visit_expression(&mut node.lhs)?;
-        let rhs = self.visit_expression(&mut node.rhs)?;
+        let lhs = node.lhs.accept(self)?;
+        let rhs = node.rhs.accept(self)?;
 
         let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
         Ok(match (lhs, node.operator, rhs) {
@@ -161,7 +162,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
     }
 
     fn visit_unary(&mut self, node: &'a mut UnaryNode) -> Result<Self::Return, Self::Error> {
-        let expression = self.visit_expression(&mut node.expression)?;
+        let expression = node.expression.accept(self)?;
 
         Ok(match (node.operator, expression) {
             // (TokenKind::Minus, Result::Integer(rhs)) => Result::Integer(-rhs),
