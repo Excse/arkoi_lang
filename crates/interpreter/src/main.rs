@@ -9,7 +9,10 @@ use termcolor::{ColorChoice, StandardStream};
 use diagnostics::{file::Files, renderer::Renderer};
 use execute::Interpreter;
 use lexer::{error::LexerError, Lexer};
-use parser::{traversel::Visitable, Parser};
+use parser::{
+    traversel::{Visitable, Visitor},
+    Parser,
+};
 
 fn main() {
     let mut files = Files::default();
@@ -50,7 +53,7 @@ fn main() {
     }
 
     let mut name_resolution = NameResolution::default();
-    program.accept(&mut name_resolution);
+    name_resolution.visit_program(&program);
 
     if !name_resolution.errors.is_empty() {
         for error in name_resolution.errors {
@@ -64,5 +67,5 @@ fn main() {
     }
 
     let mut interpreter = Interpreter::new(&mut interner);
-    program.accept(&mut interpreter);
+    interpreter.visit_program(&program);
 }

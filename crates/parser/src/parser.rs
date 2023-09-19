@@ -1,7 +1,7 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::ast::{ExpressionKind, Literal, Parameter, Program, StatementKind, Type, TypeKind};
+use crate::ast::{ExpressionKind, Literal, Parameter, Program, Statement, Type, TypeKind};
 use crate::cursor::Cursor;
 use crate::error::{ErrorKind, ParserError, Result};
 use diagnostics::file::{FileID, Files};
@@ -61,7 +61,7 @@ impl<'a> Parser<'a> {
     ///             | let_declaration
     ///             | statement ;
     /// ```
-    fn parse_declaration(&mut self) -> Result<StatementKind> {
+    fn parse_declaration(&mut self) -> Result<Statement> {
         match self.parse_let_declaration() {
             Ok(result) => return Ok(result),
             Err(error) if error.wrong_start => {}
@@ -89,7 +89,7 @@ impl<'a> Parser<'a> {
     /// statement = expression_statement
     ///           | block ;
     /// ```
-    fn parse_statement(&mut self) -> Result<StatementKind> {
+    fn parse_statement(&mut self) -> Result<Statement> {
         match self.parse_expression_statement() {
             Ok(result) => return Ok(result),
             Err(error) if error.wrong_start => {}
@@ -112,18 +112,18 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// expression_statement = expression ";" ;
     /// ```
-    fn parse_expression_statement(&mut self) -> Result<StatementKind> {
+    fn parse_expression_statement(&mut self) -> Result<Statement> {
         let expression = self.parse_expression()?;
 
         self.cursor.eat(TokenKind::Semicolon);
 
-        Ok(StatementKind::Expression(expression))
+        Ok(Statement::Expression(expression))
     }
 
     /// ```ebnf
     /// block = "{" declaration* "}" ;
     /// ```
-    fn parse_block(&mut self) -> Result<StatementKind> {
+    fn parse_block(&mut self) -> Result<Statement> {
         self.cursor
             .eat(TokenKind::OBracket)
             .map_err(|error| error.wrong_start(true))?;
@@ -147,13 +147,13 @@ impl<'a> Parser<'a> {
 
         self.cursor.eat(TokenKind::CBracket)?;
 
-        Ok(StatementKind::Block(statements))
+        Ok(Statement::Block(statements))
     }
 
     /// ```ebnf
     /// fun_declaration = "fun" IDENTIFIER "(" parameters? ")" type block ;
     /// ```
-    fn parse_fun_declaration(&mut self) -> Result<StatementKind> {
+    fn parse_fun_declaration(&mut self) -> Result<Statement> {
         self.cursor
             .eat(TokenKind::Fun)
             .map_err(|error| error.wrong_start(true))?;
@@ -174,7 +174,7 @@ impl<'a> Parser<'a> {
 
         let block = self.parse_block()?;
 
-        Ok(StatementKind::FunDeclaration(identifier, parameters, type_))
+        Ok(Statement::FunDeclaration(identifier, parameters, type_, Box::new(block)))
     }
 
     /// ```ebnf
@@ -234,7 +234,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// let_declaration = "let" IDENTIFIER ( "=" expression )? ";" ;
     /// ```
-    fn parse_let_declaration(&mut self) -> Result<StatementKind> {
+    fn parse_let_declaration(&mut self) -> Result<Statement> {
         self.cursor
             .eat(TokenKind::Let)
             .map_err(|error| error.wrong_start(true))?;
@@ -248,7 +248,7 @@ impl<'a> Parser<'a> {
 
         self.cursor.eat(TokenKind::Semicolon)?;
 
-        Ok(StatementKind::LetDeclaration(identifier, expression))
+        Ok(Statement::LetDeclaration(identifier, expression))
     }
 
     /// ```ebnf

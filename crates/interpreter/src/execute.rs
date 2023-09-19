@@ -4,7 +4,7 @@ use serde::Serialize;
 use lasso::Rodeo;
 
 use lexer::token::{TokenKind, TokenValue};
-use parser::ast::{ExpressionKind, Literal, Program, StatementKind};
+use parser::ast::{ExpressionKind, Literal, Program, Statement};
 use parser::traversel::{
     walk_expression, walk_statement, ExpressionResult, StatementResult, Visitable, Visitor,
 };
@@ -50,7 +50,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         }
     }
 
-    fn visit_statement(&mut self, statement: &StatementKind) -> Self::Result {
+    fn visit_statement(&mut self, statement: &Statement) -> Self::Result {
         match walk_statement(self, statement) {
             StatementResult::Expression(result) => result,
             StatementResult::LetDeclaration(Some(result)) => result,

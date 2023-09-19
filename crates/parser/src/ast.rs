@@ -1,22 +1,12 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::traversel::{Visitable, Visitor};
+use crate::traversel::Visitor;
 use lexer::token::{Token, TokenKind};
-
-pub trait ASTNode {}
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
-pub struct Program(pub Vec<StatementKind>);
-
-impl ASTNode for Program {}
-
-impl<'a> Visitable<'a> for Program {
-    fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
-        visitor.visit_program(self)
-    }
-}
+pub struct Program(pub Vec<Statement>);
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
@@ -27,53 +17,29 @@ pub enum Literal {
     Boolean(Token),
 }
 
-impl ASTNode for Literal {}
-
-impl<'a> Visitable<'a> for Literal {
-    fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
-        visitor.visit_literal(self)
-    }
-}
-
 impl Literal {
     pub fn get_token(&self) -> &Token {
         match self {
-            Literal::String(ref token) => token,
-            Literal::Integer(ref token) => token,
-            Literal::Decimal(ref token) => token,
-            Literal::Boolean(ref token) => token,
+            Literal::String(ref token)
+            | Literal::Integer(ref token)
+            | Literal::Decimal(ref token)
+            | Literal::Boolean(ref token) => token,
         }
     }
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub enum StatementKind {
+pub enum Statement {
     Expression(ExpressionKind),
     LetDeclaration(Token, Option<ExpressionKind>),
-    FunDeclaration(Token, Vec<Parameter>, Type),
-    Block(Vec<StatementKind>),
-}
-
-impl ASTNode for StatementKind {}
-
-impl<'a> Visitable<'a> for StatementKind {
-    fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
-        visitor.visit_statement(self)
-    }
+    FunDeclaration(Token, Vec<Parameter>, Type, Box<Statement>),
+    Block(Vec<Statement>),
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct Parameter(Token, Type);
-
-impl ASTNode for Parameter {}
-
-impl<'a> Visitable<'a> for Parameter {
-    fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
-        visitor.visit_parameter(self)
-    }
-}
 
 impl Parameter {
     pub fn new(identifier: Token, type_: Type) -> Self {
@@ -142,22 +108,25 @@ pub enum ExpressionKind {
     Variable(Token),
 }
 
-impl ASTNode for ExpressionKind {}
+pub enum EqualityOperator {
+    Equal,
+    NotEqual,
+}
 
-impl<'a> Visitable<'a> for ExpressionKind {
-    fn accept<V: Visitor<'a>>(&self, visitor: &mut V) -> V::Result {
-        visitor.visit_expression(self)
-    }
+pub struct EqualityNode {
+    lhs: ExpressionKind,
+    operator: EqualityOperator,
+    rhs: ExpressionKind,
 }
 
 impl ExpressionKind {
     pub fn get_operator_token(&self) -> &Token {
         match self {
-            ExpressionKind::Comparison(_, ref token, _) => token,
-            ExpressionKind::Term(_, ref token, _) => token,
-            ExpressionKind::Factor(_, ref token, _) => token,
-            ExpressionKind::Unary(ref token, _) => token,
-            ExpressionKind::Equality(_, ref token, _) => token,
+            ExpressionKind::Comparison(_, ref token, _)
+            | ExpressionKind::Term(_, ref token, _)
+            | ExpressionKind::Factor(_, ref token, _)
+            | ExpressionKind::Unary(ref token, _)
+            | ExpressionKind::Equality(_, ref token, _) => token,
             _ => todo!("Operator token for this expression not implemented yet."),
         }
     }

@@ -1,7 +1,7 @@
 use diagnostics::report::Report;
 use lasso::Spur;
 use parser::{
-    ast::{ExpressionKind, Literal, Parameter, Program, StatementKind},
+    ast::{ExpressionKind, Literal, Parameter, Program, Statement},
     traversel::{walk_statement, Visitable, Visitor},
 };
 
@@ -39,12 +39,12 @@ impl<'a> Visitor<'a> for NameResolution {
         Ok(())
     }
 
-    fn visit_statement(&mut self, statement: &StatementKind) -> Self::Result {
+    fn visit_statement(&mut self, statement: &Statement) -> Self::Result {
         walk_statement(self, statement);
 
         let is_global = self.table.is_global();
         match statement {
-            StatementKind::LetDeclaration(name, _) => {
+            Statement::LetDeclaration(name, _) => {
                 let name = name.get_str().unwrap();
                 let kind = if is_global {
                     SymbolKind::GlobalVar
