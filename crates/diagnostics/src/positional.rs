@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::ops::Range;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Spannable<C> {
     pub content: C,
     pub span: Span,

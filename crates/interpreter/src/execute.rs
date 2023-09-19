@@ -5,7 +5,10 @@ use lasso::Rodeo;
 
 use lexer::token::{TokenKind, TokenValue};
 use parser::{
-    ast::{ExpressionKind, LiteralKind, LiteralNode, ProgramNode, StatementKind},
+    ast::{
+        ComparisonNode, ComparisonOperator, EqualityOperator, ExpressionKind, FactorOperator,
+        LiteralKind, LiteralNode, ProgramNode, StatementKind, TermOperator, UnaryOperator,
+    },
     traversel::Visitor,
 };
 
@@ -21,7 +24,7 @@ pub enum Result {
     String(String),
     Integer(usize),
     Decimal(f64),
-    Boolean(bool),
+    Bool(bool),
     Undefined,
 }
 
@@ -37,41 +40,137 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
             Some(TokenValue::String(value)) => {
                 Result::String(self.interner.resolve(&value).to_string())
             }
-            Some(TokenValue::Bool(value)) => Result::Boolean(value),
+            Some(TokenValue::Bool(value)) => Result::Bool(value),
             Some(TokenValue::Integer(value)) => Result::Integer(value),
             Some(TokenValue::Decimal(value)) => Result::Decimal(value),
-            _ => todo!("Literal kind not implemented yet."),
+            None => panic!("This shouldn't have happened."),
         }
     }
 
-    // fn visit_expression(&mut self, expression: &'a mut ExpressionKind) -> Self::Result {
-    //     match walk_expression(self, expression) {
-    //         ExpressionResult::Equality(lhs, rhs) => {
-    //             let operator = expression.get_operator_token().kind;
-    //             self.execute_equality(lhs, operator, rhs)
-    //         }
-    //         ExpressionResult::Comparison(lhs, rhs) => {
-    //             let operator = expression.get_operator_token().kind;
-    //             self.execute_comparison(lhs, operator, rhs)
-    //         }
-    //         ExpressionResult::Term(lhs, rhs) => {
-    //             let operator = expression.get_operator_token().kind;
-    //             self.execute_term(lhs, operator, rhs)
-    //         }
-    //         ExpressionResult::Factor(lhs, rhs) => {
-    //             let operator = expression.get_operator_token().kind;
-    //             self.execute_factor(lhs, operator, rhs)
-    //         }
-    //         ExpressionResult::Unary(rhs) => {
-    //             let operator = expression.get_operator_token().kind;
-    //             self.execute_unary(operator, rhs)
-    //         }
-    //         ExpressionResult::Grouping(result) => result,
-    //         ExpressionResult::Literal(result) => result,
-    //         ExpressionResult::Variable => todo!(),
-    //         ExpressionResult::Call(callee, arguments) => todo!(),
-    //     }
-    // }
+    fn visit_equality(&mut self, node: &'a mut parser::ast::EqualityNode) -> Self::Result {
+        let lhs = self.visit_expression(&mut node.lhs);
+        let rhs = self.visit_expression(&mut node.rhs);
+
+        let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
+        match (lhs, node.operator, rhs) {
+            (Result::Integer(lhs), EqualityOperator::Equal, Result::Integer(rhs)) => {
+                Result::Bool(lhs == rhs)
+            }
+            (Result::Decimal(lhs), EqualityOperator::Equal, Result::Decimal(rhs)) => {
+                Result::Bool(lhs == rhs)
+            }
+            (Result::Bool(lhs), EqualityOperator::Equal, Result::Bool(rhs)) => {
+                Result::Bool(lhs == rhs)
+            }
+            (Result::Integer(lhs), EqualityOperator::NotEqual, Result::Integer(rhs)) => {
+                Result::Bool(lhs != rhs)
+            }
+            (Result::Decimal(lhs), EqualityOperator::NotEqual, Result::Decimal(rhs)) => {
+                Result::Bool(lhs != rhs)
+            }
+            (Result::Bool(lhs), EqualityOperator::NotEqual, Result::Bool(rhs)) => {
+                Result::Bool(lhs != rhs)
+            }
+            _ => todo!("Equality for those types not implemented yet."),
+        }
+    }
+
+    fn visit_comparison(&mut self, node: &'a mut ComparisonNode) -> Self::Result {
+        let lhs = self.visit_expression(&mut node.lhs);
+        let rhs = self.visit_expression(&mut node.rhs);
+
+        let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
+        match (lhs, node.operator, rhs) {
+            (Result::Integer(lhs), ComparisonOperator::Greater, Result::Integer(rhs)) => {
+                Result::Bool(lhs > rhs)
+            }
+            (Result::Decimal(lhs), ComparisonOperator::Greater, Result::Decimal(rhs)) => {
+                Result::Bool(lhs > rhs)
+            }
+            (Result::Integer(lhs), ComparisonOperator::Less, Result::Integer(rhs)) => {
+                Result::Bool(lhs < rhs)
+            }
+            (Result::Decimal(lhs), ComparisonOperator::Less, Result::Decimal(rhs)) => {
+                Result::Bool(lhs < rhs)
+            }
+            (Result::Integer(lhs), ComparisonOperator::GreaterEqual, Result::Integer(rhs)) => {
+                Result::Bool(lhs >= rhs)
+            }
+            (Result::Decimal(lhs), ComparisonOperator::GreaterEqual, Result::Decimal(rhs)) => {
+                Result::Bool(lhs >= rhs)
+            }
+            (Result::Integer(lhs), ComparisonOperator::LessEqual, Result::Integer(rhs)) => {
+                Result::Bool(lhs <= rhs)
+            }
+            (Result::Decimal(lhs), ComparisonOperator::LessEqual, Result::Decimal(rhs)) => {
+                Result::Bool(lhs <= rhs)
+            }
+            _ => todo!("Comparison for those types not implemented yet."),
+        }
+    }
+
+    fn visit_term(&mut self, node: &'a mut parser::ast::TermNode) -> Self::Result {
+        let lhs = self.visit_expression(&mut node.lhs);
+        let rhs = self.visit_expression(&mut node.rhs);
+
+        let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
+        match (lhs, node.operator, rhs) {
+            (Result::Integer(lhs), TermOperator::Add, Result::Integer(rhs)) => {
+                Result::Integer(lhs + rhs)
+            }
+            (Result::Decimal(lhs), TermOperator::Add, Result::Decimal(rhs)) => {
+                Result::Decimal(lhs + rhs)
+            }
+            (Result::Integer(lhs), TermOperator::Sub, Result::Integer(rhs)) => {
+                Result::Integer(lhs - rhs)
+            }
+            (Result::Decimal(lhs), TermOperator::Sub, Result::Decimal(rhs)) => {
+                Result::Decimal(lhs - rhs)
+            }
+            _ => todo!("Term for those types not implemented yet."),
+        }
+    }
+
+    fn visit_factor(&mut self, node: &'a mut parser::ast::FactorNode) -> Self::Result {
+        let lhs = self.visit_expression(&mut node.lhs);
+        let rhs = self.visit_expression(&mut node.rhs);
+
+        let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
+        match (lhs, node.operator, rhs) {
+            (Result::Integer(lhs), FactorOperator::Mul, Result::Integer(rhs)) => {
+                Result::Integer(lhs * rhs)
+            }
+            (Result::Decimal(lhs), FactorOperator::Mul, Result::Decimal(rhs)) => {
+                Result::Decimal(lhs * rhs)
+            }
+            (Result::Integer(lhs), FactorOperator::Div, Result::Integer(rhs)) => {
+                Result::Integer(lhs / rhs)
+            }
+            (Result::Decimal(lhs), FactorOperator::Div, Result::Decimal(rhs)) => {
+                Result::Decimal(lhs / rhs)
+            }
+            _ => todo!("Factor for those types not implemented yet."),
+        }
+    }
+
+    fn visit_unary(&mut self, node: &'a mut parser::ast::UnaryNode) -> Self::Result {
+        let expression = self.visit_expression(&mut node.expression);
+
+        match (node.operator, expression) {
+            // (TokenKind::Minus, Result::Integer(rhs)) => Result::Integer(-rhs),
+            (UnaryOperator::Neg, Result::Decimal(rhs)) => Result::Decimal(-rhs),
+            (UnaryOperator::LogNeg, Result::Bool(rhs)) => Result::Bool(!rhs),
+            _ => todo!("Comparison for those types not implemented yet."),
+        }
+    }
+
+    fn visit_variable(&mut self, node: &'a mut parser::ast::VariableNode) -> Self::Result {
+        todo!()
+    }
+
+    fn visit_call(&mut self, node: &'a mut parser::ast::CallNode) -> Self::Result {
+        todo!()
+    }
 }
 
 impl<'a> Interpreter<'a> {
@@ -92,109 +191,6 @@ impl<'a> Interpreter<'a> {
                 (lhs, rhs)
             }
             _ => (lhs, rhs),
-        }
-    }
-
-    fn execute_equality(&self, lhs: Result, operator: TokenKind, rhs: Result) -> Result {
-        let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
-        match (lhs, operator, rhs) {
-            (Result::Integer(lhs), TokenKind::Equal, Result::Integer(rhs)) => {
-                Result::Boolean(lhs == rhs)
-            }
-            (Result::Decimal(lhs), TokenKind::Equal, Result::Decimal(rhs)) => {
-                Result::Boolean(lhs == rhs)
-            }
-            (Result::Boolean(lhs), TokenKind::Equal, Result::Boolean(rhs)) => {
-                Result::Boolean(lhs == rhs)
-            }
-            (Result::Integer(lhs), TokenKind::NotEqual, Result::Integer(rhs)) => {
-                Result::Boolean(lhs != rhs)
-            }
-            (Result::Decimal(lhs), TokenKind::NotEqual, Result::Decimal(rhs)) => {
-                Result::Boolean(lhs != rhs)
-            }
-            (Result::Boolean(lhs), TokenKind::NotEqual, Result::Boolean(rhs)) => {
-                Result::Boolean(lhs != rhs)
-            }
-            _ => todo!("Equality for those types not implemented yet."),
-        }
-    }
-
-    fn execute_comparison(&self, lhs: Result, operator: TokenKind, rhs: Result) -> Result {
-        let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
-        match (lhs, operator, rhs) {
-            (Result::Integer(lhs), TokenKind::Greater, Result::Integer(rhs)) => {
-                Result::Boolean(lhs > rhs)
-            }
-            (Result::Decimal(lhs), TokenKind::Greater, Result::Decimal(rhs)) => {
-                Result::Boolean(lhs > rhs)
-            }
-            (Result::Integer(lhs), TokenKind::Less, Result::Integer(rhs)) => {
-                Result::Boolean(lhs < rhs)
-            }
-            (Result::Decimal(lhs), TokenKind::Less, Result::Decimal(rhs)) => {
-                Result::Boolean(lhs < rhs)
-            }
-            (Result::Integer(lhs), TokenKind::GreaterEqual, Result::Integer(rhs)) => {
-                Result::Boolean(lhs >= rhs)
-            }
-            (Result::Decimal(lhs), TokenKind::GreaterEqual, Result::Decimal(rhs)) => {
-                Result::Boolean(lhs >= rhs)
-            }
-            (Result::Integer(lhs), TokenKind::LessEqual, Result::Integer(rhs)) => {
-                Result::Boolean(lhs <= rhs)
-            }
-            (Result::Decimal(lhs), TokenKind::LessEqual, Result::Decimal(rhs)) => {
-                Result::Boolean(lhs <= rhs)
-            }
-            _ => todo!("Comparison for those types not implemented yet."),
-        }
-    }
-
-    fn execute_term(&self, lhs: Result, operator: TokenKind, rhs: Result) -> Result {
-        let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
-        match (lhs, operator, rhs) {
-            (Result::Integer(lhs), TokenKind::Plus, Result::Integer(rhs)) => {
-                Result::Integer(lhs + rhs)
-            }
-            (Result::Decimal(lhs), TokenKind::Plus, Result::Decimal(rhs)) => {
-                Result::Decimal(lhs + rhs)
-            }
-            (Result::Integer(lhs), TokenKind::Minus, Result::Integer(rhs)) => {
-                Result::Integer(lhs - rhs)
-            }
-            (Result::Decimal(lhs), TokenKind::Minus, Result::Decimal(rhs)) => {
-                Result::Decimal(lhs - rhs)
-            }
-            _ => todo!("Term for those types not implemented yet."),
-        }
-    }
-
-    fn execute_factor(&self, lhs: Result, operator: TokenKind, rhs: Result) -> Result {
-        let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
-        match (lhs, operator, rhs) {
-            (Result::Integer(lhs), TokenKind::Asterisk, Result::Integer(rhs)) => {
-                Result::Integer(lhs * rhs)
-            }
-            (Result::Decimal(lhs), TokenKind::Asterisk, Result::Decimal(rhs)) => {
-                Result::Decimal(lhs * rhs)
-            }
-            (Result::Integer(lhs), TokenKind::Slash, Result::Integer(rhs)) => {
-                Result::Integer(lhs / rhs)
-            }
-            (Result::Decimal(lhs), TokenKind::Slash, Result::Decimal(rhs)) => {
-                Result::Decimal(lhs / rhs)
-            }
-            _ => todo!("Factor for those types not implemented yet."),
-        }
-    }
-
-    fn execute_unary(&self, operator: TokenKind, rhs: Result) -> Result {
-        match (operator, rhs) {
-            // (TokenKind::Minus, Result::Integer(rhs)) => Result::Integer(-rhs),
-            (TokenKind::Minus, Result::Decimal(rhs)) => Result::Decimal(-rhs),
-            (TokenKind::Apostrophe, Result::Boolean(rhs)) => Result::Boolean(!rhs),
-            _ => todo!("Comparison for those types not implemented yet."),
         }
     }
 }

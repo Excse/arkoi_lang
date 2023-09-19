@@ -110,7 +110,7 @@ impl ParameterNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum TypeKind {
     U8,
     I8,
@@ -171,7 +171,7 @@ pub enum ExpressionKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum EqualityOperator {
     Equal,
     NotEqual,
@@ -210,7 +210,7 @@ impl EqualityNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ComparisonOperator {
     Greater,
     GreaterEqual,
@@ -253,7 +253,7 @@ impl ComparisonNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum TermOperator {
     Add,
     Sub,
@@ -292,7 +292,7 @@ impl TermNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum FactorOperator {
     Mul,
     Div,
@@ -331,7 +331,7 @@ impl FactorNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum UnaryOperator {
     Neg,
     LogNeg,
@@ -404,7 +404,7 @@ impl VariableNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum LiteralKind {
     String,
     Integer,

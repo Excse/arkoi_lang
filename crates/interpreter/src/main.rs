@@ -64,5 +64,7 @@ fn main() {
     }
 
     let mut interpreter = Interpreter::new(&mut interner);
-    interpreter.visit_program(&mut program);
+    program.statements.iter_mut().for_each(|statement| {
+        println!("{:?}", interpreter.visit_statement(statement));
+    });
 }

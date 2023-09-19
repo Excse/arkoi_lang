@@ -6,7 +6,7 @@ use diagnostics::positional::Spannable;
 pub(crate) type Result<T> = std::result::Result<T, ParserError>;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ErrorKind {
     DidntExpect(Spannable<String>, String),
     UnexpectedEOF(String),
@@ -33,4 +33,3 @@ impl ParserError {
         self
     }
 }
-

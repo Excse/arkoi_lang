@@ -2,9 +2,9 @@
 use serde::Serialize;
 
 use crate::ast::{
-    CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode, FactorNode,
+    BlockNode, CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode, FactorNode,
     FunDeclarationNode, GroupingNode, LetDeclarationNode, LiteralKind, LiteralNode, ParameterNode,
-    ProgramNode, StatementKind, TermNode, TypeKind, TypeNode, UnaryNode, VariableNode, BlockNode,
+    ProgramNode, StatementKind, TermNode, TypeKind, TypeNode, UnaryNode, VariableNode,
 };
 use crate::cursor::Cursor;
 use crate::error::{ErrorKind, ParserError, Result};
@@ -117,7 +117,7 @@ impl<'a> Parser<'a> {
     /// expression_statement = expression ";" ;
     /// ```
     fn parse_expression_statement(&mut self) -> Result<StatementKind> {
-        let expression = self.parse_expression()?;
+        let expression = self.parse_expression(true)?;
 
         self.cursor.eat(TokenKind::Semicolon);
 
@@ -190,11 +190,7 @@ impl<'a> Parser<'a> {
         let mut parameters = Vec::new();
 
         loop {
-            let identifier = self
-                .cursor
-                .eat(TokenKind::Identifier)
-                .map_err(|error| error.wrong_start(parameters.is_empty()))?;
-
+            let identifier = self.cursor.eat(TokenKind::Identifier)?;
             let type_ = self.parse_type()?;
 
             parameters.push(ParameterNode::new(identifier, type_));
@@ -216,9 +212,7 @@ impl<'a> Parser<'a> {
     ///      | "bool" ) ;
     /// ```
     fn parse_type(&mut self) -> Result<TypeNode> {
-        self.cursor
-            .eat(TokenKind::At)
-            .map_err(|error| error.wrong_start(true))?;
+        self.cursor.eat(TokenKind::At)?;
 
         let token = self.cursor.eat_any(&[
             TokenKind::U8,
@@ -250,7 +244,7 @@ impl<'a> Parser<'a> {
         let type_ = self.parse_type()?;
 
         let expression = match self.cursor.eat(TokenKind::Assign) {
-            Ok(_) => Some(self.parse_expression()?),
+            Ok(_) => Some(self.parse_expression(false)?),
             Err(_) => None,
         };
 
@@ -262,8 +256,14 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// expression = equality;
     /// ```
-    fn parse_expression(&mut self) -> Result<ExpressionKind> {
-        self.parse_equality()
+    fn parse_expression(&mut self, start: bool) -> Result<ExpressionKind> {
+        self.parse_equality().map_err(|error| {
+            if !start {
+                error.wrong_start(false)
+            } else {
+                error
+            }
+        })
     }
 
     /// ```ebnf
@@ -372,7 +372,7 @@ impl<'a> Parser<'a> {
 
         let mut arguments = Vec::new();
         loop {
-            arguments.push(self.parse_expression()?);
+            arguments.push(self.parse_expression(false)?);
 
             if self.cursor.eat(TokenKind::Comma).is_err() {
                 break;
@@ -399,7 +399,7 @@ impl<'a> Parser<'a> {
         } else if let Ok(token) = self.cursor.eat(TokenKind::Identifier) {
             Ok(VariableNode::expression(token))
         } else if self.cursor.eat(TokenKind::OParent).is_ok() {
-            let expression = self.parse_expression()?;
+            let expression = self.parse_expression(false)?;
             self.cursor.eat(TokenKind::CParent)?;
             Ok(GroupingNode::expression(expression))
         } else {
