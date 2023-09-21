@@ -1,7 +1,7 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::execute::Output;
+use crate::Output;
 
 pub type Result = std::result::Result<Output, InterpreterError>;
 

@@ -14,10 +14,7 @@ pub struct File {
 }
 
 impl File {
-    fn new<S>(path: S, source: S) -> Self
-    where
-        S: Into<String>,
-    {
+    fn new(path: impl Into<String>, source: impl Into<String>) -> Self {
         let source = source.into();
         let path = path.into();
 
@@ -87,10 +84,7 @@ impl Files {
         Files { files: Vec::new() }
     }
 
-    pub fn add<S>(&mut self, path: S, source: S) -> FileID
-    where
-        S: Into<String>,
-    {
+    pub fn add(&mut self, path: impl Into<String>, source: impl Into<String>) -> FileID {
         self.files.push(File::new(path, source));
 
         u32::try_from(self.files.len()).expect("Shouldn't exceed the u32 bounds.")
