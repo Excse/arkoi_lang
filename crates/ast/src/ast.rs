@@ -406,7 +406,6 @@ impl GroupingNode {
 #[derive(Debug)]
 pub struct VariableNode {
     pub identifier: Token,
-    pub is_function: bool,
     pub target: Option<Rc<Symbol>>,
 }
 
@@ -414,7 +413,6 @@ impl VariableNode {
     pub fn expression(identifier: Token) -> ExpressionKind {
         ExpressionKind::Variable(VariableNode {
             identifier,
-            is_function: false,
             target: None,
         })
     }
