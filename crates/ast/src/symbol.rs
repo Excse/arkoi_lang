@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -6,7 +8,7 @@ use lasso::Spur;
 use diagnostics::positional::Spannable;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SymbolKind {
     LocalVar,
     GlobalVar,
@@ -15,14 +17,14 @@ pub enum SymbolKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Symbol {
     pub name: Spannable<Spur>,
     pub kind: SymbolKind,
 }
 
 impl Symbol {
-    pub fn new(name: Spannable<Spur>, kind: SymbolKind) -> Self {
-        Symbol { name, kind }
+    pub fn new(name: Spannable<Spur>, kind: SymbolKind) -> Rc<Self> {
+        Rc::new(Symbol { name, kind })
     }
 }

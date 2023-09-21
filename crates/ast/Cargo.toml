@@ -12,7 +12,7 @@ diagnostics = { path = "../diagnostics" }
 lexer = { path = "../lexer" } 
 
 lasso = { version = "0.7.2", features = ["serialize"] }
-serde = { version = "1.0.188", features = ["derive"], optional = true }
+serde = { version = "1.0.188", features = ["derive", "rc"], optional = true }
 
 [features]
 default = [ "serialize" ]

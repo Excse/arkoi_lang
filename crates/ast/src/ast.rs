@@ -1,7 +1,9 @@
+use std::rc::Rc;
+
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::traversal::Visitor;
+use crate::{symbol::Symbol, traversal::Visitor};
 use lexer::token::{Token, TokenKind};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -43,6 +45,7 @@ pub struct LetDeclarationNode {
     pub name: Token,
     pub type_: TypeNode,
     pub expression: Option<ExpressionKind>,
+    pub symbol: Option<Rc<Symbol>>,
 }
 
 impl LetDeclarationNode {
@@ -55,6 +58,7 @@ impl LetDeclarationNode {
             name,
             type_,
             expression,
+            symbol: None,
         })
     }
 }
@@ -66,6 +70,7 @@ pub struct FunDeclarationNode {
     pub parameters: Vec<ParameterNode>,
     pub type_: TypeNode,
     pub block: StatementKind,
+    pub symbol: Option<Rc<Symbol>>,
 }
 
 impl FunDeclarationNode {
@@ -80,6 +85,7 @@ impl FunDeclarationNode {
             parameters,
             type_,
             block,
+            symbol: None,
         }))
     }
 }
@@ -101,11 +107,16 @@ impl BlockNode {
 pub struct ParameterNode {
     pub name: Token,
     pub type_: TypeNode,
+    pub symbol: Option<Rc<Symbol>>,
 }
 
 impl ParameterNode {
     pub fn new(name: Token, type_: TypeNode) -> Self {
-        ParameterNode { name, type_ }
+        ParameterNode {
+            name,
+            type_,
+            symbol: None,
+        }
     }
 }
 
@@ -396,6 +407,7 @@ impl GroupingNode {
 pub struct VariableNode {
     pub identifier: Token,
     pub is_function: bool,
+    pub target: Option<Rc<Symbol>>,
 }
 
 impl VariableNode {
@@ -403,6 +415,7 @@ impl VariableNode {
         ExpressionKind::Variable(VariableNode {
             identifier,
             is_function: false,
+            target: None,
         })
     }
 }
