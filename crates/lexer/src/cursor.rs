@@ -2,13 +2,12 @@ use diagnostics::report::Labelable;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use std::str::Chars;
 use std::{iter::Peekable, str::CharIndices};
 
 use crate::error::{DidntExpect, InternalError, LexerError, Result};
 use diagnostics::{
     file::{FileID, Files},
-    positional::{Span, Spannable},
+    positional::Span,
 };
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]

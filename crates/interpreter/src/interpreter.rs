@@ -6,11 +6,10 @@ use lasso::Rodeo;
 use crate::error::{InterpreterError, Result};
 use ast::{
     traversal::{Visitable, Visitor},
-    CallNode, ComparisonNode, ComparisonOperator, EqualityNode, EqualityOperator, ExpressionKind,
-    FactorNode, FactorOperator, LiteralKind, LiteralNode, ProgramNode, StatementKind, TermNode,
-    TermOperator, UnaryNode, UnaryOperator, VariableNode,
+    CallNode, ComparisonNode, ComparisonOperator, EqualityNode, EqualityOperator, FactorNode,
+    FactorOperator, LiteralNode, TermNode, TermOperator, UnaryNode, UnaryOperator, VariableNode,
 };
-use lexer::token::{TokenKind, TokenValue};
+use lexer::token::TokenValue;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]

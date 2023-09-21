@@ -2,8 +2,7 @@
 use serde::Serialize;
 
 use diagnostics::{
-    file::{FileID, Files},
-    positional::Spannable,
+    file::Files,
     report::{LabelBuilder, Labelable, Report, ReportBuilder, Reportable, Serverity},
 };
 
@@ -73,7 +72,7 @@ pub struct ParserError {
 }
 
 impl Reportable for ParserError {
-    fn into_report(self, files: &Files) -> Report {
+    fn into_report(self) -> Report {
         match self.kind {
             ErrorKind::UnexpectedEOF(error) => unexpected_eof(error),
             ErrorKind::DidntExpect(error) => didnt_expect(error),

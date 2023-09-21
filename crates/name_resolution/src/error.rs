@@ -1,11 +1,12 @@
 use std::rc::Rc;
 
-use ast::symbol::Symbol;
 use lasso::Spur;
 
+use ast::symbol::Symbol;
 use diagnostics::{
-    positional::{Span, Spannable},
-    report::{Labelable, Report, Reportable},
+    file::Files,
+    positional::Span,
+    report::{Report, Reportable},
 };
 
 pub type Result = std::result::Result<Option<Rc<Symbol>>, ResolutionError>;
@@ -68,7 +69,7 @@ pub enum ResolutionError {
 }
 
 impl Reportable for ResolutionError {
-    fn into_report(self, files: &diagnostics::file::Files) -> Report {
+    fn into_report(self) -> Report {
         match self {
             Self::VariableCantBeAFunction(error) => todo!("{:?}", error),
             Self::VariableMustBeAFunction(error) => todo!("{:?}", error),

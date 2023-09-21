@@ -3,14 +3,8 @@ use serde::Serialize;
 
 use std::iter::Peekable;
 
-use crate::error::{
-    DidntExpect, EndOfFile, ErrorKind, InternalError, ParserError, Result, UnexpectedEOF,
-};
-use diagnostics::{
-    file::{FileID, Files},
-    positional::Spannable,
-    report::Labelable,
-};
+use crate::error::{DidntExpect, EndOfFile, Result, UnexpectedEOF};
+use diagnostics::report::Labelable;
 use lexer::{
     iter::TokenIter,
     token::{Token, TokenKind},

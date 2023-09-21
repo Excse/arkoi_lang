@@ -1,21 +1,16 @@
 use std::rc::Rc;
 
-use lasso::Spur;
-
 use crate::{
-    error::{ResolutionError, Result, VariableCantBeAFunction, VariableMustBeAFunction},
+    error::{ResolutionError, Result, VariableMustBeAFunction},
     symbol_table::SymbolTable,
 };
 use ast::{
     symbol::{Symbol, SymbolKind},
-    traversal::{Visitable, Visitor},
-    BlockNode, CallNode, EqualityNode, ExpressionKind, FunDeclarationNode, LetDeclarationNode,
-    LiteralKind, ParameterNode, ProgramNode, StatementKind, VariableNode, ComparisonNode, TermNode, FactorNode, UnaryNode,
+    traversal::{Visitable, Visitor, Walkable},
+    BlockNode, CallNode, ComparisonNode, EqualityNode, FactorNode, FunDeclarationNode,
+    LetDeclarationNode, ParameterNode, ProgramNode, TermNode, UnaryNode, VariableNode,
 };
-use diagnostics::{
-    positional::{Span, Spannable},
-    report::Report,
-};
+use diagnostics::positional::Spannable;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
@@ -35,7 +30,7 @@ impl<'a> Visitor<'a> for NameResolution {
     fn visit_program(&mut self, node: &'a mut ProgramNode) -> Result {
         node.statements
             .iter_mut()
-            .for_each(|statement| match self.visit_statement(statement) {
+            .for_each(|statement| match statement.accept(self) {
                 Ok(_) => {}
                 Err(error) => self.errors.push(error),
             });
@@ -55,33 +50,25 @@ impl<'a> Visitor<'a> for NameResolution {
             SymbolKind::LocalVar
         };
 
-        let symbol = Symbol::new(name.clone(), kind);
+        let symbol = Rc::new(Symbol::new(name.clone(), kind));
         self.table
             .insert(name.clone(), symbol.clone(), should_shadow)?;
         node.symbol = Some(symbol);
 
-        node.type_.accept(self)?;
-
-        if let Some(ref mut expression) = node.expression {
-            expression.accept(self)?;
-        }
-
-        Self::default_result()
+        node.walk(self)
     }
 
     fn visit_fun_declaration(&mut self, node: &'a mut FunDeclarationNode) -> Result {
-        let mut global = self.table.global_scope();
+        let global = self.table.global_scope();
 
         let name = node.name.get_spur().unwrap();
         let name = Spannable::new(name, node.name.span);
 
-        let symbol = Symbol::new(name.clone(), SymbolKind::Function);
+        let symbol = Rc::new(Symbol::new(name.clone(), SymbolKind::Function));
         global.insert(name.clone(), symbol.clone(), false)?;
         node.symbol = Some(symbol);
 
         self.table.enter();
-
-        node.type_.accept(self)?;
 
         node.parameters
             .iter_mut()
@@ -89,6 +76,8 @@ impl<'a> Visitor<'a> for NameResolution {
                 Ok(_) => {}
                 Err(error) => self.errors.push(error),
             });
+
+        node.type_.accept(self)?;
 
         node.block.accept(self)?;
 
@@ -101,13 +90,11 @@ impl<'a> Visitor<'a> for NameResolution {
         let name = node.name.get_spur().unwrap();
         let name = Spannable::new(name, node.name.span);
 
-        let symbol = Symbol::new(name.clone(), SymbolKind::Parameter);
+        let symbol = Rc::new(Symbol::new(name.clone(), SymbolKind::Parameter));
         self.table.insert(name.clone(), symbol.clone(), false)?;
         node.symbol = Some(symbol);
 
-        node.type_.accept(self)?;
-
-        Self::default_result()
+        node.walk(self)
     }
 
     fn visit_block(&mut self, node: &'a mut BlockNode) -> Result {
@@ -129,45 +116,52 @@ impl<'a> Visitor<'a> for NameResolution {
         let symbol = node.callee.accept(self)?;
         self.is_potential_function_symbol(symbol)?;
 
+        node.arguments
+            .iter_mut()
+            .for_each(|argument| match argument.accept(self) {
+                Ok(_) => {}
+                Err(error) => self.errors.push(error),
+            });
+
         Self::default_result()
     }
 
     fn visit_equality(&mut self, node: &'a mut EqualityNode) -> Result {
         let lhs_symbol = node.lhs.accept(self)?;
-        self.is_potential_variable_symbol(lhs_symbol);
+        self.is_potential_variable_symbol(lhs_symbol)?;
 
         let rhs_symbol = node.rhs.accept(self)?;
-        self.is_potential_variable_symbol(rhs_symbol);
+        self.is_potential_variable_symbol(rhs_symbol)?;
 
         Self::default_result()
     }
 
     fn visit_comparison(&mut self, node: &'a mut ComparisonNode) -> Result {
         let lhs_symbol = node.lhs.accept(self)?;
-        self.is_potential_variable_symbol(lhs_symbol);
+        self.is_potential_variable_symbol(lhs_symbol)?;
 
         let rhs_symbol = node.rhs.accept(self)?;
-        self.is_potential_variable_symbol(rhs_symbol);
+        self.is_potential_variable_symbol(rhs_symbol)?;
 
         Self::default_result()
     }
 
     fn visit_term(&mut self, node: &'a mut TermNode) -> Result {
         let lhs_symbol = node.lhs.accept(self)?;
-        self.is_potential_variable_symbol(lhs_symbol);
+        self.is_potential_variable_symbol(lhs_symbol)?;
 
         let rhs_symbol = node.rhs.accept(self)?;
-        self.is_potential_variable_symbol(rhs_symbol);
+        self.is_potential_variable_symbol(rhs_symbol)?;
 
         Self::default_result()
     }
 
     fn visit_factor(&mut self, node: &'a mut FactorNode) -> Result {
         let lhs_symbol = node.lhs.accept(self)?;
-        self.is_potential_variable_symbol(lhs_symbol);
+        self.is_potential_variable_symbol(lhs_symbol)?;
 
         let rhs_symbol = node.rhs.accept(self)?;
-        self.is_potential_variable_symbol(rhs_symbol);
+        self.is_potential_variable_symbol(rhs_symbol)?;
 
         Self::default_result()
     }

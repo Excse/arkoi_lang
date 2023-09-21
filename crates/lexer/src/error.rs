@@ -35,7 +35,7 @@ pub enum LexerError {
 }
 
 impl Reportable for LexerError {
-    fn into_report(self, files: &Files) -> Report {
+    fn into_report(self) -> Report {
         match self {
             Self::DidntExpect(error) => didnt_expect(error),
             Self::Internal(error) => panic!("Error: {:?}", error),

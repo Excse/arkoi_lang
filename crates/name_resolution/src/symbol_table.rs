@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc};
 use lasso::Spur;
 
 use ast::symbol::Symbol;
-use diagnostics::{positional::Spannable, report::Labelable};
+use diagnostics::positional::Spannable;
 
 use crate::error::{NameAlreadyUsed, ResolutionError, SymbolNotFound};
 

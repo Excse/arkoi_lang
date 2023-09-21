@@ -24,7 +24,7 @@ pub struct Symbol {
 }
 
 impl Symbol {
-    pub fn new(name: Spannable<Spur>, kind: SymbolKind) -> Rc<Self> {
-        Rc::new(Symbol { name, kind })
+    pub fn new(name: Spannable<Spur>, kind: SymbolKind) -> Self {
+        Symbol { name, kind }
     }
 }

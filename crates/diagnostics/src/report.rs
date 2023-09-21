@@ -6,7 +6,7 @@ use std::fmt::Display;
 use derive_builder::UninitializedFieldError;
 
 use crate::{
-    file::{File, FileID, Files},
+    file::{FileID, Files},
     positional::Span,
 };
 
@@ -67,11 +67,11 @@ impl Display for ReportBuilderError {
 }
 
 pub trait Reportable {
-    fn into_report(self, files: &Files) -> Report;
+    fn into_report(self) -> Report;
 }
 
 impl Reportable for Report {
-    fn into_report(self, files: &Files) -> Report {
+    fn into_report(self) -> Report {
         self
     }
 }

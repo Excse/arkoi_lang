@@ -31,7 +31,7 @@ impl File {
         let mut lines = Vec::new();
 
         let mut start = 0;
-        for (index, test) in source.match_indices('\n') {
+        for (index, _) in source.match_indices('\n') {
             let span = Span::new(start, index);
             lines.push(span);
             start = index + 1;

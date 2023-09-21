@@ -6,11 +6,8 @@ use crate::error::{DidntExpect, ErrorKind, InternalError, ParserError, Result};
 use ast::{
     BlockNode, CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode, FactorNode,
     FunDeclarationNode, GroupingNode, LetDeclarationNode, LiteralKind, LiteralNode, ParameterNode,
-    ProgramNode, StatementKind, TermNode, TypeKind, TypeNode, UnaryNode, VariableNode,
+    ProgramNode, StatementKind, TermNode, TypeNode, UnaryNode, VariableNode,
 };
-use diagnostics::file::{FileID, Files};
-use diagnostics::positional::Spannable;
-use diagnostics::report::{Labelable, Report};
 use lexer::token::TokenKind;
 use lexer::Lexer;
 
@@ -103,7 +100,7 @@ impl<'a> Parser<'a> {
     fn parse_expression_statement(&mut self) -> Result<StatementKind> {
         let expression = self.parse_expression(true)?;
 
-        self.cursor.eat(TokenKind::Semicolon);
+        self.cursor.eat(TokenKind::Semicolon)?;
 
         Ok(ExpressionNode::statement(expression))
     }
@@ -366,7 +363,7 @@ impl<'a> Parser<'a> {
     fn parse_call(&mut self, start: bool) -> Result<ExpressionKind> {
         let mut primary = self.parse_primary(start)?;
 
-        while let Ok(token) = self.cursor.eat(TokenKind::OParent) {
+        while self.cursor.eat(TokenKind::OParent).is_ok() {
             primary = self.finish_parse_call(primary)?;
         }
 

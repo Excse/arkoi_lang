@@ -6,11 +6,8 @@ use lasso::Rodeo;
 use crate::cursor::Cursor;
 use crate::error::{InternalError, LexerError, Result};
 use crate::iter::TokenIter;
-use crate::token::{Token, TokenKind, TokenValue};
-use diagnostics::{
-    file::{FileID, Files},
-    report::Report,
-};
+use crate::token::TokenKind;
+use diagnostics::file::{FileID, Files};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
@@ -151,6 +148,7 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::token::Token;
     use super::*;
 
     macro_rules! test_token {

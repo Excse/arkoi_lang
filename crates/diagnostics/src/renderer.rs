@@ -5,13 +5,9 @@ use serdebug::SerDebug;
 
 use std::collections::HashMap;
 
-use termcolor::{Color, ColorSpec, WriteColor};
+use termcolor::WriteColor;
 
-use crate::{
-    file::Files,
-    positional::Span,
-    report::{Label, Report, Reportable, Serverity},
-};
+use crate::{file::Files, report::Reportable};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
@@ -26,7 +22,7 @@ impl<'a, Writer: WriteColor> Renderer<'a, Writer> {
     }
 
     pub fn render<R: Reportable>(&mut self, report: R) {
-        let mut report = report.into_report(self.files);
+        let mut report = report.into_report();
         for label in report.labels.iter_mut() {
             label.gather_data(self.files);
         }
@@ -37,9 +33,10 @@ impl<'a, Writer: WriteColor> Renderer<'a, Writer> {
             report.serverity.as_str(),
             report.serverity.prefix(),
             report.code,
-        );
+        )
+        .unwrap();
 
-        writeln!(self.writer, ": {}", report.message);
+        writeln!(self.writer, ": {}", report.message).unwrap();
 
         let biggest_number = report
             .labels
@@ -68,8 +65,9 @@ impl<'a, Writer: WriteColor> Renderer<'a, Writer> {
                 " ",
                 file.path,
                 width = biggest_number
-            );
-            writeln!(self.writer, " {:width$} |", " ", width = biggest_number);
+            )
+            .unwrap();
+            writeln!(self.writer, " {:width$} |", " ", width = biggest_number).unwrap();
 
             for label in labels.iter() {
                 let label = *label;
@@ -82,8 +80,9 @@ impl<'a, Writer: WriteColor> Renderer<'a, Writer> {
                     " {:width$} | ",
                     label.line_span.unwrap().start,
                     width = biggest_number
-                );
-                writeln!(self.writer, "{}", source);
+                )
+                .unwrap();
+                writeln!(self.writer, "{}", source).unwrap();
             }
         }
     }
@@ -91,8 +90,6 @@ impl<'a, Writer: WriteColor> Renderer<'a, Writer> {
 
 #[cfg(test)]
 mod test {
-    use std::io::stdout;
-
     use termcolor::{ColorChoice, StandardStream};
 
     use crate::{
