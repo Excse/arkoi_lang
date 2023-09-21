@@ -1,14 +1,16 @@
+use std::rc::Rc;
+
 use lasso::Spur;
 
 use crate::{
-    error::{ResolutionError, Result, VariableMustBeAFunction, VariableCantBeAFunction},
+    error::{ResolutionError, Result, VariableCantBeAFunction, VariableMustBeAFunction},
     symbol_table::SymbolTable,
 };
 use ast::{
     symbol::{Symbol, SymbolKind},
     traversal::{Visitable, Visitor},
-    BlockNode, CallNode, ExpressionKind, FunDeclarationNode, LetDeclarationNode, LiteralKind,
-    ParameterNode, ProgramNode, StatementKind, VariableNode,
+    BlockNode, CallNode, EqualityNode, ExpressionKind, FunDeclarationNode, LetDeclarationNode,
+    LiteralKind, ParameterNode, ProgramNode, StatementKind, VariableNode, ComparisonNode, TermNode, FactorNode, UnaryNode,
 };
 use diagnostics::{
     positional::{Span, Spannable},
@@ -23,11 +25,11 @@ pub struct NameResolution {
 }
 
 impl<'a> Visitor<'a> for NameResolution {
-    type Return = ();
+    type Return = Option<Rc<Symbol>>;
     type Error = ResolutionError;
 
     fn default_result() -> Result {
-        Ok(())
+        Ok(None)
     }
 
     fn visit_program(&mut self, node: &'a mut ProgramNode) -> Result {
@@ -38,7 +40,7 @@ impl<'a> Visitor<'a> for NameResolution {
                 Err(error) => self.errors.push(error),
             });
 
-        Ok(())
+        Self::default_result()
     }
 
     fn visit_let_declaration(&mut self, node: &'a mut LetDeclarationNode) -> Result {
@@ -54,7 +56,9 @@ impl<'a> Visitor<'a> for NameResolution {
         };
 
         let symbol = Symbol::new(name.clone(), kind);
-        self.table.insert(name.clone(), symbol, should_shadow)?;
+        self.table
+            .insert(name.clone(), symbol.clone(), should_shadow)?;
+        node.symbol = Some(symbol);
 
         node.type_.accept(self)?;
 
@@ -62,7 +66,7 @@ impl<'a> Visitor<'a> for NameResolution {
             expression.accept(self)?;
         }
 
-        Ok(())
+        Self::default_result()
     }
 
     fn visit_fun_declaration(&mut self, node: &'a mut FunDeclarationNode) -> Result {
@@ -72,7 +76,8 @@ impl<'a> Visitor<'a> for NameResolution {
         let name = Spannable::new(name, node.name.span);
 
         let symbol = Symbol::new(name.clone(), SymbolKind::Function);
-        global.insert(name.clone(), symbol, false)?;
+        global.insert(name.clone(), symbol.clone(), false)?;
+        node.symbol = Some(symbol);
 
         self.table.enter();
 
@@ -89,7 +94,7 @@ impl<'a> Visitor<'a> for NameResolution {
 
         self.table.exit();
 
-        Ok(())
+        Self::default_result()
     }
 
     fn visit_parameter(&mut self, node: &'a mut ParameterNode) -> Result {
@@ -97,11 +102,12 @@ impl<'a> Visitor<'a> for NameResolution {
         let name = Spannable::new(name, node.name.span);
 
         let symbol = Symbol::new(name.clone(), SymbolKind::Parameter);
-        self.table.insert(name.clone(), symbol, false)?;
+        self.table.insert(name.clone(), symbol.clone(), false)?;
+        node.symbol = Some(symbol);
 
         node.type_.accept(self)?;
 
-        Ok(())
+        Self::default_result()
     }
 
     fn visit_block(&mut self, node: &'a mut BlockNode) -> Result {
@@ -116,19 +122,101 @@ impl<'a> Visitor<'a> for NameResolution {
 
         self.table.exit();
 
-        Ok(())
+        Self::default_result()
+    }
+
+    fn visit_call(&mut self, node: &'a mut CallNode) -> Result {
+        let symbol = node.callee.accept(self)?;
+        self.is_potential_function_symbol(symbol)?;
+
+        Self::default_result()
+    }
+
+    fn visit_equality(&mut self, node: &'a mut EqualityNode) -> Result {
+        let lhs_symbol = node.lhs.accept(self)?;
+        self.is_potential_variable_symbol(lhs_symbol);
+
+        let rhs_symbol = node.rhs.accept(self)?;
+        self.is_potential_variable_symbol(rhs_symbol);
+
+        Self::default_result()
+    }
+
+    fn visit_comparison(&mut self, node: &'a mut ComparisonNode) -> Result {
+        let lhs_symbol = node.lhs.accept(self)?;
+        self.is_potential_variable_symbol(lhs_symbol);
+
+        let rhs_symbol = node.rhs.accept(self)?;
+        self.is_potential_variable_symbol(rhs_symbol);
+
+        Self::default_result()
+    }
+
+    fn visit_term(&mut self, node: &'a mut TermNode) -> Result {
+        let lhs_symbol = node.lhs.accept(self)?;
+        self.is_potential_variable_symbol(lhs_symbol);
+
+        let rhs_symbol = node.rhs.accept(self)?;
+        self.is_potential_variable_symbol(rhs_symbol);
+
+        Self::default_result()
+    }
+
+    fn visit_factor(&mut self, node: &'a mut FactorNode) -> Result {
+        let lhs_symbol = node.lhs.accept(self)?;
+        self.is_potential_variable_symbol(lhs_symbol);
+
+        let rhs_symbol = node.rhs.accept(self)?;
+        self.is_potential_variable_symbol(rhs_symbol);
+
+        Self::default_result()
+    }
+
+    fn visit_unary(&mut self, node: &'a mut UnaryNode) -> Result {
+        let symbol = node.expression.accept(self)?;
+        self.is_potential_variable_symbol(symbol)?;
+
+        Self::default_result()
     }
 
     fn visit_variable(&mut self, node: &'a mut VariableNode) -> Result {
         let name = node.identifier.get_spur().unwrap();
         let symbol = self.table.lookup(name)?;
 
-        if node.is_function && symbol.kind != SymbolKind::Function {
-            return Err(VariableMustBeAFunction::error());
-        } else if !node.is_function && symbol.kind == SymbolKind::Function {
-            return Err(VariableCantBeAFunction::error());
-        }
+        node.target = Some(symbol.clone());
 
-        Ok(())
+        Ok(Some(symbol))
+    }
+}
+
+impl NameResolution {
+    fn is_potential_function_symbol(
+        &self,
+        symbol: Option<Rc<Symbol>>,
+    ) -> std::result::Result<(), ResolutionError> {
+        let symbol = match symbol {
+            Some(symbol) => symbol,
+            None => return Ok(()),
+        };
+
+        match symbol.kind {
+            SymbolKind::Function => Ok(()),
+            _ => Err(VariableMustBeAFunction::error()),
+        }
+    }
+
+    fn is_potential_variable_symbol(
+        &self,
+        symbol: Option<Rc<Symbol>>,
+    ) -> std::result::Result<(), ResolutionError> {
+        let symbol = match symbol {
+            Some(symbol) => symbol,
+            None => return Ok(()),
+        };
+
+        match symbol.kind {
+            SymbolKind::LocalVar | SymbolKind::GlobalVar | SymbolKind::Parameter => Ok(()),
+            _ => Err(VariableMustBeAFunction::error()),
+        }
     }
 }

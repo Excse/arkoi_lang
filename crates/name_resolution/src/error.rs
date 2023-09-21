@@ -1,3 +1,6 @@
+use std::rc::Rc;
+
+use ast::symbol::Symbol;
 use lasso::Spur;
 
 use diagnostics::{
@@ -5,7 +8,7 @@ use diagnostics::{
     report::{Labelable, Report, Reportable},
 };
 
-pub type Result = std::result::Result<(), ResolutionError>;
+pub type Result = std::result::Result<Option<Rc<Symbol>>, ResolutionError>;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
@@ -67,10 +70,10 @@ pub enum ResolutionError {
 impl Reportable for ResolutionError {
     fn into_report(self, files: &diagnostics::file::Files) -> Report {
         match self {
-            Self::VariableCantBeAFunction(_) => todo!(),
-            Self::VariableMustBeAFunction(_) => todo!(),
-            Self::SymbolNotFound(_) => todo!(),
-            Self::NameAlreadyUsed(_) => todo!(),
+            Self::VariableCantBeAFunction(error) => todo!("{:?}", error),
+            Self::VariableMustBeAFunction(error) => todo!("{:?}", error),
+            Self::SymbolNotFound(error) => todo!("{:?}", error),
+            Self::NameAlreadyUsed(error) => todo!("{:?}", error),
         }
     }
 }

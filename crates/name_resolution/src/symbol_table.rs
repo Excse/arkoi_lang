@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use lasso::Spur;
 
@@ -10,14 +10,14 @@ use crate::error::{NameAlreadyUsed, ResolutionError, SymbolNotFound};
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
 pub struct Scope {
-    symbols: HashMap<Spur, Symbol>,
+    symbols: HashMap<Spur, Rc<Symbol>>,
 }
 
 impl Scope {
     pub fn insert(
         &mut self,
         name: Spannable<Spur>,
-        symbol: Symbol,
+        symbol: Rc<Symbol>,
         shadow: bool,
     ) -> Result<(), ResolutionError> {
         if !shadow {
@@ -34,8 +34,8 @@ impl Scope {
         Ok(())
     }
 
-    pub fn lookup(&self, name: Spur) -> Option<&Symbol> {
-        self.symbols.get(&name)
+    pub fn lookup(&self, name: Spur) -> Option<Rc<Symbol>> {
+        self.symbols.get(&name).cloned()
     }
 }
 
@@ -73,7 +73,7 @@ impl SymbolTable {
     pub fn insert(
         &mut self,
         name: Spannable<Spur>,
-        symbol: Symbol,
+        symbol: Rc<Symbol>,
         shadow: bool,
     ) -> Result<(), ResolutionError> {
         let scope = self
@@ -83,7 +83,7 @@ impl SymbolTable {
         scope.insert(name, symbol, shadow)
     }
 
-    pub fn lookup(&self, name: Spur) -> Result<&Symbol, ResolutionError> {
+    pub fn lookup(&self, name: Spur) -> Result<Rc<Symbol>, ResolutionError> {
         for scope in self.scopes.iter().rev() {
             if let Some(symbol) = scope.lookup(name) {
                 return Ok(symbol);
