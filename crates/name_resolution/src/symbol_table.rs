@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use lasso::Spur;
 
 use ast::symbol::Symbol;
-use diagnostics::positional::Spannable;
+use diagnostics::{positional::Spannable, report::Labelable};
 
-use crate::error::ResolutionError;
+use crate::error::{NameAlreadyUsed, ResolutionError, SymbolNotFound};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
@@ -22,7 +22,7 @@ impl Scope {
     ) -> Result<(), ResolutionError> {
         if !shadow {
             if let Some(other) = self.lookup(name.content) {
-                return Err(ResolutionError::NameAlreadyUsed(
+                return Err(NameAlreadyUsed::error(
                     name.content,
                     other.name.span,
                     name.span,
@@ -90,6 +90,6 @@ impl SymbolTable {
             }
         }
 
-        Err(ResolutionError::SymbolNotFound)
+        Err(SymbolNotFound::error())
     }
 }

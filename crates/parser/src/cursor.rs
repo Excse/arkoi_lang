@@ -3,12 +3,14 @@ use serde::Serialize;
 
 use std::iter::Peekable;
 
-use crate::error::{ErrorKind, ParserError, Result};
+use crate::error::{
+    DidntExpect, EndOfFile, ErrorKind, InternalError, ParserError, Result, UnexpectedEOF,
+};
 use diagnostics::{
     file::{FileID, Files},
     positional::Spannable,
+    report::Labelable,
 };
-use errors::parser::*;
 use lexer::{
     iter::TokenIter,
     token::{Token, TokenKind},
@@ -20,16 +22,12 @@ use lexer::{
 pub(crate) struct Cursor<'a> {
     #[serde(skip)]
     iterator: Peekable<TokenIter<'a>>,
-    files: &'a Files,
-    file_id: FileID,
 }
 
 impl<'a> Cursor<'a> {
-    pub fn new(files: &'a Files, file_id: FileID, lexer: &'a mut Lexer<'a>) -> Cursor<'a> {
+    pub fn new(lexer: &'a mut Lexer<'a>) -> Cursor<'a> {
         Cursor {
             iterator: lexer.iter().peekable(),
-            files,
-            file_id,
         }
     }
 
@@ -82,9 +80,7 @@ impl<'a> Cursor<'a> {
     }
 
     pub fn peek(&mut self) -> Result<&Token> {
-        self.iterator
-            .peek()
-            .ok_or(ParserError::new(ErrorKind::EndOfFile))
+        self.iterator.peek().ok_or(EndOfFile::error())
     }
 
     pub fn eat_any(&mut self, expected: &[TokenKind]) -> Result<Token> {
@@ -96,7 +92,7 @@ impl<'a> Cursor<'a> {
                     .map(|kind| kind.as_ref())
                     .collect::<Vec<&str>>()
                     .join(", ");
-                return Err(ParserError::new(ErrorKind::UnexpectedEOF(expected)));
+                return Err(UnexpectedEOF::error(expected));
             }
         };
 
@@ -110,22 +106,17 @@ impl<'a> Cursor<'a> {
             .collect::<Vec<&str>>()
             .join(", ");
 
-        let kind = token.kind;
-        let span = token.span;
-
-        Err(ParserError::new(ErrorKind::DidntExpect(
-            Spannable::new(kind.as_ref().to_string(), span),
+        Err(DidntExpect::error(
+            Labelable::new(token.kind.as_ref().to_string(), token.span, token.file_id),
             expected,
-        )))
+        ))
     }
 
     pub fn eat(&mut self, expected: TokenKind) -> Result<Token> {
         let token = match self.peek() {
             Ok(token) => token,
             Err(_) => {
-                return Err(ParserError::new(ErrorKind::UnexpectedEOF(
-                    expected.as_ref().to_string(),
-                )))
+                return Err(UnexpectedEOF::error(expected.as_ref().to_string()));
             }
         };
 
@@ -133,12 +124,9 @@ impl<'a> Cursor<'a> {
             return Ok(self.iterator.next().unwrap());
         }
 
-        let kind = token.kind;
-        let span = token.span;
-
-        Err(ParserError::new(ErrorKind::DidntExpect(
-            Spannable::new(kind.as_ref().to_string(), span),
+        Err(DidntExpect::error(
+            Labelable::new(token.kind.as_ref().to_string(), token.span, token.file_id),
             expected.as_ref().to_string(),
-        )))
+        ))
     }
 }

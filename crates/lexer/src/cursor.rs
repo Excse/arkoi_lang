@@ -1,15 +1,15 @@
+use diagnostics::report::Labelable;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
 use std::str::Chars;
 use std::{iter::Peekable, str::CharIndices};
 
-use crate::error::{LexerError, Result};
+use crate::error::{DidntExpect, InternalError, LexerError, Result};
 use diagnostics::{
     file::{FileID, Files},
     positional::{Span, Spannable},
 };
-use errors::lexer::*;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
@@ -75,13 +75,11 @@ impl<'a> Cursor<'a> {
     pub fn try_eat(&mut self, expected: char) -> Result<char> {
         match self.peek_indexed() {
             Some((_, char)) if char == expected => Ok(self.try_consume().unwrap()),
-            Some((index, char)) => Err(LexerError::Diagnostic(didnt_expect(
-                self.files,
-                self.file_id,
-                Spannable::new(char, Span::empty(index)),
-                expected.to_string(),
-            ))),
-            None => Err(LexerError::EndOfFile),
+            Some((index, char)) => Err(DidntExpect::error(
+                Labelable::new(char, Span::single(index), self.file_id),
+                expected,
+            )),
+            None => Err(LexerError::Internal(InternalError::UnexpectedEOF)),
         }
     }
 
@@ -91,13 +89,11 @@ impl<'a> Cursor<'a> {
     {
         match self.peek_indexed() {
             Some((_, char)) if predicate(char) => Ok(self.try_consume().unwrap()),
-            Some((index, char)) => Err(LexerError::Diagnostic(didnt_expect(
-                self.files,
-                self.file_id,
-                Spannable::new(char, Span::empty(index)),
-                message.to_string(),
-            ))),
-            None => Err(LexerError::EndOfFile),
+            Some((index, char)) => Err(DidntExpect::error(
+                Labelable::new(char, Span::single(index), self.file_id),
+                message,
+            )),
+            None => Err(LexerError::Internal(InternalError::UnexpectedEOF)),
         }
     }
 

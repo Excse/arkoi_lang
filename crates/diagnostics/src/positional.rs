@@ -30,7 +30,7 @@ impl Span {
         Span { start, end }
     }
 
-    pub fn empty(index: usize) -> Self {
+    pub fn single(index: usize) -> Self {
         Span::new(index, index)
     }
 

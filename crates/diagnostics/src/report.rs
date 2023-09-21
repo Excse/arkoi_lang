@@ -6,7 +6,7 @@ use std::fmt::Display;
 use derive_builder::UninitializedFieldError;
 
 use crate::{
-    file::{FileID, Files},
+    file::{File, FileID, Files},
     positional::Span,
 };
 
@@ -66,6 +66,16 @@ impl Display for ReportBuilderError {
     }
 }
 
+pub trait Reportable {
+    fn into_report(self, files: &Files) -> Report;
+}
+
+impl Reportable for Report {
+    fn into_report(self, files: &Files) -> Report {
+        self
+    }
+}
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Builder)]
 #[builder(build_fn(private, name = "build_report", error = "ReportBuilderError"))]
@@ -111,35 +121,25 @@ impl ReportBuilder {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
-pub enum LabelBuilderError {
-    UninitializedField(&'static str),
-    FileNotFound(FileID),
-    InvalidLineSpan(Span),
+#[derive(Debug, Clone, PartialEq)]
+pub struct Labelable<C> {
+    pub content: C,
+    pub span: Span,
+    pub file_id: FileID,
 }
 
-impl From<UninitializedFieldError> for LabelBuilderError {
-    fn from(value: UninitializedFieldError) -> Self {
-        Self::UninitializedField(value.field_name())
-    }
-}
-
-impl Display for LabelBuilderError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidLineSpan(span) => {
-                write!(f, "Couldn't find a valid line span for this '{:?}'", span)
-            }
-            Self::FileNotFound(file_id) => {
-                write!(f, "Couldn't find a file with this id '{}'", file_id)
-            }
-            Self::UninitializedField(field) => write!(f, "Required field '{}' not set", field),
+impl<C> Labelable<C> {
+    pub fn new(content: C, span: Span, file_id: FileID) -> Self {
+        Labelable {
+            content,
+            span,
+            file_id,
         }
     }
 }
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Builder, Clone, PartialEq)]
-#[builder(build_fn(private, name = "build_label", error = "LabelBuilderError"))]
 pub struct Label {
     pub(crate) file: FileID,
     #[builder(setter(into))]
@@ -148,27 +148,20 @@ pub struct Label {
     pub(crate) message: Option<String>,
 
     #[builder(setter(skip))]
-    pub(crate) line_span: Span,
+    pub(crate) line_span: Option<Span>,
     #[builder(setter(skip))]
-    pub(crate) multiline: bool,
+    pub(crate) multiline: Option<bool>,
 }
 
-impl LabelBuilder {
-    pub fn build(&self, files: &Files) -> Result<Label, LabelBuilderError> {
-        let mut label = self.build_label()?;
+impl Label {
+    pub fn gather_data(&mut self, files: &Files) {
+        let file = files.get(self.file).expect("Couldn't find the file.");
 
-        let span = self.span.as_ref().unwrap();
-        let file_id = self.file.unwrap();
+        let line_span = file.find_line_span(&self.span).expect("Invalid line span.");
+        let multiline = line_span.start != line_span.end;
 
-        let file = files
-            .get(file_id)
-            .ok_or(LabelBuilderError::FileNotFound(file_id))?;
-        label.line_span = file
-            .find_line_span(span)
-            .ok_or(LabelBuilderError::InvalidLineSpan(*span))?;
-        label.multiline = label.line_span.start != label.line_span.end;
-
-        Ok(label)
+        self.line_span = Some(line_span);
+        self.multiline = Some(multiline);
     }
 }
 
@@ -194,7 +187,7 @@ mod test {
                     .file(test_file)
                     .span(0..4)
                     .message("")
-                    .build(&files)
+                    .build()
                     .unwrap(),
             )
             .label(
@@ -202,7 +195,7 @@ mod test {
                     .file(test_file)
                     .span(3..6)
                     .message("")
-                    .build(&files)
+                    .build()
                     .unwrap(),
             )
             .note("Just wanted to say hi!")
@@ -228,7 +221,7 @@ mod test {
                     .file(test_file)
                     .span(0..4)
                     .message("This is a greeting.")
-                    .build(&files)
+                    .build()
                     .unwrap(),
             )
             .label(
@@ -236,7 +229,7 @@ mod test {
                     .file(test_file)
                     .span(5..8)
                     .message("This is another greeting.")
-                    .build(&files)
+                    .build()
                     .unwrap(),
             )
             .note("Just wanted to say hi!")

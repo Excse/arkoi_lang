@@ -1,7 +1,7 @@
 use lasso::Spur;
 
 use crate::{
-    error::{ResolutionError, Result},
+    error::{ResolutionError, Result, VariableMustBeAFunction, VariableCantBeAFunction},
     symbol_table::SymbolTable,
 };
 use ast::{
@@ -124,9 +124,9 @@ impl<'a> Visitor<'a> for NameResolution {
         let symbol = self.table.lookup(name)?;
 
         if node.is_function && symbol.kind != SymbolKind::Function {
-            return Err(ResolutionError::VariableMustBeAFunction);
+            return Err(VariableMustBeAFunction::error());
         } else if !node.is_function && symbol.kind == SymbolKind::Function {
-            return Err(ResolutionError::VariableCantBeAFunction);
+            return Err(VariableCantBeAFunction::error());
         }
 
         Ok(())

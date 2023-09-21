@@ -8,8 +8,8 @@ use termcolor::{ColorChoice, StandardStream};
 use ast::traversal::Visitor;
 use diagnostics::{file::Files, renderer::Renderer};
 use interpreter::Interpreter;
-use lexer::{error::LexerError, Lexer};
-use name_resolution::{error::ResolutionError, NameResolution};
+use lexer::Lexer;
+use name_resolution::NameResolution;
 
 #[derive(Args)]
 pub struct RunArgs {
@@ -29,49 +29,36 @@ pub fn run(args: RunArgs) {
     let mut files = Files::new();
     let file_id = files.add(input_path, &source);
 
+    let stdout = StandardStream::stdout(ColorChoice::Auto);
+    let mut renderer = Renderer::new(&files, stdout);
     let mut interner = Rodeo::new();
 
     let mut lexer = Lexer::new(&files, file_id, &mut interner);
     if !lexer.errors.is_empty() {
-        let stdout = StandardStream::stdout(ColorChoice::Auto);
-        let mut renderer = Renderer::new(&files, stdout);
-
         for error in lexer.errors {
-            match error {
-                LexerError::Diagnostic(report) => renderer.render(&report),
-                error => println!("{:#?}", error),
-            }
+            renderer.render(error);
         }
 
         return;
     }
 
-    let mut parser = Parser::new(&files, file_id, &mut lexer);
+    let mut parser = Parser::new(&mut lexer);
     let mut program = parser.parse_program();
 
     if !parser.errors.is_empty() {
         for error in parser.errors {
-            match error {
-                // ParserError::Report(report) => renderer.render(&report),
-                error => println!("{:#?}", error),
-            }
+            renderer.render(error);
         }
 
         return;
     }
 
     let mut name_resolution = NameResolution::default();
-    name_resolution.visit_program(&mut program);
+    let _ = name_resolution.visit_program(&mut program);
 
     if !name_resolution.errors.is_empty() {
-        let stdout = StandardStream::stdout(ColorChoice::Auto);
-        let mut renderer = Renderer::new(&files, stdout);
-
         for error in name_resolution.errors {
-            match error {
-                ResolutionError::Report(report) => renderer.render(&report),
-                error => println!("{:#?}", error),
-            }
+            renderer.render(error);
         }
 
         return;

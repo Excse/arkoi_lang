@@ -2,7 +2,7 @@
 use serde::Serialize;
 
 use crate::cursor::Cursor;
-use crate::error::{ErrorKind, ParserError, Result};
+use crate::error::{DidntExpect, ErrorKind, InternalError, ParserError, Result};
 use ast::{
     BlockNode, CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode, FactorNode,
     FunDeclarationNode, GroupingNode, LetDeclarationNode, LiteralKind, LiteralNode, ParameterNode,
@@ -10,8 +10,7 @@ use ast::{
 };
 use diagnostics::file::{FileID, Files};
 use diagnostics::positional::Spannable;
-use diagnostics::report::Report;
-use errors::parser::didnt_expect;
+use diagnostics::report::{Labelable, Report};
 use lexer::token::TokenKind;
 use lexer::Lexer;
 
@@ -19,18 +18,14 @@ use lexer::Lexer;
 #[derive(Debug)]
 pub struct Parser<'a> {
     cursor: Cursor<'a>,
-    files: &'a Files,
-    file_id: FileID,
     pub errors: Vec<ParserError>,
     wrong_start: bool,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(files: &'a Files, file_id: FileID, lexer: &'a mut Lexer<'a>) -> Parser<'a> {
+    pub fn new(lexer: &'a mut Lexer<'a>) -> Parser<'a> {
         Parser {
-            cursor: Cursor::new(files, file_id, lexer),
-            files,
-            file_id,
+            cursor: Cursor::new(lexer),
             errors: Vec::new(),
             wrong_start: false,
         }
@@ -47,7 +42,7 @@ impl<'a> Parser<'a> {
                     statements.push(expression);
                 }
                 Err(ParserError {
-                    kind: ErrorKind::EndOfFile,
+                    kind: ErrorKind::InternalError(InternalError::EndOfFile(_)),
                     ..
                 }) => break,
                 Err(error) => {
@@ -78,10 +73,7 @@ impl<'a> Parser<'a> {
         }
 
         let token = self.cursor.peek()?;
-        Err(ParserError::new(ErrorKind::DidntExpect(
-            Spannable::new(token.kind.as_ref().to_string(), token.span),
-            "fun or let declaration".to_string(),
-        )))
+        Err(DidntExpect::error(token, "fun or let declaration"))
     }
 
     /// ```ebnf
@@ -102,10 +94,7 @@ impl<'a> Parser<'a> {
         }
 
         let token = self.cursor.peek()?;
-        Err(ParserError::new(ErrorKind::DidntExpect(
-            Spannable::new(token.kind.as_ref().to_string(), token.span),
-            "expression statement or block".to_string(),
-        )))
+        Err(DidntExpect::error(token, "expression statement or block"))
     }
 
     /// ```ebnf
@@ -142,7 +131,7 @@ impl<'a> Parser<'a> {
                     statements.push(expression);
                 }
                 Err(ParserError {
-                    kind: ErrorKind::EndOfFile,
+                    kind: ErrorKind::InternalError(InternalError::EndOfFile(_)),
                     ..
                 }) => break,
                 Err(error) => {
@@ -171,10 +160,7 @@ impl<'a> Parser<'a> {
         }
 
         let token = self.cursor.peek()?;
-        Err(ParserError::new(ErrorKind::DidntExpect(
-            Spannable::new(token.kind.as_ref().to_string(), token.span),
-            "statement, let declaration".to_string(),
-        )))
+        Err(DidntExpect::error(token, "statement, let declaration"))
     }
 
     /// ```ebnf
@@ -433,10 +419,10 @@ impl<'a> Parser<'a> {
             Ok(GroupingNode::expression(expression))
         } else {
             let token = self.cursor.peek()?;
-            Err(ParserError::new(ErrorKind::DidntExpect(
-                Spannable::new(token.kind.as_ref().to_string(), token.span),
+            Err(DidntExpect::error(
+                token,
                 "int, decimal, string, true, false, identifier, oparent".to_string(),
-            ))
+            )
             .wrong_start(start))
         }
     }

@@ -10,7 +10,7 @@ use termcolor::{Color, ColorSpec, WriteColor};
 use crate::{
     file::Files,
     positional::Span,
-    report::{Label, Report, Serverity},
+    report::{Label, Report, Reportable, Serverity},
 };
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -25,7 +25,12 @@ impl<'a, Writer: WriteColor> Renderer<'a, Writer> {
         Renderer { files, writer }
     }
 
-    pub fn render(&mut self, report: &Report) {
+    pub fn render<R: Reportable>(&mut self, report: R) {
+        let mut report = report.into_report(self.files);
+        for label in report.labels.iter_mut() {
+            label.gather_data(self.files);
+        }
+
         write!(
             self.writer,
             "{}[{}{:03}]",
@@ -39,14 +44,15 @@ impl<'a, Writer: WriteColor> Renderer<'a, Writer> {
         let biggest_number = report
             .labels
             .iter()
-            .max_by(|first, second| first.line_span.end.cmp(&second.line_span.end))
-            .map(|label| label.line_span.end.to_string().len())
+            .map(|label| label.line_span.unwrap())
+            .max_by(|first, second| first.end.cmp(&second.end))
+            .map(|span| span.end.to_string().len())
             .unwrap();
 
         let mut files = HashMap::new();
 
         for label in report.labels.iter() {
-            if label.multiline {
+            if label.multiline.unwrap() {
                 panic!("Multiline not supported yet.");
             }
 
@@ -68,13 +74,13 @@ impl<'a, Writer: WriteColor> Renderer<'a, Writer> {
             for label in labels.iter() {
                 let label = *label;
 
-                let source_span = file.lines.get(label.line_span.start).unwrap();
+                let source_span = file.lines.get(label.line_span.unwrap().start).unwrap();
                 let source = file.slice(source_span).unwrap();
 
                 write!(
                     self.writer,
                     " {:width$} | ",
-                    label.line_span.start,
+                    label.line_span.unwrap().start,
                     width = biggest_number
                 );
                 writeln!(self.writer, "{}", source);
@@ -111,7 +117,7 @@ mod test {
                     .file(test_file)
                     .span(0..4)
                     .message("This is a greeting.")
-                    .build(&files)
+                    .build()
                     .unwrap(),
             )
             .note("Just wanted to say hi!")
@@ -120,6 +126,6 @@ mod test {
             .unwrap();
 
         let mut renderer = Renderer::new(&files, stdout);
-        renderer.render(&report);
+        renderer.render(report);
     }
 }

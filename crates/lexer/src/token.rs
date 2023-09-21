@@ -4,19 +4,31 @@ use serde::Serialize;
 use lasso::Spur;
 use strum::AsRefStr;
 
-use diagnostics::positional::Span;
+use diagnostics::{file::FileID, positional::Span, report::Labelable};
+
+impl From<&Token> for Labelable<String> {
+    fn from(value: &Token) -> Self {
+        Labelable::new(value.kind.as_ref().to_string(), value.span, value.file_id)
+    }
+}
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct Token {
     pub span: Span,
+    pub file_id: FileID,
     pub value: Option<TokenValue>,
     pub kind: TokenKind,
 }
 
 impl Token {
-    pub fn new(span: Span, value: Option<TokenValue>, kind: TokenKind) -> Token {
-        Token { span, value, kind }
+    pub fn new(span: Span, file_id: FileID, value: Option<TokenValue>, kind: TokenKind) -> Token {
+        Token {
+            span,
+            file_id,
+            value,
+            kind,
+        }
     }
 
     pub fn get_spur(&self) -> Option<Spur> {
@@ -237,4 +249,3 @@ pub enum TokenKind {
     #[strum(serialize = "unknown")]
     Unknown,
 }
-

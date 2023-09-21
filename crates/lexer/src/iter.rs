@@ -26,11 +26,14 @@ impl<'a> Iterator for TokenIter<'a> {
         let token_kind = match self.lexer.next_token_kind() {
             Ok(token_kind) => token_kind,
             Err(error) => match error {
-                LexerError::Diagnostic(_) => {
+                LexerError::Internal(_) => {
+                    self.lexer.errors.push(error);
+                    return None;
+                }
+                _ => {
                     self.lexer.errors.push(error);
                     return self.next();
                 }
-                _ => return None,
             },
         };
 
@@ -60,6 +63,6 @@ impl<'a> Iterator for TokenIter<'a> {
             _ => None,
         };
 
-        Some(Token::new(span, value, token_kind))
+        Some(Token::new(span, self.lexer.file_id, value, token_kind))
     }
 }
