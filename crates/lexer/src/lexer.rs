@@ -96,12 +96,8 @@ impl<'a> Lexer<'a> {
     fn read_identifier(&mut self) -> Result<TokenKind> {
         self.cursor.eat_if(char::is_alphabetic, "a-zA-Z")?;
 
-        // self.cursor
-        //     .eat_while(|char| char.is_alphanumeric() || char == '_');
-
         self.cursor
-            .eat_while(|char| char.is_alphanumeric());
-
+            .eat_while(|char| char.is_alphanumeric() || char == '_');
 
         Ok(match self.cursor.as_str() {
             "true" => TokenKind::True,
