@@ -66,7 +66,9 @@ impl<'a> Lexer<'a> {
             Some('=') => TokenKind::Assign,
             Some('!') => TokenKind::Apostrophe,
             Some(';') => TokenKind::Semicolon,
-            _ => TokenKind::Unknown,
+            Some(char) => TokenKind::Unknown(char),
+            None => return Err(LexerError::Internal(InternalError::UnexpectedEOF)),
+
         };
 
         let current = match self.cursor.peek() {
@@ -94,7 +96,12 @@ impl<'a> Lexer<'a> {
     fn read_identifier(&mut self) -> Result<TokenKind> {
         self.cursor.eat_if(char::is_alphabetic, "a-zA-Z")?;
 
-        self.cursor.eat_while(char::is_alphanumeric);
+        // self.cursor
+        //     .eat_while(|char| char.is_alphanumeric() || char == '_');
+
+        self.cursor
+            .eat_while(|char| char.is_alphanumeric());
+
 
         Ok(match self.cursor.as_str() {
             "true" => TokenKind::True,
@@ -148,8 +155,8 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::token::Token;
     use super::*;
+    use crate::token::Token;
 
     macro_rules! test_token {
         (FAIL: $name:ident, $func:ident, $source:expr) => {

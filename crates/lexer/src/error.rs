@@ -1,7 +1,7 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use diagnostics::{report::{LabelBuilder, Labelable, Report, ReportBuilder, Reportable, Serverity}, file::Files};
+use diagnostics::report::{LabelBuilder, Labelable, Report, ReportBuilder, Reportable, Serverity};
 
 pub type Result<T> = std::result::Result<T, LexerError>;
 
