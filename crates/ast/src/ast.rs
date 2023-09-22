@@ -25,6 +25,7 @@ pub enum StatementKind {
     LetDeclaration(LetDeclarationNode),
     FunDeclaration(Box<FunDeclarationNode>),
     Block(BlockNode),
+    Return(ReturnNode),
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -99,6 +100,18 @@ pub struct BlockNode {
 impl BlockNode {
     pub fn statement(statements: Vec<StatementKind>) -> StatementKind {
         StatementKind::Block(BlockNode { statements })
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
+pub struct ReturnNode {
+    pub expression: Option<ExpressionKind>,
+}
+
+impl ReturnNode {
+    pub fn statement(expression: Option<ExpressionKind>) -> StatementKind {
+        StatementKind::Return(ReturnNode { expression })
     }
 }
 

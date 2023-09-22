@@ -34,8 +34,11 @@ statement = expression_statement
 
 block = "{" declaration* "}" ;
 
-block_statements = let_declaration 
+block_statements = let_declaration
+                 | return_statement
                  | statement ;
+
+return_statement = return expression? ";" ;
 
 expression_statement = expression ";" ;
 

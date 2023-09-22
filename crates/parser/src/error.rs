@@ -1,10 +1,7 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use diagnostics::{
-    file::Files,
-    report::{LabelBuilder, Labelable, Report, ReportBuilder, Reportable, Serverity},
-};
+use diagnostics::report::{LabelBuilder, Labelable, Report, ReportBuilder, Reportable, Serverity};
 
 pub(crate) type Result<T> = std::result::Result<T, ParserError>;
 

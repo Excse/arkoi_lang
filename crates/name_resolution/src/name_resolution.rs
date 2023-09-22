@@ -8,7 +8,7 @@ use ast::{
     symbol::{Symbol, SymbolKind},
     traversal::{Visitable, Visitor, Walkable},
     BlockNode, CallNode, ComparisonNode, EqualityNode, FactorNode, FunDeclarationNode,
-    LetDeclarationNode, ParameterNode, ProgramNode, TermNode, UnaryNode, VariableNode,
+    LetDeclarationNode, ParameterNode, ProgramNode, ReturnNode, TermNode, UnaryNode, VariableNode,
 };
 use diagnostics::positional::Spannable;
 
@@ -50,12 +50,14 @@ impl<'a> Visitor<'a> for NameResolution {
             SymbolKind::LocalVar
         };
 
+        let result = node.walk(self);
+
         let symbol = Rc::new(Symbol::new(name.clone(), kind));
         self.table
             .insert(name.clone(), symbol.clone(), should_shadow)?;
         node.symbol = Some(symbol);
 
-        node.walk(self)
+        result
     }
 
     fn visit_fun_declaration(&mut self, node: &'a mut FunDeclarationNode) -> Result {
@@ -169,6 +171,15 @@ impl<'a> Visitor<'a> for NameResolution {
     fn visit_unary(&mut self, node: &'a mut UnaryNode) -> Result {
         let symbol = node.expression.accept(self)?;
         self.is_potential_variable_symbol(symbol)?;
+
+        Self::default_result()
+    }
+
+    fn visit_return(&mut self, node: &'a mut ReturnNode) -> Result {
+        if let Some(ref mut expression) = node.expression {
+            let symbol = expression.accept(self)?;
+            self.is_potential_variable_symbol(symbol)?;
+        }
 
         Self::default_result()
     }

@@ -6,7 +6,7 @@ use crate::error::{DidntExpect, ErrorKind, InternalError, ParserError, Result};
 use ast::{
     BlockNode, CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode, FactorNode,
     FunDeclarationNode, GroupingNode, LetDeclarationNode, LiteralKind, LiteralNode, ParameterNode,
-    ProgramNode, StatementKind, TermNode, TypeNode, UnaryNode, VariableNode,
+    ProgramNode, ReturnNode, StatementKind, TermNode, TypeNode, UnaryNode, VariableNode,
 };
 use lexer::token::TokenKind;
 use lexer::Lexer;
@@ -143,10 +143,17 @@ impl<'a> Parser<'a> {
 
     /// ```ebnf
     /// block_declaration = let_declaration
+    ///                   | return_statement
     ///                   | statement ;
     /// ```
     fn parse_block_declaration(&mut self) -> Result<StatementKind> {
         match self.parse_let_declaration() {
+            Ok(result) => return Ok(result),
+            Err(error) if error.wrong_start => {}
+            Err(error) => return Err(error),
+        }
+
+        match self.parse_return_statement() {
             Ok(result) => return Ok(result),
             Err(error) if error.wrong_start => {}
             Err(error) => return Err(error),
@@ -158,6 +165,21 @@ impl<'a> Parser<'a> {
 
         let token = self.cursor.peek()?;
         Err(DidntExpect::error(token, "statement, let declaration"))
+    }
+
+    /// ```ebnf
+    /// return_statement = return expression? ";" ;
+    /// ```
+    fn parse_return_statement(&mut self) -> Result<StatementKind> {
+        self.cursor
+            .eat(TokenKind::Return)
+            .map_err(|error| error.wrong_start(true))?;
+
+        let expression = self.parse_expression(false).ok();
+
+        self.cursor.eat(TokenKind::Semicolon)?;
+
+        Ok(ReturnNode::statement(expression))
     }
 
     /// ```ebnf
@@ -248,6 +270,8 @@ impl<'a> Parser<'a> {
             .map_err(|error| error.wrong_start(true))?;
 
         let name = self.cursor.eat(TokenKind::Identifier)?;
+    
+        dbg!(&name);
 
         let type_ = self.parse_type()?;
 

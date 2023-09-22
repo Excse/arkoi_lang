@@ -83,8 +83,8 @@ impl<'a> Cursor<'a> {
             Err(_) => {
                 let expected = expected
                     .iter()
-                    .map(|kind| kind.as_ref())
-                    .collect::<Vec<&str>>()
+                    .map(|kind| kind.to_string())
+                    .collect::<Vec<String>>()
                     .join(", ");
                 return Err(UnexpectedEOF::error(expected));
             }
@@ -96,12 +96,12 @@ impl<'a> Cursor<'a> {
 
         let expected = expected
             .iter()
-            .map(|kind| kind.as_ref())
-            .collect::<Vec<&str>>()
+            .map(|kind| kind.to_string())
+            .collect::<Vec<String>>()
             .join(", ");
 
         Err(DidntExpect::error(
-            Labelable::new(token.kind.as_ref().to_string(), token.span, token.file_id),
+            Labelable::new(token.kind.to_string(), token.span, token.file_id),
             expected,
         ))
     }
@@ -110,7 +110,7 @@ impl<'a> Cursor<'a> {
         let token = match self.peek() {
             Ok(token) => token,
             Err(_) => {
-                return Err(UnexpectedEOF::error(expected.as_ref().to_string()));
+                return Err(UnexpectedEOF::error(expected.to_string()));
             }
         };
 
@@ -119,8 +119,8 @@ impl<'a> Cursor<'a> {
         }
 
         Err(DidntExpect::error(
-            Labelable::new(token.kind.as_ref().to_string(), token.span, token.file_id),
-            expected.as_ref().to_string(),
+            Labelable::new(token.kind.to_string(), token.span, token.file_id),
+            expected.to_string(),
         ))
     }
 }

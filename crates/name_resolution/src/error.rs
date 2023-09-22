@@ -4,7 +4,6 @@ use lasso::Spur;
 
 use ast::symbol::Symbol;
 use diagnostics::{
-    file::Files,
     positional::Span,
     report::{Report, Reportable},
 };

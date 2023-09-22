@@ -7,7 +7,7 @@ use crate::error::{InterpreterError, Result};
 use ast::{
     traversal::{Visitable, Visitor},
     CallNode, ComparisonNode, ComparisonOperator, EqualityNode, EqualityOperator, FactorNode,
-    FactorOperator, LiteralNode, TermNode, TermOperator, UnaryNode, UnaryOperator, VariableNode,
+    FactorOperator, LiteralNode, TermNode, TermOperator, UnaryNode, UnaryOperator, VariableNode, ReturnNode,
 };
 use lexer::token::TokenValue;
 
@@ -168,6 +168,10 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
     }
 
     fn visit_call(&mut self, node: &'a mut CallNode) -> Result {
+        todo!()
+    }
+
+    fn visit_return(&mut self, node: &'a mut ReturnNode) -> Result {
         todo!()
     }
 }

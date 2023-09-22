@@ -1,10 +1,13 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::ast::{
-    BlockNode, CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode, FactorNode,
-    FunDeclarationNode, GroupingNode, LetDeclarationNode, LiteralNode, ParameterNode, ProgramNode,
-    StatementKind, TermNode, TypeNode, UnaryNode, VariableNode,
+use crate::{
+    ast::{
+        BlockNode, CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode,
+        FactorNode, FunDeclarationNode, GroupingNode, LetDeclarationNode, LiteralNode,
+        ParameterNode, ProgramNode, StatementKind, TermNode, TypeNode, UnaryNode, VariableNode,
+    },
+    ReturnNode,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -53,6 +56,10 @@ pub trait Visitor<'a>: Sized {
     }
 
     fn visit_block(&mut self, node: &'a mut BlockNode) -> Result<Self::Return, Self::Error> {
+        node.walk(self)
+    }
+
+    fn visit_return(&mut self, node: &'a mut ReturnNode) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
@@ -137,10 +144,11 @@ impl<'a, V: Visitor<'a>> Visitable<'a, V> for ProgramNode {
 impl<'a, V: Visitor<'a>> Walkable<'a, V> for StatementKind {
     fn walk(&'a mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
         match self {
-            StatementKind::Expression(node) => node.accept(visitor),
-            StatementKind::LetDeclaration(node) => node.accept(visitor),
-            StatementKind::FunDeclaration(node) => node.accept(visitor),
-            StatementKind::Block(node) => node.accept(visitor),
+            Self::Expression(node) => node.accept(visitor),
+            Self::LetDeclaration(node) => node.accept(visitor),
+            Self::FunDeclaration(node) => node.accept(visitor),
+            Self::Block(node) => node.accept(visitor),
+            Self::Return(node) => node.accept(visitor),
         }
     }
 }
@@ -230,6 +238,21 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for BlockNode {
 impl<'a, V: Visitor<'a>> Visitable<'a, V> for BlockNode {
     fn accept(&'a mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_block(self)
+    }
+}
+
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for ReturnNode {
+    fn walk(&'a mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
+        match self.expression {
+            Some(ref mut expression) => expression.accept(visitor),
+            None => V::default_result(),
+        }
+    }
+}
+
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for ReturnNode {
+    fn accept(&'a mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
+        visitor.visit_return(self)
     }
 }
 
