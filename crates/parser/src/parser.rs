@@ -1,3 +1,4 @@
+use lexer::iterator::TokenIterator;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -9,7 +10,6 @@ use ast::{
     ProgramNode, ReturnNode, StatementKind, TermNode, TypeNode, UnaryNode, VariableNode,
 };
 use lexer::token::TokenKind;
-use lexer::Lexer;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
@@ -20,9 +20,9 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(lexer: &'a mut Lexer<'a>) -> Parser<'a> {
+    pub fn new(iterator: TokenIterator<'a>) -> Parser<'a> {
         Parser {
-            cursor: Cursor::new(lexer),
+            cursor: Cursor::new(iterator),
             errors: Vec::new(),
             wrong_start: false,
         }
@@ -270,7 +270,7 @@ impl<'a> Parser<'a> {
             .map_err(|error| error.wrong_start(true))?;
 
         let name = self.cursor.eat(TokenKind::Identifier)?;
-    
+
         dbg!(&name);
 
         let type_ = self.parse_type()?;

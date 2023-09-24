@@ -8,19 +8,21 @@ pub type FileID = u32;
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct File {
+    pub(crate) id: FileID,
     pub(crate) path: String,
     pub(crate) source: String,
     pub(crate) lines: Vec<Span>,
 }
 
 impl File {
-    fn new(path: impl Into<String>, source: impl Into<String>) -> Self {
+    fn new(id: FileID, path: impl Into<String>, source: impl Into<String>) -> Self {
         let source = source.into();
         let path = path.into();
 
         let lines = File::line_ranges(&source);
 
         File {
+            id,
             path,
             source,
             lines,
@@ -85,9 +87,9 @@ impl Files {
     }
 
     pub fn add(&mut self, path: impl Into<String>, source: impl Into<String>) -> FileID {
-        self.files.push(File::new(path, source));
-
-        u32::try_from(self.files.len()).expect("Shouldn't exceed the u32 bounds.")
+        let id = u32::try_from(self.files.len()).expect("Shouldn't exceed the u32 bounds.") + 1;
+        self.files.push(File::new(id, path, source));
+        id
     }
 
     pub fn get(&self, file_id: FileID) -> Option<&File> {

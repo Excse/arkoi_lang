@@ -6,22 +6,21 @@ use std::iter::Peekable;
 use crate::error::{DidntExpect, EndOfFile, Result, UnexpectedEOF};
 use diagnostics::report::Labelable;
 use lexer::{
-    iter::TokenIter,
+    iterator::TokenIterator,
     token::{Token, TokenKind},
-    Lexer,
 };
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub(crate) struct Cursor<'a> {
     #[serde(skip)]
-    iterator: Peekable<TokenIter<'a>>,
+    iterator: Peekable<TokenIterator<'a>>,
 }
 
 impl<'a> Cursor<'a> {
-    pub fn new(lexer: &'a mut Lexer<'a>) -> Cursor<'a> {
+    pub fn new(iterator: TokenIterator<'a>) -> Cursor<'a> {
         Cursor {
-            iterator: lexer.iter().peekable(),
+            iterator: iterator.peekable(),
         }
     }
 

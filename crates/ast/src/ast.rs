@@ -21,11 +21,11 @@ impl ProgramNode {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub enum StatementKind {
-    Expression(ExpressionNode),
-    LetDeclaration(LetDeclarationNode),
+    Expression(Box<ExpressionNode>),
+    LetDeclaration(Box<LetDeclarationNode>),
     FunDeclaration(Box<FunDeclarationNode>),
-    Block(BlockNode),
-    Return(ReturnNode),
+    Block(Box<BlockNode>),
+    Return(Box<ReturnNode>),
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -36,7 +36,7 @@ pub struct ExpressionNode {
 
 impl ExpressionNode {
     pub fn statement(expression: ExpressionKind) -> StatementKind {
-        StatementKind::Expression(ExpressionNode { expression })
+        StatementKind::Expression(Box::new(ExpressionNode { expression }))
     }
 }
 
@@ -55,12 +55,12 @@ impl LetDeclarationNode {
         type_: TypeNode,
         expression: Option<ExpressionKind>,
     ) -> StatementKind {
-        StatementKind::LetDeclaration(LetDeclarationNode {
+        StatementKind::LetDeclaration(Box::new(LetDeclarationNode {
             name,
             type_,
             expression,
             symbol: None,
-        })
+        }))
     }
 }
 
@@ -99,7 +99,7 @@ pub struct BlockNode {
 
 impl BlockNode {
     pub fn statement(statements: Vec<StatementKind>) -> StatementKind {
-        StatementKind::Block(BlockNode { statements })
+        StatementKind::Block(Box::new(BlockNode { statements }))
     }
 }
 
@@ -111,7 +111,7 @@ pub struct ReturnNode {
 
 impl ReturnNode {
     pub fn statement(expression: Option<ExpressionKind>) -> StatementKind {
-        StatementKind::Return(ReturnNode { expression })
+        StatementKind::Return(Box::new(ReturnNode { expression }))
     }
 }
 
@@ -136,32 +136,24 @@ impl ParameterNode {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone, Copy)]
 pub enum TypeKind {
-    U8,
-    I8,
-    U16,
-    I16,
-    U32,
-    I32,
-    U64,
-    I64,
-    F32,
-    F64,
+    Int(bool, usize),
+    Decimal(usize),
     Bool,
 }
 
 impl From<TokenKind> for TypeKind {
     fn from(value: TokenKind) -> Self {
         match value {
-            TokenKind::U8 => TypeKind::U8,
-            TokenKind::I8 => TypeKind::I8,
-            TokenKind::U16 => TypeKind::U16,
-            TokenKind::I16 => TypeKind::I16,
-            TokenKind::U32 => TypeKind::U32,
-            TokenKind::I32 => TypeKind::I32,
-            TokenKind::U64 => TypeKind::U64,
-            TokenKind::I64 => TypeKind::I64,
-            TokenKind::F32 => TypeKind::F32,
-            TokenKind::F64 => TypeKind::F64,
+            TokenKind::U8 => TypeKind::Int(false, 8),
+            TokenKind::I8 => TypeKind::Int(true, 8),
+            TokenKind::U16 => TypeKind::Int(false, 16),
+            TokenKind::I16 => TypeKind::Int(true, 16),
+            TokenKind::U32 => TypeKind::Int(false, 32),
+            TokenKind::I32 => TypeKind::Int(true, 32),
+            TokenKind::U64 => TypeKind::Int(false, 64),
+            TokenKind::I64 => TypeKind::Int(true, 64),
+            TokenKind::F32 => TypeKind::Decimal(32),
+            TokenKind::F64 => TypeKind::Decimal(64),
             TokenKind::Bool => TypeKind::Bool,
             _ => panic!("This tokenkind can't be converted to a typekind."),
         }
@@ -190,8 +182,8 @@ pub enum ExpressionKind {
     Unary(Box<UnaryNode>),
     Call(Box<CallNode>),
     Grouping(Box<GroupingNode>),
-    Literal(LiteralNode),
-    Variable(VariableNode),
+    Literal(Box<LiteralNode>),
+    Variable(Box<VariableNode>),
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -424,10 +416,10 @@ pub struct VariableNode {
 
 impl VariableNode {
     pub fn expression(identifier: Token) -> ExpressionKind {
-        ExpressionKind::Variable(VariableNode {
+        ExpressionKind::Variable(Box::new(VariableNode {
             identifier,
             target: None,
-        })
+        }))
     }
 }
 
@@ -449,6 +441,6 @@ pub struct LiteralNode {
 
 impl LiteralNode {
     pub fn expression(token: Token, kind: LiteralKind) -> ExpressionKind {
-        ExpressionKind::Literal(LiteralNode { token, kind })
+        ExpressionKind::Literal(Box::new(LiteralNode { token, kind }))
     }
 }

@@ -5,7 +5,6 @@ use lasso::Rodeo;
 
 use crate::cursor::Cursor;
 use crate::error::{InternalError, LexerError, Result};
-use crate::iter::TokenIter;
 use crate::token::TokenKind;
 use diagnostics::file::{FileID, Files};
 
@@ -26,10 +25,6 @@ impl<'a> Lexer<'a> {
             errors: Vec::new(),
             file_id,
         }
-    }
-
-    pub fn iter(&'a mut self) -> TokenIter<'a> {
-        TokenIter::new(self)
     }
 
     pub(crate) fn next_token_kind(&mut self) -> Result<TokenKind> {
@@ -68,7 +63,6 @@ impl<'a> Lexer<'a> {
             Some(';') => TokenKind::Semicolon,
             Some(char) => TokenKind::Unknown(char),
             None => return Err(LexerError::Internal(InternalError::UnexpectedEOF)),
-
         };
 
         let current = match self.cursor.peek() {
@@ -251,8 +245,9 @@ mod tests {
 
                 let mut interner = Rodeo::default();
 
-                let mut lexer = Lexer::new(&files, file_id, &mut interner);
-                let tokens = lexer.iter().collect::<Vec<Token>>();
+                let lexer = Lexer::new(&files, file_id, &mut interner);
+                let iterator = lexer.into_iter();
+                let tokens = iterator.collect::<Vec<Token>>();
 
                 insta::assert_yaml_snapshot!(InstaSnapshot {
                     tokens: &tokens,

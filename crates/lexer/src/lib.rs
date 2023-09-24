@@ -1,6 +1,6 @@
 mod cursor;
 pub mod error;
-pub mod iter;
+pub mod iterator;
 pub mod lexer;
 pub mod token;
 

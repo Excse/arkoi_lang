@@ -33,7 +33,7 @@ pub fn run(args: RunArgs) {
     let mut renderer = Renderer::new(&files, stdout);
     let mut interner = Rodeo::new();
 
-    let mut lexer = Lexer::new(&files, file_id, &mut interner);
+    let lexer = Lexer::new(&files, file_id, &mut interner);
     if !lexer.errors.is_empty() {
         for error in lexer.errors {
             renderer.render(error);
@@ -42,7 +42,8 @@ pub fn run(args: RunArgs) {
         return;
     }
 
-    let mut parser = Parser::new(&mut lexer);
+    let iterator = lexer.into_iter();
+    let mut parser = Parser::new(iterator);
     let mut program = parser.parse_program();
 
     if !parser.errors.is_empty() {
