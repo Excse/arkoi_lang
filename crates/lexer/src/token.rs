@@ -14,7 +14,7 @@ impl From<&Token> for Labelable<String> {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub span: Span,
     pub file_id: FileID,
@@ -62,7 +62,7 @@ impl Token {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenValue {
     Integer(usize),
     Decimal(f64),

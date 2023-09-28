@@ -66,7 +66,7 @@ impl<'a> Visitor<'a> for NameResolution {
         let name = node.name.get_spur().unwrap();
         let name = Spannable::new(name, node.name.span);
 
-        let symbol = Rc::new(Symbol::new(name.clone(), SymbolKind::Function));
+        let symbol = Rc::new(Symbol::new(name.clone(), SymbolKind::Function(node.clone())));
         global.insert(name.clone(), symbol.clone(), false)?;
         node.symbol = Some(symbol);
 
@@ -205,7 +205,7 @@ impl NameResolution {
         };
 
         match symbol.kind {
-            SymbolKind::Function => Ok(()),
+            SymbolKind::Function(_) => Ok(()),
             _ => Err(VariableMustBeAFunction::error()),
         }
     }

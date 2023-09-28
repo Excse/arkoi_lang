@@ -7,17 +7,19 @@ use lasso::Spur;
 
 use diagnostics::positional::Spannable;
 
+use crate::FunDeclarationNode;
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub enum SymbolKind {
     LocalVar,
     GlobalVar,
     Parameter,
-    Function,
+    Function(FunDeclarationNode),
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Symbol {
     pub name: Spannable<Spur>,
     pub kind: SymbolKind,

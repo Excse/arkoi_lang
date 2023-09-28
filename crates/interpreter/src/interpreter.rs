@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -7,7 +9,8 @@ use crate::error::{InterpreterError, Result};
 use ast::{
     traversal::{Visitable, Visitor},
     CallNode, ComparisonNode, ComparisonOperator, EqualityNode, EqualityOperator, FactorNode,
-    FactorOperator, LiteralNode, TermNode, TermOperator, UnaryNode, UnaryOperator, VariableNode, ReturnNode,
+    FactorOperator, LiteralNode, ReturnNode, TermNode, TermOperator, UnaryNode, UnaryOperator,
+    VariableNode,
 };
 use lexer::token::TokenValue;
 

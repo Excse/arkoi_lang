@@ -271,8 +271,6 @@ impl<'a> Parser<'a> {
 
         let name = self.cursor.eat(TokenKind::Identifier)?;
 
-        dbg!(&name);
-
         let type_ = self.parse_type()?;
 
         let expression = match self.cursor.eat(TokenKind::Assign) {

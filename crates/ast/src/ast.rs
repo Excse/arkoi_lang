@@ -7,7 +7,7 @@ use crate::{symbol::Symbol, traversal::Visitor};
 use lexer::token::{Token, TokenKind};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Clone)]
 pub struct ProgramNode {
     pub statements: Vec<StatementKind>,
 }
@@ -19,7 +19,7 @@ impl ProgramNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum StatementKind {
     Expression(Box<ExpressionNode>),
     LetDeclaration(Box<LetDeclarationNode>),
@@ -29,7 +29,7 @@ pub enum StatementKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ExpressionNode {
     pub expression: ExpressionKind,
 }
@@ -41,7 +41,7 @@ impl ExpressionNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct LetDeclarationNode {
     pub name: Token,
     pub type_: TypeNode,
@@ -65,7 +65,7 @@ impl LetDeclarationNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FunDeclarationNode {
     pub name: Token,
     pub parameters: Vec<ParameterNode>,
@@ -92,7 +92,7 @@ impl FunDeclarationNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct BlockNode {
     pub statements: Vec<StatementKind>,
 }
@@ -104,7 +104,7 @@ impl BlockNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ReturnNode {
     pub expression: Option<ExpressionKind>,
 }
@@ -116,7 +116,7 @@ impl ReturnNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ParameterNode {
     pub name: Token,
     pub type_: TypeNode,
@@ -134,7 +134,7 @@ impl ParameterNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TypeKind {
     Int(bool, usize),
     Decimal(usize),
@@ -161,7 +161,7 @@ impl From<TokenKind> for TypeKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct TypeNode {
     pub kind: TypeKind,
 }
@@ -173,7 +173,7 @@ impl TypeNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ExpressionKind {
     Equality(Box<EqualityNode>),
     Comparison(Box<ComparisonNode>),
@@ -187,7 +187,7 @@ pub enum ExpressionKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum EqualityOperator {
     Equal,
     NotEqual,
@@ -204,7 +204,7 @@ impl From<Token> for EqualityOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct EqualityNode {
     pub lhs: ExpressionKind,
     pub operator: EqualityOperator,
@@ -226,7 +226,7 @@ impl EqualityNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ComparisonOperator {
     Greater,
     GreaterEqual,
@@ -247,7 +247,7 @@ impl From<Token> for ComparisonOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ComparisonNode {
     pub lhs: ExpressionKind,
     pub operator: ComparisonOperator,
@@ -269,7 +269,7 @@ impl ComparisonNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TermOperator {
     Add,
     Sub,
@@ -286,7 +286,7 @@ impl From<Token> for TermOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct TermNode {
     pub lhs: ExpressionKind,
     pub operator: TermOperator,
@@ -308,7 +308,7 @@ impl TermNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FactorOperator {
     Mul,
     Div,
@@ -325,7 +325,7 @@ impl From<Token> for FactorOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FactorNode {
     pub lhs: ExpressionKind,
     pub operator: FactorOperator,
@@ -347,7 +347,7 @@ impl FactorNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnaryOperator {
     Neg,
     LogNeg,
@@ -364,7 +364,7 @@ impl From<Token> for UnaryOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct UnaryNode {
     pub operator: UnaryOperator,
     pub expression: ExpressionKind,
@@ -383,7 +383,7 @@ impl UnaryNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CallNode {
     pub callee: ExpressionKind,
     pub arguments: Vec<ExpressionKind>,
@@ -396,7 +396,7 @@ impl CallNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct GroupingNode {
     pub expression: ExpressionKind,
 }
@@ -408,7 +408,7 @@ impl GroupingNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct VariableNode {
     pub identifier: Token,
     pub target: Option<Rc<Symbol>>,
@@ -424,7 +424,7 @@ impl VariableNode {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LiteralKind {
     String,
     Integer,
@@ -433,7 +433,7 @@ pub enum LiteralKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct LiteralNode {
     pub token: Token,
     pub kind: LiteralKind,
