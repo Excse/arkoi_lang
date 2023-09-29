@@ -31,7 +31,7 @@ impl<'a> TokenIterator<'a> {
         let span = self.0.cursor.as_span();
 
         let value = match token_kind {
-            TokenKind::Integer => {
+            TokenKind::Int => {
                 let content = content.parse::<usize>().unwrap().into();
                 Some(content)
             }
@@ -39,7 +39,7 @@ impl<'a> TokenIterator<'a> {
                 let content = content.parse::<f64>().unwrap().into();
                 Some(content)
             }
-            TokenKind::Identifier => {
+            TokenKind::Id => {
                 let content = self.0.interner.get_or_intern(content).into();
                 Some(content)
             }

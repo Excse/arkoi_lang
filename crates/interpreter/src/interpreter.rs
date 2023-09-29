@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -55,22 +53,22 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
 
         let (lhs, rhs) = self.convert_numerical_operands(lhs, rhs);
         Ok(match (lhs, node.operator, rhs) {
-            (Output::Integer(lhs), EqualityOperator::Equal, Output::Integer(rhs)) => {
+            (Output::Integer(lhs), EqualityOperator::Eq, Output::Integer(rhs)) => {
                 Output::Bool(lhs == rhs)
             }
-            (Output::Decimal(lhs), EqualityOperator::Equal, Output::Decimal(rhs)) => {
+            (Output::Decimal(lhs), EqualityOperator::Eq, Output::Decimal(rhs)) => {
                 Output::Bool(lhs == rhs)
             }
-            (Output::Bool(lhs), EqualityOperator::Equal, Output::Bool(rhs)) => {
+            (Output::Bool(lhs), EqualityOperator::Eq, Output::Bool(rhs)) => {
                 Output::Bool(lhs == rhs)
             }
-            (Output::Integer(lhs), EqualityOperator::NotEqual, Output::Integer(rhs)) => {
+            (Output::Integer(lhs), EqualityOperator::NotEq, Output::Integer(rhs)) => {
                 Output::Bool(lhs != rhs)
             }
-            (Output::Decimal(lhs), EqualityOperator::NotEqual, Output::Decimal(rhs)) => {
+            (Output::Decimal(lhs), EqualityOperator::NotEq, Output::Decimal(rhs)) => {
                 Output::Bool(lhs != rhs)
             }
-            (Output::Bool(lhs), EqualityOperator::NotEqual, Output::Bool(rhs)) => {
+            (Output::Bool(lhs), EqualityOperator::NotEq, Output::Bool(rhs)) => {
                 Output::Bool(lhs != rhs)
             }
             _ => todo!("Equality for those types not implemented yet."),
@@ -95,16 +93,16 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
             (Output::Decimal(lhs), ComparisonOperator::Less, Output::Decimal(rhs)) => {
                 Output::Bool(lhs < rhs)
             }
-            (Output::Integer(lhs), ComparisonOperator::GreaterEqual, Output::Integer(rhs)) => {
+            (Output::Integer(lhs), ComparisonOperator::GreaterEq, Output::Integer(rhs)) => {
                 Output::Bool(lhs >= rhs)
             }
-            (Output::Decimal(lhs), ComparisonOperator::GreaterEqual, Output::Decimal(rhs)) => {
+            (Output::Decimal(lhs), ComparisonOperator::GreaterEq, Output::Decimal(rhs)) => {
                 Output::Bool(lhs >= rhs)
             }
-            (Output::Integer(lhs), ComparisonOperator::LessEqual, Output::Integer(rhs)) => {
+            (Output::Integer(lhs), ComparisonOperator::LessEq, Output::Integer(rhs)) => {
                 Output::Bool(lhs <= rhs)
             }
-            (Output::Decimal(lhs), ComparisonOperator::LessEqual, Output::Decimal(rhs)) => {
+            (Output::Decimal(lhs), ComparisonOperator::LessEq, Output::Decimal(rhs)) => {
                 Output::Bool(lhs <= rhs)
             }
             _ => todo!("Comparison for those types not implemented yet."),
@@ -166,15 +164,15 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_variable(&mut self, node: &'a mut VariableNode) -> Result {
+    fn visit_variable(&mut self, _node: &'a mut VariableNode) -> Result {
         todo!()
     }
 
-    fn visit_call(&mut self, node: &'a mut CallNode) -> Result {
+    fn visit_call(&mut self, _node: &'a mut CallNode) -> Result {
         todo!()
     }
 
-    fn visit_return(&mut self, node: &'a mut ReturnNode) -> Result {
+    fn visit_return(&mut self, _node: &'a mut ReturnNode) -> Result {
         todo!()
     }
 }

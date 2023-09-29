@@ -45,10 +45,12 @@ impl<'a> Lexer<'a> {
     fn read_symbol(&mut self) -> Result<TokenKind> {
         let mut token = match self.cursor.try_consume() {
             Some(char) if char.is_whitespace() => self.next_token_kind()?,
-            Some('{') => TokenKind::OBracket,
-            Some('}') => TokenKind::CBracket,
-            Some('(') => TokenKind::OParent,
-            Some(')') => TokenKind::CParent,
+            Some('{') => TokenKind::Brace(true),
+            Some('}') => TokenKind::Brace(false),
+            Some('(') => TokenKind::Parent(true),
+            Some(')') => TokenKind::Parent(false),
+            Some('[') => TokenKind::Bracket(true),
+            Some(']') => TokenKind::Bracket(false),
             Some('@') => TokenKind::At,
             Some(',') => TokenKind::Comma,
             Some('.') => TokenKind::Period,
@@ -58,7 +60,7 @@ impl<'a> Lexer<'a> {
             Some('/') => TokenKind::Slash,
             Some('<') => TokenKind::Less,
             Some('>') => TokenKind::Greater,
-            Some('=') => TokenKind::Assign,
+            Some('=') => TokenKind::Eq,
             Some('!') => TokenKind::Apostrophe,
             Some(';') => TokenKind::Semicolon,
             Some(char) => TokenKind::Unknown(char),
@@ -71,14 +73,14 @@ impl<'a> Lexer<'a> {
         };
 
         token = match (token, current) {
-            (TokenKind::Plus, '=') => TokenKind::AddAssign,
-            (TokenKind::Minus, '=') => TokenKind::MinusAssign,
-            (TokenKind::Asterisk, '=') => TokenKind::MulAssign,
-            (TokenKind::Slash, '=') => TokenKind::DivAssign,
-            (TokenKind::Less, '=') => TokenKind::LessEqual,
-            (TokenKind::Greater, '=') => TokenKind::GreaterEqual,
-            (TokenKind::Assign, '=') => TokenKind::Equal,
-            (TokenKind::Apostrophe, '=') => TokenKind::NotEqual,
+            (TokenKind::Plus, '=') => TokenKind::PlusEq,
+            (TokenKind::Minus, '=') => TokenKind::MinusEq,
+            (TokenKind::Asterisk, '=') => TokenKind::AsteriskEq,
+            (TokenKind::Slash, '=') => TokenKind::SlashEq,
+            (TokenKind::Less, '=') => TokenKind::LessEq,
+            (TokenKind::Greater, '=') => TokenKind::GreaterEq,
+            (TokenKind::Eq, '=') => TokenKind::EqEq,
+            (TokenKind::Apostrophe, '=') => TokenKind::NotEq,
             (token, _) => return Ok(token),
         };
 
@@ -114,7 +116,7 @@ impl<'a> Lexer<'a> {
             "f32" => TokenKind::F32,
             "f64" => TokenKind::F64,
             "bool" => TokenKind::Bool,
-            _ => TokenKind::Identifier,
+            _ => TokenKind::Id,
         })
     }
 
@@ -127,7 +129,7 @@ impl<'a> Lexer<'a> {
             self.cursor.eat_while(char::is_numeric);
             Ok(TokenKind::Decimal)
         } else {
-            Ok(TokenKind::Integer)
+            Ok(TokenKind::Int)
         }
     }
 
@@ -179,7 +181,7 @@ mod tests {
     }
 
     test_token!(success_decimal, "4.2" => TokenKind::Decimal);
-    test_token!(success_integer, "42" => TokenKind::Integer);
+    test_token!(success_integer, "42" => TokenKind::Int);
     test_token!(FAIL: fail_number, read_number, "number");
 
     test_token!(success_string, "\"Hello World!\"" => TokenKind::String);
@@ -188,30 +190,30 @@ mod tests {
     test_token!(success_true, "true" => TokenKind::True);
     test_token!(success_false, "false" => TokenKind::False);
 
-    test_token!(success_obracket, "{" => TokenKind::OBracket);
-    test_token!(success_cbracket, "}" => TokenKind::CBracket);
-    test_token!(success_oparent, "(" => TokenKind::OParent);
-    test_token!(success_cparent, ")" => TokenKind::CParent);
+    test_token!(success_obracket, "{" => TokenKind::Brace(true));
+    test_token!(success_cbracket, "}" => TokenKind::Brace(false));
+    test_token!(success_oparent, "(" => TokenKind::Parent(true));
+    test_token!(success_cparent, ")" => TokenKind::Parent(false));
     test_token!(success_at, "@" => TokenKind::At);
     test_token!(success_apostrophe, "!" => TokenKind::Apostrophe);
     test_token!(success_comma, "," => TokenKind::Comma);
     test_token!(success_period, "." => TokenKind::Period);
     test_token!(success_semicolon, ";" => TokenKind::Semicolon);
-    test_token!(success_addassign, "+=" => TokenKind::AddAssign);
+    test_token!(success_addassign, "+=" => TokenKind::PlusEq);
     test_token!(success_plus, "+" => TokenKind::Plus);
-    test_token!(success_minusassing, "-=" => TokenKind::MinusAssign);
+    test_token!(success_minusassing, "-=" => TokenKind::MinusEq);
     test_token!(success_minus, "-" => TokenKind::Minus);
-    test_token!(success_mulassign, "*=" => TokenKind::MulAssign);
+    test_token!(success_mulassign, "*=" => TokenKind::AsteriskEq);
     test_token!(success_asterisk, "*" => TokenKind::Asterisk);
-    test_token!(success_divassign, "/=" => TokenKind::DivAssign);
+    test_token!(success_divassign, "/=" => TokenKind::SlashEq);
     test_token!(success_slash, "/" => TokenKind::Slash);
-    test_token!(success_lessequal, "<=" => TokenKind::LessEqual);
+    test_token!(success_lessequal, "<=" => TokenKind::LessEq);
     test_token!(success_less, "<" => TokenKind::Less);
-    test_token!(success_greaterequal, ">=" => TokenKind::GreaterEqual);
+    test_token!(success_greaterequal, ">=" => TokenKind::GreaterEq);
     test_token!(success_greater, ">" => TokenKind::Greater);
-    test_token!(success_equal, "==" => TokenKind::Equal);
-    test_token!(success_notequal, "!=" => TokenKind::NotEqual);
-    test_token!(success_assign, "=" => TokenKind::Assign);
+    test_token!(success_equal, "==" => TokenKind::EqEq);
+    test_token!(success_notequal, "!=" => TokenKind::NotEq);
+    test_token!(success_assign, "=" => TokenKind::Eq);
 
     test_token!(success_self, "self" => TokenKind::Self_);
     test_token!(success_u8, "u8" => TokenKind::U8);

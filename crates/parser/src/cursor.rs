@@ -35,7 +35,7 @@ impl<'a> Cursor<'a> {
         while let Ok(token) = self.peek() {
             match token.kind {
                 TokenKind::Fun | TokenKind::Struct | TokenKind::Let => return,
-                TokenKind::Semicolon | TokenKind::CBracket => {
+                TokenKind::Semicolon | TokenKind::Bracket(false) => {
                     self.consume();
                     return;
                 }
@@ -57,7 +57,7 @@ impl<'a> Cursor<'a> {
         while let Ok(token) = self.peek() {
             match token.kind {
                 TokenKind::Let | TokenKind::Return => return,
-                TokenKind::Semicolon | TokenKind::CBracket => {
+                TokenKind::Semicolon | TokenKind::Bracket(false) => {
                     self.consume();
                     return;
                 }

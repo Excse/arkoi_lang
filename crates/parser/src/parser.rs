@@ -110,16 +110,16 @@ impl<'a> Parser<'a> {
     /// ```
     fn parse_block(&mut self) -> Result<StatementKind> {
         self.cursor
-            .eat(TokenKind::OBracket)
+            .eat(TokenKind::Brace(true))
             .map_err(|error| error.wrong_start(true))?;
 
-        if self.cursor.eat(TokenKind::CBracket).is_ok() {
+        if self.cursor.eat(TokenKind::Brace(false)).is_ok() {
             return Ok(BlockNode::statement(Vec::new()));
         }
 
         let mut statements = Vec::new();
         loop {
-            if self.cursor.eat(TokenKind::CBracket).is_ok() {
+            if self.cursor.eat(TokenKind::Brace(false)).is_ok() {
                 break;
             }
 
@@ -190,14 +190,14 @@ impl<'a> Parser<'a> {
             .eat(TokenKind::Fun)
             .map_err(|error| error.wrong_start(true))?;
 
-        let identifier = self.cursor.eat(TokenKind::Identifier)?;
+        let identifier = self.cursor.eat(TokenKind::Id)?;
 
-        self.cursor.eat(TokenKind::OParent)?;
+        self.cursor.eat(TokenKind::Parent(true))?;
 
-        let parameters = if self.cursor.eat(TokenKind::CParent).is_err() {
+        let parameters = if self.cursor.eat(TokenKind::Parent(false)).is_err() {
             let parameters = self.parse_parameters()?;
 
-            self.cursor.eat(TokenKind::CParent)?;
+            self.cursor.eat(TokenKind::Parent(false))?;
 
             parameters
         } else {
@@ -220,7 +220,7 @@ impl<'a> Parser<'a> {
         let mut parameters = Vec::new();
 
         loop {
-            let identifier = self.cursor.eat(TokenKind::Identifier)?;
+            let identifier = self.cursor.eat(TokenKind::Id)?;
             let type_ = self.parse_type()?;
 
             parameters.push(ParameterNode::new(identifier, type_));
@@ -269,11 +269,11 @@ impl<'a> Parser<'a> {
             .eat(TokenKind::Let)
             .map_err(|error| error.wrong_start(true))?;
 
-        let name = self.cursor.eat(TokenKind::Identifier)?;
+        let name = self.cursor.eat(TokenKind::Id)?;
 
         let type_ = self.parse_type()?;
 
-        let expression = match self.cursor.eat(TokenKind::Assign) {
+        let expression = match self.cursor.eat(TokenKind::Eq) {
             Ok(_) => Some(self.parse_expression(false)?),
             Err(_) => None,
         };
@@ -302,10 +302,7 @@ impl<'a> Parser<'a> {
     fn parse_equality(&mut self) -> Result<ExpressionKind> {
         let mut expression = self.parse_comparison(true)?;
 
-        while let Ok(token) = self
-            .cursor
-            .eat_any(&[TokenKind::Equal, TokenKind::NotEqual])
-        {
+        while let Ok(token) = self.cursor.eat_any(&[TokenKind::EqEq, TokenKind::NotEq]) {
             let rhs = self.parse_comparison(false)?;
             expression = EqualityNode::expression(expression, token, rhs);
         }
@@ -321,9 +318,9 @@ impl<'a> Parser<'a> {
 
         while let Ok(token) = self.cursor.eat_any(&[
             TokenKind::Greater,
-            TokenKind::GreaterEqual,
+            TokenKind::GreaterEq,
             TokenKind::Less,
-            TokenKind::LessEqual,
+            TokenKind::LessEq,
         ]) {
             let rhs = self.parse_term(false)?;
             expression = ComparisonNode::expression(expression, token, rhs);
@@ -385,7 +382,7 @@ impl<'a> Parser<'a> {
     fn parse_call(&mut self, start: bool) -> Result<ExpressionKind> {
         let mut primary = self.parse_primary(start)?;
 
-        while self.cursor.eat(TokenKind::OParent).is_ok() {
+        while self.cursor.eat(TokenKind::Parent(true)).is_ok() {
             primary = self.finish_parse_call(primary)?;
         }
 
@@ -396,7 +393,7 @@ impl<'a> Parser<'a> {
     /// call = primary ( "(" arguments? ")" )* ;
     ///```
     fn finish_parse_call(&mut self, callee: ExpressionKind) -> Result<ExpressionKind> {
-        if self.cursor.eat(TokenKind::CParent).is_ok() {
+        if self.cursor.eat(TokenKind::Parent(true)).is_ok() {
             return Ok(CallNode::expression(callee, Vec::new()));
         }
 
@@ -409,7 +406,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.cursor.eat(TokenKind::CParent)?;
+        self.cursor.eat(TokenKind::Parent(false))?;
 
         Ok(CallNode::expression(callee, arguments))
     }
@@ -418,8 +415,8 @@ impl<'a> Parser<'a> {
     /// primary = NUMBER | STRING | IDENTIFIER | "true" | "false" | "(" expression ")" ;
     /// ```
     fn parse_primary(&mut self, start: bool) -> Result<ExpressionKind> {
-        if let Ok(token) = self.cursor.eat(TokenKind::Integer) {
-            Ok(LiteralNode::expression(token, LiteralKind::Integer))
+        if let Ok(token) = self.cursor.eat(TokenKind::Int) {
+            Ok(LiteralNode::expression(token, LiteralKind::Int))
         } else if let Ok(token) = self.cursor.eat(TokenKind::Decimal) {
             Ok(LiteralNode::expression(token, LiteralKind::Decimal))
         } else if let Ok(token) = self.cursor.eat(TokenKind::String) {
@@ -428,11 +425,11 @@ impl<'a> Parser<'a> {
             Ok(LiteralNode::expression(token, LiteralKind::Bool))
         } else if let Ok(token) = self.cursor.eat(TokenKind::False) {
             Ok(LiteralNode::expression(token, LiteralKind::Bool))
-        } else if let Ok(token) = self.cursor.eat(TokenKind::Identifier) {
+        } else if let Ok(token) = self.cursor.eat(TokenKind::Id) {
             Ok(VariableNode::expression(token))
-        } else if self.cursor.eat(TokenKind::OParent).is_ok() {
+        } else if self.cursor.eat(TokenKind::Parent(true)).is_ok() {
             let expression = self.parse_expression(false)?;
-            self.cursor.eat(TokenKind::CParent)?;
+            self.cursor.eat(TokenKind::Parent(false))?;
             Ok(GroupingNode::expression(expression))
         } else {
             let token = self.cursor.peek()?;

@@ -189,15 +189,15 @@ pub enum ExpressionKind {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum EqualityOperator {
-    Equal,
-    NotEqual,
+    Eq,
+    NotEq,
 }
 
 impl From<Token> for EqualityOperator {
     fn from(value: Token) -> Self {
         match value.kind {
-            TokenKind::Equal => Self::Equal,
-            TokenKind::NotEqual => Self::NotEqual,
+            TokenKind::EqEq => Self::Eq,
+            TokenKind::NotEq => Self::NotEq,
             _ => todo!("This convertion is not implemented."),
         }
     }
@@ -229,18 +229,18 @@ impl EqualityNode {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ComparisonOperator {
     Greater,
-    GreaterEqual,
+    GreaterEq,
     Less,
-    LessEqual,
+    LessEq,
 }
 
 impl From<Token> for ComparisonOperator {
     fn from(value: Token) -> Self {
         match value.kind {
             TokenKind::Greater => Self::Greater,
-            TokenKind::GreaterEqual => Self::GreaterEqual,
+            TokenKind::GreaterEq => Self::GreaterEq,
             TokenKind::Less => Self::Less,
-            TokenKind::LessEqual => Self::LessEqual,
+            TokenKind::LessEq => Self::LessEq,
             _ => todo!("This convertion is not implemented."),
         }
     }
@@ -427,7 +427,7 @@ impl VariableNode {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LiteralKind {
     String,
-    Integer,
+    Int,
     Decimal,
     Bool,
 }
