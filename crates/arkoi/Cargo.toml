@@ -9,16 +9,16 @@ version = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "4.4.3", features = ["derive"] }
 diagnostics = { path = "../diagnostics" }
-lexer = { path = "../lexer" }
-parser = { path = "../parser" }
-name_resolution = { path = "../name_resolution" }
-ast = { path = "../ast" }
 interpreter = { path = "../interpreter" }
+name_resolution = { path = "../frontend/name_resolution" }
+parser = { path = "../frontend/parser" }
+lexer = { path = "../frontend/lexer" }
+ast = { path = "../frontend/ast" }
 
 serde = { version = "1.0.188", features = ["derive"], optional = true }
 lasso = { version = "0.7.2", features = ["serialize"] }
+clap = { version = "4.4.3", features = ["derive"] }
 termcolor = "1.2.0"
 
 [features]

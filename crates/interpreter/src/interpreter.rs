@@ -1,6 +1,5 @@
 use std::rc::Rc;
 
-use name_resolution::symbol::Symbol;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -14,6 +13,7 @@ use ast::{
     UnaryOperator,
 };
 use lexer::token::TokenValue;
+use name_resolution::symbol::Symbol;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]

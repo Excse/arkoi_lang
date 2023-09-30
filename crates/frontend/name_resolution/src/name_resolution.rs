@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc};
 use crate::{
     error::{ResolutionError, Result, VariableMustBeAFunction},
     symbol::{Symbol, SymbolKind},
-    symbol_table::SymbolTable,
+    table::SymbolTable,
 };
 use ast::{
     traversal::{Visitable, Visitor, Walkable},
@@ -14,9 +14,29 @@ use diagnostics::positional::{Span, Spannable};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
+pub struct ResolvedSymbols {
+    resolved: HashMap<Span, Rc<Symbol>>,
+}
+
+impl ResolvedSymbols {
+    pub fn insert(&mut self, span: impl Into<Span>, symbol: Rc<Symbol>) {
+        let span = span.into();
+
+        self.resolved.insert(span, symbol);
+    }
+
+    pub fn get(&self, span: impl Into<Span>) -> Option<Rc<Symbol>> {
+        let span = span.into();
+
+        self.resolved.get(&span).cloned()
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Default)]
 pub struct NameResolution {
     table: SymbolTable,
-    resolved: HashMap<Span, Rc<Symbol>>,
+    resolved: ResolvedSymbols,
     pub errors: Vec<ResolutionError>,
 }
 

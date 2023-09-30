@@ -8,7 +8,7 @@ version = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-diagnostics = { path = "../diagnostics" }
+diagnostics = { path = "../../diagnostics" }
 
 insta = { version = "1.31.0", features = ["yaml"] }
 lasso = { version = "0.7.2", features = ["serialize"] }

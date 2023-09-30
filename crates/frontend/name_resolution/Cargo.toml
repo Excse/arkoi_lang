@@ -1,5 +1,5 @@
 [package]
-name = "parser"
+name = "name_resolution"
 authors = { workspace = true }
 categories = { workspace = true }
 edition = { workspace = true }
@@ -8,12 +8,9 @@ version = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lexer = { path = "../lexer" }
-diagnostics = { path = "../diagnostics" }
+diagnostics = { path = "../../diagnostics/" }
+parser = { path = "../parser/" }
+lexer = { path = "../lexer/" }
 ast = { path = "../ast" }
 
-serde = { version = "1.0.188", features = ["derive"], optional = true }
-
-[features]
-default = [ "serialize" ]
-serialize = [ "dep:serde" ]
+lasso = { version = "0.7.2", features = ["serialize"] }
