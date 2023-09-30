@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use lasso::Spur;
 
-use ast::symbol::Symbol;
+use crate::symbol::Symbol;
 use diagnostics::{
     positional::Span,
     report::{Report, Reportable},
@@ -43,17 +43,17 @@ impl SymbolNotFound {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct NameAlreadyUsed {
-    name: Spur,
-    original: Span,
-    other: Span,
+    _name: Spur,
+    _original: Span,
+    _other: Span,
 }
 
 impl NameAlreadyUsed {
     pub fn error(name: Spur, original: Span, other: Span) -> ResolutionError {
         ResolutionError::NameAlreadyUsed(NameAlreadyUsed {
-            name,
-            original,
-            other,
+            _name: name,
+            _original: original,
+            _other: other,
         })
     }
 }

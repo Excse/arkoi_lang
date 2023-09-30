@@ -2,10 +2,11 @@ use std::{collections::HashMap, rc::Rc};
 
 use lasso::Spur;
 
-use ast::symbol::Symbol;
+use crate::{
+    error::{NameAlreadyUsed, ResolutionError, SymbolNotFound},
+    symbol::Symbol,
+};
 use diagnostics::positional::Spannable;
-
-use crate::error::{NameAlreadyUsed, ResolutionError, SymbolNotFound};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
@@ -17,9 +18,9 @@ impl Scope {
     pub fn insert(
         &mut self,
         name: Spannable<Spur>,
-        symbol: Rc<Symbol>,
+        symbol: Symbol,
         shadow: bool,
-    ) -> Result<(), ResolutionError> {
+    ) -> Result<Rc<Symbol>, ResolutionError> {
         if !shadow {
             if let Some(other) = self.lookup(name.content) {
                 return Err(NameAlreadyUsed::error(
@@ -30,8 +31,9 @@ impl Scope {
             }
         }
 
-        self.symbols.insert(name.content, symbol);
-        Ok(())
+        let symbol = Rc::new(symbol);
+        self.symbols.insert(name.content, symbol.clone());
+        Ok(symbol)
     }
 
     pub fn lookup(&self, name: Spur) -> Option<Rc<Symbol>> {
@@ -73,9 +75,9 @@ impl SymbolTable {
     pub fn insert(
         &mut self,
         name: Spannable<Spur>,
-        symbol: Rc<Symbol>,
+        symbol: Symbol,
         shadow: bool,
-    ) -> Result<(), ResolutionError> {
+    ) -> Result<Rc<Symbol>, ResolutionError> {
         let scope = self
             .scopes
             .last_mut()

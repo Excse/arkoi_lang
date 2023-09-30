@@ -3,7 +3,7 @@ use std::rc::Rc;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::{symbol::Symbol, traversal::Visitor};
+use crate::traversal::Visitor;
 use lexer::token::{Token, TokenKind};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -46,7 +46,6 @@ pub struct LetDeclarationNode {
     pub name: Token,
     pub type_: TypeNode,
     pub expression: Option<ExpressionKind>,
-    pub symbol: Option<Rc<Symbol>>,
 }
 
 impl LetDeclarationNode {
@@ -59,7 +58,6 @@ impl LetDeclarationNode {
             name,
             type_,
             expression,
-            symbol: None,
         }))
     }
 }
@@ -70,8 +68,7 @@ pub struct FunDeclarationNode {
     pub name: Token,
     pub parameters: Vec<ParameterNode>,
     pub type_: TypeNode,
-    pub block: StatementKind,
-    pub symbol: Option<Rc<Symbol>>,
+    pub block: BlockNode,
 }
 
 impl FunDeclarationNode {
@@ -79,14 +76,13 @@ impl FunDeclarationNode {
         name: Token,
         parameters: Vec<ParameterNode>,
         type_: TypeNode,
-        block: StatementKind,
+        block: BlockNode,
     ) -> StatementKind {
         StatementKind::FunDeclaration(Box::new(FunDeclarationNode {
             name,
             parameters,
             type_,
             block,
-            symbol: None,
         }))
     }
 }
@@ -120,16 +116,11 @@ impl ReturnNode {
 pub struct ParameterNode {
     pub name: Token,
     pub type_: TypeNode,
-    pub symbol: Option<Rc<Symbol>>,
 }
 
 impl ParameterNode {
     pub fn new(name: Token, type_: TypeNode) -> Self {
-        ParameterNode {
-            name,
-            type_,
-            symbol: None,
-        }
+        ParameterNode { name, type_ }
     }
 }
 
@@ -183,7 +174,7 @@ pub enum ExpressionKind {
     Call(Box<CallNode>),
     Grouping(Box<GroupingNode>),
     Literal(Box<LiteralNode>),
-    Variable(Box<VariableNode>),
+    Variable(Box<IdNode>),
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -409,17 +400,13 @@ impl GroupingNode {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct VariableNode {
-    pub identifier: Token,
-    pub target: Option<Rc<Symbol>>,
+pub struct IdNode {
+    pub id: Token,
 }
 
-impl VariableNode {
+impl IdNode {
     pub fn expression(identifier: Token) -> ExpressionKind {
-        ExpressionKind::Variable(Box::new(VariableNode {
-            identifier,
-            target: None,
-        }))
+        ExpressionKind::Variable(Box::new(IdNode { id: identifier }))
     }
 }
 

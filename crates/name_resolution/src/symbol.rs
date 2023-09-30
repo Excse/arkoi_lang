@@ -1,13 +1,10 @@
-use std::rc::Rc;
-
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
 use lasso::Spur;
 
+use ast::BlockNode;
 use diagnostics::positional::Spannable;
-
-use crate::FunDeclarationNode;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone, PartialEq)]
@@ -16,7 +13,7 @@ pub enum SymbolKind {
     GlobalVar,
     Parameter,
     // TODO: Find a way to prevent the clone
-    Function(FunDeclarationNode),
+    Function(BlockNode),
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]

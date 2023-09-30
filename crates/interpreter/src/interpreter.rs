@@ -1,3 +1,6 @@
+use std::rc::Rc;
+
+use name_resolution::symbol::Symbol;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -7,8 +10,8 @@ use crate::error::{InterpreterError, Result};
 use ast::{
     traversal::{Visitable, Visitor},
     CallNode, ComparisonNode, ComparisonOperator, EqualityNode, EqualityOperator, FactorNode,
-    FactorOperator, LiteralNode, ReturnNode, TermNode, TermOperator, UnaryNode, UnaryOperator,
-    VariableNode,
+    FactorOperator, IdNode, LiteralNode, ReturnNode, TermNode, TermOperator, UnaryNode,
+    UnaryOperator,
 };
 use lexer::token::TokenValue;
 
@@ -18,13 +21,13 @@ pub struct Interpreter<'a> {
     interner: &'a mut Rodeo,
 }
 
-#[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub enum Output {
     String(String),
     Integer(usize),
     Decimal(f64),
     Bool(bool),
+    Function(Rc<Symbol>),
 }
 
 impl<'a> Visitor<'a> for Interpreter<'a> {
@@ -35,7 +38,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         Err(InterpreterError::Undefined)
     }
 
-    fn visit_literal(&mut self, node: &'a mut LiteralNode) -> Result {
+    fn visit_literal(&mut self, node: &'a LiteralNode) -> Result {
         Ok(match node.token.value {
             Some(TokenValue::String(value)) => {
                 Output::String(self.interner.resolve(&value).to_string())
@@ -47,7 +50,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_equality(&mut self, node: &'a mut EqualityNode) -> Result {
+    fn visit_equality(&mut self, node: &'a EqualityNode) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -75,7 +78,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_comparison(&mut self, node: &'a mut ComparisonNode) -> Result {
+    fn visit_comparison(&mut self, node: &'a ComparisonNode) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -109,7 +112,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_term(&mut self, node: &'a mut TermNode) -> Result {
+    fn visit_term(&mut self, node: &'a TermNode) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -131,7 +134,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_factor(&mut self, node: &'a mut FactorNode) -> Result {
+    fn visit_factor(&mut self, node: &'a FactorNode) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -153,7 +156,7 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_unary(&mut self, node: &'a mut UnaryNode) -> Result {
+    fn visit_unary(&mut self, node: &'a UnaryNode) -> Result {
         let expression = node.expression.accept(self)?;
 
         Ok(match (node.operator, expression) {
@@ -164,15 +167,15 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
         })
     }
 
-    fn visit_variable(&mut self, _node: &'a mut VariableNode) -> Result {
+    fn visit_id(&mut self, _node: &'a IdNode) -> Result {
         todo!()
     }
 
-    fn visit_call(&mut self, _node: &'a mut CallNode) -> Result {
+    fn visit_call(&mut self, _node: &'a CallNode) -> Result {
         todo!()
     }
 
-    fn visit_return(&mut self, _node: &'a mut ReturnNode) -> Result {
+    fn visit_return(&mut self, _node: &'a ReturnNode) -> Result {
         todo!()
     }
 }

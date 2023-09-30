@@ -7,7 +7,7 @@ use crate::error::{DidntExpect, ErrorKind, InternalError, ParserError, Result};
 use ast::{
     BlockNode, CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode, FactorNode,
     FunDeclarationNode, GroupingNode, LetDeclarationNode, LiteralKind, LiteralNode, ParameterNode,
-    ProgramNode, ReturnNode, StatementKind, TermNode, TypeNode, UnaryNode, VariableNode,
+    ProgramNode, ReturnNode, StatementKind, TermNode, TypeNode, UnaryNode, IdNode,
 };
 use lexer::token::TokenKind;
 
@@ -206,7 +206,10 @@ impl<'a> Parser<'a> {
 
         let type_ = self.parse_type()?;
 
-        let block = self.parse_block()?;
+        let block = match self.parse_block()? {
+            StatementKind::Block(node) => *node,
+            _ => panic!("Couldn't unbox the block. This shouldn't have happened."),
+        };
 
         Ok(FunDeclarationNode::statement(
             identifier, parameters, type_, block,
@@ -426,7 +429,7 @@ impl<'a> Parser<'a> {
         } else if let Ok(token) = self.cursor.eat(TokenKind::False) {
             Ok(LiteralNode::expression(token, LiteralKind::Bool))
         } else if let Ok(token) = self.cursor.eat(TokenKind::Id) {
-            Ok(VariableNode::expression(token))
+            Ok(IdNode::expression(token))
         } else if self.cursor.eat(TokenKind::Parent(true)).is_ok() {
             let expression = self.parse_expression(false)?;
             self.cursor.eat(TokenKind::Parent(false))?;

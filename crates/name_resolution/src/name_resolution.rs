@@ -1,21 +1,22 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     error::{ResolutionError, Result, VariableMustBeAFunction},
+    symbol::{Symbol, SymbolKind},
     symbol_table::SymbolTable,
 };
 use ast::{
-    symbol::{Symbol, SymbolKind},
     traversal::{Visitable, Visitor, Walkable},
-    BlockNode, CallNode, ComparisonNode, EqualityNode, FactorNode, FunDeclarationNode,
-    LetDeclarationNode, ParameterNode, ProgramNode, ReturnNode, TermNode, UnaryNode, VariableNode,
+    BlockNode, CallNode, ComparisonNode, EqualityNode, FactorNode, FunDeclarationNode, IdNode,
+    LetDeclarationNode, ParameterNode, ProgramNode, ReturnNode, TermNode, UnaryNode,
 };
-use diagnostics::positional::Spannable;
+use diagnostics::positional::{Span, Spannable};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
 pub struct NameResolution {
     table: SymbolTable,
+    resolved: HashMap<Span, Rc<Symbol>>,
     pub errors: Vec<ResolutionError>,
 }
 
@@ -27,9 +28,9 @@ impl<'a> Visitor<'a> for NameResolution {
         Ok(None)
     }
 
-    fn visit_program(&mut self, node: &'a mut ProgramNode) -> Result {
+    fn visit_program(&mut self, node: &'a ProgramNode) -> Result {
         node.statements
-            .iter_mut()
+            .iter()
             .for_each(|statement| match statement.accept(self) {
                 Ok(_) => {}
                 Err(error) => self.errors.push(error),
@@ -38,7 +39,7 @@ impl<'a> Visitor<'a> for NameResolution {
         Self::default_result()
     }
 
-    fn visit_let_declaration(&mut self, node: &'a mut LetDeclarationNode) -> Result {
+    fn visit_let_declaration(&mut self, node: &'a LetDeclarationNode) -> Result {
         let should_shadow = !self.table.is_global();
 
         let name = node.name.get_spur().unwrap();
@@ -52,28 +53,28 @@ impl<'a> Visitor<'a> for NameResolution {
 
         let result = node.walk(self);
 
-        let symbol = Rc::new(Symbol::new(name.clone(), kind));
-        self.table
-            .insert(name.clone(), symbol.clone(), should_shadow)?;
-        node.symbol = Some(symbol);
+        let symbol = Symbol::new(name.clone(), kind);
+        let symbol = self.table.insert(name.clone(), symbol, should_shadow)?;
+        self.resolved.insert(name.span, symbol);
 
         result
     }
 
-    fn visit_fun_declaration(&mut self, node: &'a mut FunDeclarationNode) -> Result {
+    fn visit_fun_declaration(&mut self, node: &'a FunDeclarationNode) -> Result {
         let global = self.table.global_scope();
 
         let name = node.name.get_spur().unwrap();
         let name = Spannable::new(name, node.name.span);
 
-        let symbol = Rc::new(Symbol::new(name.clone(), SymbolKind::Function(node.clone())));
-        global.insert(name.clone(), symbol.clone(), false)?;
-        node.symbol = Some(symbol);
+        let function = SymbolKind::Function(node.block.clone());
+        let symbol = Symbol::new(name.clone(), function);
+        let symbol = global.insert(name.clone(), symbol, false)?;
+        self.resolved.insert(name.span, symbol);
 
         self.table.enter();
 
         node.parameters
-            .iter_mut()
+            .iter()
             .for_each(|parameter| match parameter.accept(self) {
                 Ok(_) => {}
                 Err(error) => self.errors.push(error),
@@ -88,22 +89,22 @@ impl<'a> Visitor<'a> for NameResolution {
         Self::default_result()
     }
 
-    fn visit_parameter(&mut self, node: &'a mut ParameterNode) -> Result {
+    fn visit_parameter(&mut self, node: &'a ParameterNode) -> Result {
         let name = node.name.get_spur().unwrap();
         let name = Spannable::new(name, node.name.span);
 
-        let symbol = Rc::new(Symbol::new(name.clone(), SymbolKind::Parameter));
-        self.table.insert(name.clone(), symbol.clone(), false)?;
-        node.symbol = Some(symbol);
+        let symbol = Symbol::new(name.clone(), SymbolKind::Parameter);
+        let symbol = self.table.insert(name.clone(), symbol, false)?;
+        self.resolved.insert(name.span, symbol);
 
         node.walk(self)
     }
 
-    fn visit_block(&mut self, node: &'a mut BlockNode) -> Result {
+    fn visit_block(&mut self, node: &'a BlockNode) -> Result {
         self.table.enter();
 
         node.statements
-            .iter_mut()
+            .iter()
             .for_each(|statement| match statement.accept(self) {
                 Ok(_) => {}
                 Err(error) => self.errors.push(error),
@@ -114,12 +115,12 @@ impl<'a> Visitor<'a> for NameResolution {
         Self::default_result()
     }
 
-    fn visit_call(&mut self, node: &'a mut CallNode) -> Result {
+    fn visit_call(&mut self, node: &'a CallNode) -> Result {
         let symbol = node.callee.accept(self)?;
         self.is_potential_function_symbol(symbol)?;
 
         node.arguments
-            .iter_mut()
+            .iter()
             .for_each(|argument| match argument.accept(self) {
                 Ok(_) => {}
                 Err(error) => self.errors.push(error),
@@ -128,7 +129,7 @@ impl<'a> Visitor<'a> for NameResolution {
         Self::default_result()
     }
 
-    fn visit_equality(&mut self, node: &'a mut EqualityNode) -> Result {
+    fn visit_equality(&mut self, node: &'a EqualityNode) -> Result {
         let lhs_symbol = node.lhs.accept(self)?;
         self.is_potential_variable_symbol(lhs_symbol)?;
 
@@ -138,7 +139,7 @@ impl<'a> Visitor<'a> for NameResolution {
         Self::default_result()
     }
 
-    fn visit_comparison(&mut self, node: &'a mut ComparisonNode) -> Result {
+    fn visit_comparison(&mut self, node: &'a ComparisonNode) -> Result {
         let lhs_symbol = node.lhs.accept(self)?;
         self.is_potential_variable_symbol(lhs_symbol)?;
 
@@ -148,7 +149,7 @@ impl<'a> Visitor<'a> for NameResolution {
         Self::default_result()
     }
 
-    fn visit_term(&mut self, node: &'a mut TermNode) -> Result {
+    fn visit_term(&mut self, node: &'a TermNode) -> Result {
         let lhs_symbol = node.lhs.accept(self)?;
         self.is_potential_variable_symbol(lhs_symbol)?;
 
@@ -158,7 +159,7 @@ impl<'a> Visitor<'a> for NameResolution {
         Self::default_result()
     }
 
-    fn visit_factor(&mut self, node: &'a mut FactorNode) -> Result {
+    fn visit_factor(&mut self, node: &'a FactorNode) -> Result {
         let lhs_symbol = node.lhs.accept(self)?;
         self.is_potential_variable_symbol(lhs_symbol)?;
 
@@ -168,15 +169,15 @@ impl<'a> Visitor<'a> for NameResolution {
         Self::default_result()
     }
 
-    fn visit_unary(&mut self, node: &'a mut UnaryNode) -> Result {
+    fn visit_unary(&mut self, node: &'a UnaryNode) -> Result {
         let symbol = node.expression.accept(self)?;
         self.is_potential_variable_symbol(symbol)?;
 
         Self::default_result()
     }
 
-    fn visit_return(&mut self, node: &'a mut ReturnNode) -> Result {
-        if let Some(ref mut expression) = node.expression {
+    fn visit_return(&mut self, node: &'a ReturnNode) -> Result {
+        if let Some(ref expression) = node.expression {
             let symbol = expression.accept(self)?;
             self.is_potential_variable_symbol(symbol)?;
         }
@@ -184,11 +185,10 @@ impl<'a> Visitor<'a> for NameResolution {
         Self::default_result()
     }
 
-    fn visit_variable(&mut self, node: &'a mut VariableNode) -> Result {
-        let name = node.identifier.get_spur().unwrap();
+    fn visit_id(&mut self, node: &'a IdNode) -> Result {
+        let name = node.id.get_spur().unwrap();
         let symbol = self.table.lookup(name)?;
-
-        node.target = Some(symbol.clone());
+        self.resolved.insert(node.id.span, symbol.clone());
 
         Ok(Some(symbol))
     }
