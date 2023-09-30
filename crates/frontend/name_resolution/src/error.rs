@@ -1,3 +1,6 @@
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+
 use std::rc::Rc;
 
 use lasso::Spur;
@@ -11,7 +14,7 @@ use diagnostics::{
 pub type Result = std::result::Result<Option<Rc<Symbol>>, ResolutionError>;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VariableCantBeAFunction;
 
 impl VariableCantBeAFunction {
@@ -21,7 +24,7 @@ impl VariableCantBeAFunction {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VariableMustBeAFunction;
 
 impl VariableMustBeAFunction {
@@ -31,7 +34,7 @@ impl VariableMustBeAFunction {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SymbolNotFound;
 
 impl SymbolNotFound {
@@ -41,7 +44,7 @@ impl SymbolNotFound {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NameAlreadyUsed {
     _name: Spur,
     _original: Span,
@@ -59,7 +62,7 @@ impl NameAlreadyUsed {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ResolutionError {
     VariableCantBeAFunction(VariableCantBeAFunction),
     VariableMustBeAFunction(VariableMustBeAFunction),

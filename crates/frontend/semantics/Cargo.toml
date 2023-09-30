@@ -1,5 +1,5 @@
 [package]
-name = "name_resolution"
+name = "semantics"
 authors = { workspace = true }
 categories = { workspace = true }
 edition = { workspace = true }
@@ -9,8 +9,8 @@ version = { workspace = true }
 
 [dependencies]
 diagnostics = { path = "../../diagnostics/" }
-parser = { path = "../parser/" }
-lexer = { path = "../lexer/" }
+name_resolution = { path = "../name_resolution" }
+type_checker = { path = "../type_checker" }
 ast = { path = "../ast" }
 
 lasso = { version = "0.7.2", features = ["serialize"] }

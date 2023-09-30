@@ -2,14 +2,14 @@ use std::path::PathBuf;
 
 use clap::Args;
 use lasso::Rodeo;
-use parser::Parser;
+use semantics::Semantics;
 use termcolor::{ColorChoice, StandardStream};
 
 use ast::traversal::Visitor;
 use diagnostics::{file::Files, renderer::Renderer};
 use interpreter::Interpreter;
 use lexer::Lexer;
-use name_resolution::NameResolution;
+use parser::Parser;
 
 #[derive(Args)]
 pub struct RunArgs {
@@ -44,7 +44,7 @@ pub fn run(args: RunArgs) {
 
     let iterator = lexer.into_iter();
     let mut parser = Parser::new(iterator);
-    let mut program = parser.parse_program();
+    let program = parser.parse_program();
 
     if !parser.errors.is_empty() {
         for error in parser.errors {
@@ -54,11 +54,11 @@ pub fn run(args: RunArgs) {
         return;
     }
 
-    let mut name_resolution = NameResolution::default();
-    let _ = name_resolution.visit_program(&mut program);
+    let mut semantics = Semantics::new(&program);
+    semantics.run_all();
 
-    if !name_resolution.errors.is_empty() {
-        for error in name_resolution.errors {
+    if !semantics.errors.is_empty() {
+        for error in semantics.errors {
             renderer.render(error);
         }
 
@@ -66,7 +66,7 @@ pub fn run(args: RunArgs) {
     }
 
     let mut interpreter = Interpreter::new(&mut interner);
-    program.statements.iter_mut().for_each(|statement| {
+    program.statements.iter().for_each(|statement| {
         println!("{:?}", interpreter.visit_statement(statement));
     });
 }

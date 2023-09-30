@@ -1,7 +1,7 @@
-use std::rc::Rc;
-
 #[cfg(feature = "serialize")]
 use serde::Serialize;
+
+use std::rc::Rc;
 
 use crate::traversal::Visitor;
 use lexer::token::{Token, TokenKind};

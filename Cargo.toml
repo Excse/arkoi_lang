@@ -1,11 +1,14 @@
 [workspace]
 members = [
+  "crates/arkoi",
   "crates/diagnostics",
   "crates/interpreter",
-  "crates/lexer",
-  "crates/parser",
-  "crates/name_resolution",
-  "crates/arkoi",
+  "crates/frontend/ast",
+  "crates/frontend/lexer",
+  "crates/frontend/parser",
+  "crates/frontend/semantics",
+  "crates/frontend/name_resolution",
+  "crates/frontend/type_checker",
 ]
 resolver = "2"
 

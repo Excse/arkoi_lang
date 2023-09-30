@@ -1,5 +1,5 @@
 [package]
-name = "name_resolution"
+name = "type_checker"
 authors = { workspace = true }
 categories = { workspace = true }
 edition = { workspace = true }
@@ -9,8 +9,7 @@ version = { workspace = true }
 
 [dependencies]
 diagnostics = { path = "../../diagnostics/" }
-parser = { path = "../parser/" }
-lexer = { path = "../lexer/" }
+name_resolution = { path = "../name_resolution" }
 ast = { path = "../ast" }
 
 lasso = { version = "0.7.2", features = ["serialize"] }

@@ -1,3 +1,6 @@
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+
 use std::{collections::HashMap, rc::Rc};
 
 use lasso::Spur;
