@@ -1,4 +1,3 @@
-use lexer::iterator::TokenIterator;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -6,9 +5,11 @@ use crate::cursor::Cursor;
 use crate::error::{DidntExpect, ErrorKind, InternalError, ParserError, Result};
 use ast::{
     BlockNode, CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode, FactorNode,
-    FunDeclarationNode, GroupingNode, LetDeclarationNode, LiteralKind, LiteralNode, ParameterNode,
-    ProgramNode, ReturnNode, StatementKind, TermNode, TypeNode, UnaryNode, IdNode,
+    FunDeclarationNode, GroupingNode, IdNode, LetDeclarationNode, LiteralKind, LiteralNode,
+    ParameterNode, ProgramNode, ReturnNode, StatementKind, TermNode, TypeNode, UnaryNode,
 };
+use diagnostics::positional::{Span, Spannable};
+use lexer::iterator::TokenIterator;
 use lexer::token::TokenKind;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -49,7 +50,14 @@ impl<'a> Parser<'a> {
             };
         }
 
-        ProgramNode::new(statements)
+        let span = if let Some(start) = statements.first() {
+            let end = statements.last().unwrap();
+            start.span().combine(end.span())
+        } else {
+            Span::single(0)
+        };
+
+        ProgramNode::new(statements, span)
     }
 
     /// ```ebnf
@@ -109,17 +117,19 @@ impl<'a> Parser<'a> {
     /// block = "{" block_declaration* "}" ;
     /// ```
     fn parse_block(&mut self) -> Result<StatementKind> {
-        self.cursor
+        let start = self
+            .cursor
             .eat(TokenKind::Brace(true))
             .map_err(|error| error.wrong_start(true))?;
 
-        if self.cursor.eat(TokenKind::Brace(false)).is_ok() {
-            return Ok(BlockNode::statement(Vec::new()));
+        if let Ok(end) = self.cursor.eat(TokenKind::Brace(false)) {
+            let span = start.span().combine(end.span());
+            return Ok(BlockNode::statement(Vec::new(), span));
         }
 
         let mut statements = Vec::new();
         loop {
-            if self.cursor.eat(TokenKind::Brace(false)).is_ok() {
+            if self.cursor.is_peek(TokenKind::Brace(false)).is_some() {
                 break;
             }
 
@@ -138,7 +148,10 @@ impl<'a> Parser<'a> {
             };
         }
 
-        Ok(BlockNode::statement(statements))
+        let end = self.cursor.eat(TokenKind::Brace(false))?;
+
+        let span = start.span().combine(end.span());
+        Ok(BlockNode::statement(statements, span))
     }
 
     /// ```ebnf
@@ -171,22 +184,25 @@ impl<'a> Parser<'a> {
     /// return_statement = return expression? ";" ;
     /// ```
     fn parse_return_statement(&mut self) -> Result<StatementKind> {
-        self.cursor
+        let start = self
+            .cursor
             .eat(TokenKind::Return)
             .map_err(|error| error.wrong_start(true))?;
 
         let expression = self.parse_expression(false).ok();
 
-        self.cursor.eat(TokenKind::Semicolon)?;
+        let end = self.cursor.eat(TokenKind::Semicolon)?;
 
-        Ok(ReturnNode::statement(expression))
+        let span = start.span().combine(end.span());
+        Ok(ReturnNode::statement(expression, span))
     }
 
     /// ```ebnf
     /// fun_declaration = "fun" IDENTIFIER "(" parameters? ")" type block ;
     /// ```
     fn parse_fun_declaration(&mut self) -> Result<StatementKind> {
-        self.cursor
+        let start = self
+            .cursor
             .eat(TokenKind::Fun)
             .map_err(|error| error.wrong_start(true))?;
 
@@ -207,12 +223,13 @@ impl<'a> Parser<'a> {
         let type_ = self.parse_type()?;
 
         let block = match self.parse_block()? {
-            StatementKind::Block(node) => *node,
+            StatementKind::Block(node) => node,
             _ => panic!("Couldn't unbox the block. This shouldn't have happened."),
         };
 
+        let span = start.span().combine(block.span());
         Ok(FunDeclarationNode::statement(
-            identifier, parameters, type_, block,
+            identifier, parameters, type_, block, span,
         ))
     }
 
@@ -223,10 +240,11 @@ impl<'a> Parser<'a> {
         let mut parameters = Vec::new();
 
         loop {
-            let identifier = self.cursor.eat(TokenKind::Id)?;
+            let id = self.cursor.eat(TokenKind::Id)?;
             let type_ = self.parse_type()?;
 
-            parameters.push(ParameterNode::new(identifier, type_));
+            let span = id.span().combine(type_.span());
+            parameters.push(ParameterNode::new(id, type_, span));
 
             if self.cursor.eat(TokenKind::Comma).is_err() {
                 break;
@@ -245,7 +263,7 @@ impl<'a> Parser<'a> {
     ///      | "bool" ) ;
     /// ```
     fn parse_type(&mut self) -> Result<TypeNode> {
-        self.cursor.eat(TokenKind::At)?;
+        let start = self.cursor.eat(TokenKind::At)?;
 
         let token = self.cursor.eat_any(&[
             TokenKind::U8,
@@ -261,14 +279,16 @@ impl<'a> Parser<'a> {
             TokenKind::Bool,
         ])?;
 
-        Ok(TypeNode::new(token.kind))
+        let span = start.span().combine(token.span());
+        Ok(TypeNode::new(token.kind, span))
     }
 
     /// ```ebnf
     /// let_declaration = "let" IDENTIFIER ( "=" expression )? ";" ;
     /// ```
     fn parse_let_declaration(&mut self) -> Result<StatementKind> {
-        self.cursor
+        let start = self
+            .cursor
             .eat(TokenKind::Let)
             .map_err(|error| error.wrong_start(true))?;
 
@@ -281,9 +301,10 @@ impl<'a> Parser<'a> {
             Err(_) => None,
         };
 
-        self.cursor.eat(TokenKind::Semicolon)?;
+        let end = self.cursor.eat(TokenKind::Semicolon)?;
 
-        Ok(LetDeclarationNode::statement(name, type_, expression))
+        let span = start.span().combine(end.span());
+        Ok(LetDeclarationNode::statement(name, type_, expression, span))
     }
 
     /// ```ebnf
@@ -307,7 +328,9 @@ impl<'a> Parser<'a> {
 
         while let Ok(token) = self.cursor.eat_any(&[TokenKind::EqEq, TokenKind::NotEq]) {
             let rhs = self.parse_comparison(false)?;
-            expression = EqualityNode::expression(expression, token, rhs);
+
+            let span = expression.span().combine(rhs.span());
+            expression = EqualityNode::expression(expression, token, rhs, span);
         }
 
         Ok(expression)
@@ -326,7 +349,9 @@ impl<'a> Parser<'a> {
             TokenKind::LessEq,
         ]) {
             let rhs = self.parse_term(false)?;
-            expression = ComparisonNode::expression(expression, token, rhs);
+
+            let span = expression.span().combine(rhs.span());
+            expression = ComparisonNode::expression(expression, token, rhs, span);
         }
 
         Ok(expression)
@@ -340,7 +365,9 @@ impl<'a> Parser<'a> {
 
         while let Ok(token) = self.cursor.eat_any(&[TokenKind::Plus, TokenKind::Minus]) {
             let rhs = self.parse_factor(false)?;
-            expression = TermNode::expression(expression, token, rhs);
+
+            let span = expression.span().combine(rhs.span());
+            expression = TermNode::expression(expression, token, rhs, span);
         }
 
         Ok(expression)
@@ -357,7 +384,9 @@ impl<'a> Parser<'a> {
             .eat_any(&[TokenKind::Slash, TokenKind::Asterisk])
         {
             let rhs = self.parse_unary(false)?;
-            expression = FactorNode::expression(expression, token, rhs);
+
+            let span = expression.span().combine(rhs.span());
+            expression = FactorNode::expression(expression, token, rhs, span);
         }
 
         Ok(expression)
@@ -373,7 +402,9 @@ impl<'a> Parser<'a> {
             .eat_any(&[TokenKind::Apostrophe, TokenKind::Minus])
         {
             let expression = self.parse_unary(false)?;
-            return Ok(UnaryNode::expression(token, expression));
+
+            let span = token.span().combine(expression.span());
+            return Ok(UnaryNode::expression(token, expression, span));
         }
 
         self.parse_call(start)
@@ -396,8 +427,9 @@ impl<'a> Parser<'a> {
     /// call = primary ( "(" arguments? ")" )* ;
     ///```
     fn finish_parse_call(&mut self, callee: ExpressionKind) -> Result<ExpressionKind> {
-        if self.cursor.eat(TokenKind::Parent(true)).is_ok() {
-            return Ok(CallNode::expression(callee, Vec::new()));
+        if let Ok(end) = self.cursor.eat(TokenKind::Parent(true)) {
+            let span = callee.span().combine(end.span());
+            return Ok(CallNode::expression(callee, Vec::new(), span));
         }
 
         let mut arguments = Vec::new();
@@ -409,9 +441,10 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.cursor.eat(TokenKind::Parent(false))?;
+        let end = self.cursor.eat(TokenKind::Parent(false))?;
 
-        Ok(CallNode::expression(callee, arguments))
+        let span = callee.span().combine(end.span());
+        Ok(CallNode::expression(callee, arguments, span))
     }
 
     /// ```ebnf
@@ -430,10 +463,12 @@ impl<'a> Parser<'a> {
             Ok(LiteralNode::expression(token, LiteralKind::Bool))
         } else if let Ok(token) = self.cursor.eat(TokenKind::Id) {
             Ok(IdNode::expression(token))
-        } else if self.cursor.eat(TokenKind::Parent(true)).is_ok() {
+        } else if let Ok(start) = self.cursor.eat(TokenKind::Parent(true)) {
             let expression = self.parse_expression(false)?;
-            self.cursor.eat(TokenKind::Parent(false))?;
-            Ok(GroupingNode::expression(expression))
+            let end = self.cursor.eat(TokenKind::Parent(false))?;
+
+            let span = start.span().combine(end.span());
+            Ok(GroupingNode::expression(expression, span))
         } else {
             let token = self.cursor.peek()?;
             Err(DidntExpect::error(

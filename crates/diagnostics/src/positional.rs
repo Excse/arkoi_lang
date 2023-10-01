@@ -3,16 +3,26 @@ use serde::Serialize;
 
 use std::ops::Range;
 
+pub trait Spannable<'a> {
+    fn span(&'a self) -> &'a Span;
+}
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, PartialEq, Hash, Eq)]
-pub struct Spannable<C> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct Spanned<C> {
     pub content: C,
     pub span: Span,
 }
 
-impl<C> Spannable<C> {
-    pub fn new(content: C, span: Span) -> Spannable<C> {
-        Spannable { content, span }
+impl<'a, C> Spannable<'a> for Spanned<C> {
+    fn span(&'a self) -> &'a Span {
+        &self.span
+    }
+}
+
+impl<C> Spanned<C> {
+    pub fn new(content: C, span: Span) -> Spanned<C> {
+        Spanned { content, span }
     }
 }
 

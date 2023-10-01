@@ -4,6 +4,7 @@ use serde::Serialize;
 use std::iter::Peekable;
 
 use crate::error::{DidntExpect, EndOfFile, Result, UnexpectedEOF};
+use diagnostics::positional::Spannable;
 use diagnostics::report::Labelable;
 use lexer::{
     iterator::TokenIterator,
@@ -76,6 +77,19 @@ impl<'a> Cursor<'a> {
         self.iterator.peek().ok_or(EndOfFile::error())
     }
 
+    pub fn is_peek(&mut self, expected: TokenKind) -> Option<&Token> {
+        let token = match self.peek() {
+            Ok(token) => token,
+            Err(_) => return None,
+        };
+
+        if expected == token.kind {
+            return Some(token);
+        }
+
+        None
+    }
+
     pub fn eat_any(&mut self, expected: &[TokenKind]) -> Result<Token> {
         let token = match self.peek() {
             Ok(token) => token,
@@ -100,7 +114,7 @@ impl<'a> Cursor<'a> {
             .join(", ");
 
         Err(DidntExpect::error(
-            Labelable::new(token.kind.to_string(), token.span, token.file_id),
+            Labelable::new(token.kind.to_string(), token.span().clone(), token.file_id),
             expected,
         ))
     }
@@ -118,7 +132,7 @@ impl<'a> Cursor<'a> {
         }
 
         Err(DidntExpect::error(
-            Labelable::new(token.kind.to_string(), token.span, token.file_id),
+            Labelable::new(token.kind.to_string(), token.span().clone(), token.file_id),
             expected.to_string(),
         ))
     }

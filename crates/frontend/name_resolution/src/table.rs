@@ -9,7 +9,7 @@ use crate::{
     error::{NameAlreadyUsed, ResolutionError, SymbolNotFound},
     symbol::Symbol,
 };
-use diagnostics::positional::Spannable;
+use diagnostics::positional::Spanned;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
@@ -20,7 +20,7 @@ pub struct Scope {
 impl Scope {
     pub fn insert(
         &mut self,
-        name: Spannable<Spur>,
+        name: Spanned<Spur>,
         symbol: Symbol,
         shadow: bool,
     ) -> Result<Rc<Symbol>, ResolutionError> {
@@ -77,7 +77,7 @@ impl SymbolTable {
 
     pub fn insert(
         &mut self,
-        name: Spannable<Spur>,
+        name: Spanned<Spur>,
         symbol: Symbol,
         shadow: bool,
     ) -> Result<Rc<Symbol>, ResolutionError> {
