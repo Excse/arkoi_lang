@@ -46,7 +46,7 @@ impl Reportable for LexerError {
 fn didnt_expect(args: DidntExpect) -> Report {
     let report_message = format!(
         "Expected to find '[{}]' but instead got '[{}]'.",
-        args.expected, args.got.content,
+        args.expected, *args.got,
     );
     let label_message = format!("Expected '[{}]' instead of this character.", args.expected);
 

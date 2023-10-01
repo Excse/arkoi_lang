@@ -2,6 +2,7 @@
 use serde::Serialize;
 
 use std::fmt::Display;
+use std::ops::Deref;
 
 use derive_builder::UninitializedFieldError;
 
@@ -123,9 +124,17 @@ impl ReportBuilder {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Labelable<C> {
-    pub content: C,
+    content: C,
     pub span: Span,
     pub file_id: FileID,
+}
+
+impl<C> Deref for Labelable<C> {
+    type Target = C;
+
+    fn deref(&self) -> &Self::Target {
+        &self.content
+    }
 }
 
 impl<C> Labelable<C> {
@@ -212,7 +221,7 @@ mod test {
 
         let test_file = files.add("test.ark", "Hello World!");
 
-        let report = ReportBuilder::default()
+        ReportBuilder::default()
             .message("This is just a note on how awesome you are")
             .code(0)
             .serverity(Serverity::Note)

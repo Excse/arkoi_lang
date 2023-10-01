@@ -3,11 +3,10 @@ use serde::Serialize;
 
 use crate::{
     ast::{
-        BlockNode, CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode,
-        FactorNode, FunDeclarationNode, GroupingNode, IdNode, LetDeclarationNode, LiteralNode,
-        ParameterNode, ProgramNode, StatementKind, TermNode, TypeNode, UnaryNode,
+        Block, Call, Comparison, Equality, ExprKind, ExprStmt, Factor, FunDecl, Grouping, Id,
+        LetDecl, Literal, Parameter, Program, StmtKind, Term, Type, Unary,
     },
-    ReturnNode,
+    Return,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -16,88 +15,79 @@ pub trait Visitor<'a>: Sized {
 
     fn default_result() -> Result<Self::Return, Self::Error>;
 
-    fn visit_program(&mut self, node: &'a ProgramNode) -> Result<Self::Return, Self::Error> {
+    fn visit_program(&mut self, node: &'a Program) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_statement(&mut self, node: &'a StatementKind) -> Result<Self::Return, Self::Error> {
+    fn visit_stmt(&mut self, node: &'a StmtKind) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_expression_statement(
-        &mut self,
-        node: &'a ExpressionNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_expr_stmt(&mut self, node: &'a ExprStmt) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_let_declaration(
-        &mut self,
-        node: &'a LetDeclarationNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_let_decl(&mut self, node: &'a LetDecl) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_fun_declaration(
-        &mut self,
-        node: &'a FunDeclarationNode,
-    ) -> Result<Self::Return, Self::Error> {
+    fn visit_fun_decl(&mut self, node: &'a FunDecl) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_parameter(&mut self, node: &'a ParameterNode) -> Result<Self::Return, Self::Error> {
+    fn visit_parameter(&mut self, node: &'a Parameter) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_block(&mut self, node: &'a BlockNode) -> Result<Self::Return, Self::Error> {
+    fn visit_block(&mut self, node: &'a Block) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_return(&mut self, node: &'a ReturnNode) -> Result<Self::Return, Self::Error> {
+    fn visit_return(&mut self, node: &'a Return) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_expression(&mut self, node: &'a ExpressionKind) -> Result<Self::Return, Self::Error> {
+    fn visit_expr(&mut self, node: &'a ExprKind) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_equality(&mut self, node: &'a EqualityNode) -> Result<Self::Return, Self::Error> {
+    fn visit_equality(&mut self, node: &'a Equality) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_comparison(&mut self, node: &'a ComparisonNode) -> Result<Self::Return, Self::Error> {
+    fn visit_comparison(&mut self, node: &'a Comparison) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_term(&mut self, node: &'a TermNode) -> Result<Self::Return, Self::Error> {
+    fn visit_term(&mut self, node: &'a Term) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_factor(&mut self, node: &'a FactorNode) -> Result<Self::Return, Self::Error> {
+    fn visit_factor(&mut self, node: &'a Factor) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_unary(&mut self, node: &'a UnaryNode) -> Result<Self::Return, Self::Error> {
+    fn visit_unary(&mut self, node: &'a Unary) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_call(&mut self, node: &'a CallNode) -> Result<Self::Return, Self::Error> {
+    fn visit_call(&mut self, node: &'a Call) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_grouping(&mut self, node: &'a GroupingNode) -> Result<Self::Return, Self::Error> {
+    fn visit_grouping(&mut self, node: &'a Grouping) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_literal(&mut self, node: &'a LiteralNode) -> Result<Self::Return, Self::Error> {
+    fn visit_literal(&mut self, node: &'a Literal) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_id(&mut self, node: &'a IdNode) -> Result<Self::Return, Self::Error> {
+    fn visit_id(&mut self, node: &'a Id) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
-    fn visit_type(&mut self, node: &'a TypeNode) -> Result<Self::Return, Self::Error> {
+    fn visit_type(&mut self, node: &'a Type) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 }
@@ -112,7 +102,7 @@ pub trait Visitable<'a, V: Visitor<'a>> {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error>;
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for ProgramNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Program {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.statements.iter().try_for_each(|statement| {
             statement.accept(visitor)?;
@@ -123,43 +113,43 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for ProgramNode {
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for ProgramNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Program {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_program(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for StatementKind {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for StmtKind {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         match self {
-            Self::Expression(node) => node.accept(visitor),
-            Self::LetDeclaration(node) => node.accept(visitor),
-            Self::FunDeclaration(node) => node.accept(visitor),
+            Self::ExprStmt(node) => node.accept(visitor),
+            Self::LetDecl(node) => node.accept(visitor),
+            Self::FunDecl(node) => node.accept(visitor),
             Self::Block(node) => node.accept(visitor),
             Self::Return(node) => node.accept(visitor),
         }
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for StatementKind {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for StmtKind {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        visitor.visit_statement(self)
+        visitor.visit_stmt(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for ExpressionNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for ExprStmt {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.expression.accept(visitor)
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for ExpressionNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for ExprStmt {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        visitor.visit_expression_statement(self)
+        visitor.visit_expr_stmt(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for LetDeclarationNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for LetDecl {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.type_.accept(visitor)?;
 
@@ -171,13 +161,13 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for LetDeclarationNode {
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for LetDeclarationNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for LetDecl {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        visitor.visit_let_declaration(self)
+        visitor.visit_let_decl(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for FunDeclarationNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for FunDecl {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.parameters.iter().try_for_each(|parameter| {
             parameter.accept(visitor)?;
@@ -192,13 +182,13 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for FunDeclarationNode {
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for FunDeclarationNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for FunDecl {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        visitor.visit_fun_declaration(self)
+        visitor.visit_fun_decl(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for ParameterNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Parameter {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.type_.accept(visitor)?;
 
@@ -206,13 +196,13 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for ParameterNode {
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for ParameterNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Parameter {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_parameter(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for BlockNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Block {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.statements.iter().try_for_each(|statement| {
             statement.accept(visitor)?;
@@ -223,13 +213,13 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for BlockNode {
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for BlockNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Block {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_block(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for ReturnNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Return {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         match self.expression {
             Some(ref expression) => expression.accept(visitor),
@@ -238,35 +228,35 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for ReturnNode {
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for ReturnNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Return {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_return(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for ExpressionKind {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for ExprKind {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         match self {
-            ExpressionKind::Equality(node) => node.accept(visitor),
-            ExpressionKind::Comparison(node) => node.accept(visitor),
-            ExpressionKind::Term(node) => node.accept(visitor),
-            ExpressionKind::Factor(node) => node.accept(visitor),
-            ExpressionKind::Unary(node) => node.accept(visitor),
-            ExpressionKind::Call(node) => node.accept(visitor),
-            ExpressionKind::Grouping(node) => node.accept(visitor),
-            ExpressionKind::Literal(node) => node.accept(visitor),
-            ExpressionKind::Variable(node) => node.accept(visitor),
+            ExprKind::Equality(node) => node.accept(visitor),
+            ExprKind::Comparison(node) => node.accept(visitor),
+            ExprKind::Term(node) => node.accept(visitor),
+            ExprKind::Factor(node) => node.accept(visitor),
+            ExprKind::Unary(node) => node.accept(visitor),
+            ExprKind::Call(node) => node.accept(visitor),
+            ExprKind::Grouping(node) => node.accept(visitor),
+            ExprKind::Literal(node) => node.accept(visitor),
+            ExprKind::Variable(node) => node.accept(visitor),
         }
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for ExpressionKind {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for ExprKind {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        visitor.visit_expression(self)
+        visitor.visit_expr(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for EqualityNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Equality {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.lhs.accept(visitor)?;
         self.rhs.accept(visitor)?;
@@ -275,13 +265,13 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for EqualityNode {
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for EqualityNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Equality {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_equality(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for ComparisonNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Comparison {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.lhs.accept(visitor)?;
         self.rhs.accept(visitor)?;
@@ -290,13 +280,13 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for ComparisonNode {
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for ComparisonNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Comparison {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_comparison(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for TermNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Term {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.lhs.accept(visitor)?;
         self.rhs.accept(visitor)?;
@@ -305,13 +295,13 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for TermNode {
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for TermNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Term {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_term(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for FactorNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Factor {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.lhs.accept(visitor)?;
         self.rhs.accept(visitor)?;
@@ -320,13 +310,13 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for FactorNode {
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for FactorNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Factor {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_factor(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for UnaryNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Unary {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.expression.accept(visitor)?;
 
@@ -334,13 +324,13 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for UnaryNode {
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for UnaryNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Unary {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_unary(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for CallNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Call {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.callee.accept(visitor)?;
 
@@ -353,43 +343,43 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for CallNode {
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for CallNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Call {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_call(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for GroupingNode {
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Grouping {
     fn walk(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.expression.accept(visitor)
     }
 }
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for GroupingNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Grouping {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_grouping(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for LiteralNode {}
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Literal {}
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for LiteralNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Literal {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_literal(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for IdNode {}
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Id {}
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for IdNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Id {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_id(self)
     }
 }
 
-impl<'a, V: Visitor<'a>> Walkable<'a, V> for TypeNode {}
+impl<'a, V: Visitor<'a>> Walkable<'a, V> for Type {}
 
-impl<'a, V: Visitor<'a>> Visitable<'a, V> for TypeNode {
+impl<'a, V: Visitor<'a>> Visitable<'a, V> for Type {
     fn accept(&'a self, visitor: &mut V) -> Result<V::Return, V::Error> {
         visitor.visit_type(self)
     }

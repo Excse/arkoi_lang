@@ -4,9 +4,9 @@ use serde::Serialize;
 use crate::cursor::Cursor;
 use crate::error::{DidntExpect, ErrorKind, InternalError, ParserError, Result};
 use ast::{
-    BlockNode, CallNode, ComparisonNode, EqualityNode, ExpressionKind, ExpressionNode, FactorNode,
-    FunDeclarationNode, GroupingNode, IdNode, LetDeclarationNode, LiteralKind, LiteralNode,
-    ParameterNode, ProgramNode, ReturnNode, StatementKind, TermNode, TypeNode, UnaryNode,
+    Block, Call, Comparison, Equality, ExprKind, ExprStmt, Factor,
+    FunDecl, Grouping, Id, LetDecl, LiteralKind, Literal,
+    Parameter, Program, Return, StmtKind, Term, Type, Unary,
 };
 use diagnostics::positional::{Span, Spannable};
 use lexer::iterator::TokenIterator;
@@ -32,7 +32,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// program = program_declaration* EOF ;
     /// ```
-    pub fn parse_program(&mut self) -> ProgramNode {
+    pub fn parse_program(&mut self) -> Program {
         let mut statements = Vec::new();
         loop {
             match self.parse_program_declaration() {
@@ -57,14 +57,14 @@ impl<'a> Parser<'a> {
             Span::single(0)
         };
 
-        ProgramNode::new(statements, span)
+        Program::new(statements, span)
     }
 
     /// ```ebnf
     /// program_statements = fun_declaration
     ///                    | let_declaration ;
     /// ```
-    fn parse_program_declaration(&mut self) -> Result<StatementKind> {
+    fn parse_program_declaration(&mut self) -> Result<StmtKind> {
         match self.parse_let_declaration() {
             Ok(result) => return Ok(result),
             Err(error) if error.wrong_start => {}
@@ -85,7 +85,7 @@ impl<'a> Parser<'a> {
     /// statement = expression_statement
     ///           | block ;
     /// ```
-    fn parse_statement(&mut self) -> Result<StatementKind> {
+    fn parse_statement(&mut self) -> Result<StmtKind> {
         match self.parse_expression_statement() {
             Ok(result) => return Ok(result),
             Err(error) if error.wrong_start => {}
@@ -105,18 +105,18 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// expression_statement = expression ";" ;
     /// ```
-    fn parse_expression_statement(&mut self) -> Result<StatementKind> {
+    fn parse_expression_statement(&mut self) -> Result<StmtKind> {
         let expression = self.parse_expression(true)?;
 
         self.cursor.eat(TokenKind::Semicolon)?;
 
-        Ok(ExpressionNode::statement(expression))
+        Ok(ExprStmt::statement(expression))
     }
 
     /// ```ebnf
     /// block = "{" block_declaration* "}" ;
     /// ```
-    fn parse_block(&mut self) -> Result<StatementKind> {
+    fn parse_block(&mut self) -> Result<StmtKind> {
         let start = self
             .cursor
             .eat(TokenKind::Brace(true))
@@ -124,7 +124,7 @@ impl<'a> Parser<'a> {
 
         if let Ok(end) = self.cursor.eat(TokenKind::Brace(false)) {
             let span = start.span().combine(end.span());
-            return Ok(BlockNode::statement(Vec::new(), span));
+            return Ok(Block::statement(Vec::new(), span));
         }
 
         let mut statements = Vec::new();
@@ -151,7 +151,7 @@ impl<'a> Parser<'a> {
         let end = self.cursor.eat(TokenKind::Brace(false))?;
 
         let span = start.span().combine(end.span());
-        Ok(BlockNode::statement(statements, span))
+        Ok(Block::statement(statements, span))
     }
 
     /// ```ebnf
@@ -159,7 +159,7 @@ impl<'a> Parser<'a> {
     ///                   | return_statement
     ///                   | statement ;
     /// ```
-    fn parse_block_declaration(&mut self) -> Result<StatementKind> {
+    fn parse_block_declaration(&mut self) -> Result<StmtKind> {
         match self.parse_let_declaration() {
             Ok(result) => return Ok(result),
             Err(error) if error.wrong_start => {}
@@ -183,7 +183,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// return_statement = return expression? ";" ;
     /// ```
-    fn parse_return_statement(&mut self) -> Result<StatementKind> {
+    fn parse_return_statement(&mut self) -> Result<StmtKind> {
         let start = self
             .cursor
             .eat(TokenKind::Return)
@@ -194,13 +194,13 @@ impl<'a> Parser<'a> {
         let end = self.cursor.eat(TokenKind::Semicolon)?;
 
         let span = start.span().combine(end.span());
-        Ok(ReturnNode::statement(expression, span))
+        Ok(Return::statement(expression, span))
     }
 
     /// ```ebnf
     /// fun_declaration = "fun" IDENTIFIER "(" parameters? ")" type block ;
     /// ```
-    fn parse_fun_declaration(&mut self) -> Result<StatementKind> {
+    fn parse_fun_declaration(&mut self) -> Result<StmtKind> {
         let start = self
             .cursor
             .eat(TokenKind::Fun)
@@ -223,12 +223,12 @@ impl<'a> Parser<'a> {
         let type_ = self.parse_type()?;
 
         let block = match self.parse_block()? {
-            StatementKind::Block(node) => node,
+            StmtKind::Block(node) => node,
             _ => panic!("Couldn't unbox the block. This shouldn't have happened."),
         };
 
         let span = start.span().combine(block.span());
-        Ok(FunDeclarationNode::statement(
+        Ok(FunDecl::statement(
             identifier, parameters, type_, block, span,
         ))
     }
@@ -236,7 +236,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// parameters = IDENTIFIER type ( "," IDENTIFIER type )* ;
     /// ```
-    fn parse_parameters(&mut self) -> Result<Vec<ParameterNode>> {
+    fn parse_parameters(&mut self) -> Result<Vec<Parameter>> {
         let mut parameters = Vec::new();
 
         loop {
@@ -244,7 +244,7 @@ impl<'a> Parser<'a> {
             let type_ = self.parse_type()?;
 
             let span = id.span().combine(type_.span());
-            parameters.push(ParameterNode::new(id, type_, span));
+            parameters.push(Parameter::new(id, type_, span));
 
             if self.cursor.eat(TokenKind::Comma).is_err() {
                 break;
@@ -262,7 +262,7 @@ impl<'a> Parser<'a> {
     ///      | "f32" | "f64"
     ///      | "bool" ) ;
     /// ```
-    fn parse_type(&mut self) -> Result<TypeNode> {
+    fn parse_type(&mut self) -> Result<Type> {
         let start = self.cursor.eat(TokenKind::At)?;
 
         let token = self.cursor.eat_any(&[
@@ -280,13 +280,13 @@ impl<'a> Parser<'a> {
         ])?;
 
         let span = start.span().combine(token.span());
-        Ok(TypeNode::new(token.kind, span))
+        Ok(Type::new(token.kind, span))
     }
 
     /// ```ebnf
     /// let_declaration = "let" IDENTIFIER ( "=" expression )? ";" ;
     /// ```
-    fn parse_let_declaration(&mut self) -> Result<StatementKind> {
+    fn parse_let_declaration(&mut self) -> Result<StmtKind> {
         let start = self
             .cursor
             .eat(TokenKind::Let)
@@ -304,13 +304,13 @@ impl<'a> Parser<'a> {
         let end = self.cursor.eat(TokenKind::Semicolon)?;
 
         let span = start.span().combine(end.span());
-        Ok(LetDeclarationNode::statement(name, type_, expression, span))
+        Ok(LetDecl::statement(name, type_, expression, span))
     }
 
     /// ```ebnf
     /// expression = equality;
     /// ```
-    fn parse_expression(&mut self, start: bool) -> Result<ExpressionKind> {
+    fn parse_expression(&mut self, start: bool) -> Result<ExprKind> {
         self.parse_equality().map_err(|error| {
             if !start {
                 error.wrong_start(false)
@@ -323,14 +323,14 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// equality = comparison ( ( "==" | "!=" ) comparison )* ;
     /// ```
-    fn parse_equality(&mut self) -> Result<ExpressionKind> {
+    fn parse_equality(&mut self) -> Result<ExprKind> {
         let mut expression = self.parse_comparison(true)?;
 
         while let Ok(token) = self.cursor.eat_any(&[TokenKind::EqEq, TokenKind::NotEq]) {
             let rhs = self.parse_comparison(false)?;
 
             let span = expression.span().combine(rhs.span());
-            expression = EqualityNode::expression(expression, token, rhs, span);
+            expression = Equality::expression(expression, token, rhs, span);
         }
 
         Ok(expression)
@@ -339,7 +339,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// comparison = term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
     /// ```
-    fn parse_comparison(&mut self, start: bool) -> Result<ExpressionKind> {
+    fn parse_comparison(&mut self, start: bool) -> Result<ExprKind> {
         let mut expression = self.parse_term(start)?;
 
         while let Ok(token) = self.cursor.eat_any(&[
@@ -351,7 +351,7 @@ impl<'a> Parser<'a> {
             let rhs = self.parse_term(false)?;
 
             let span = expression.span().combine(rhs.span());
-            expression = ComparisonNode::expression(expression, token, rhs, span);
+            expression = Comparison::expression(expression, token, rhs, span);
         }
 
         Ok(expression)
@@ -360,14 +360,14 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// term = factor ( ( "-" | "+" ) factor )* ;
     /// ```
-    fn parse_term(&mut self, start: bool) -> Result<ExpressionKind> {
+    fn parse_term(&mut self, start: bool) -> Result<ExprKind> {
         let mut expression = self.parse_factor(start)?;
 
         while let Ok(token) = self.cursor.eat_any(&[TokenKind::Plus, TokenKind::Minus]) {
             let rhs = self.parse_factor(false)?;
 
             let span = expression.span().combine(rhs.span());
-            expression = TermNode::expression(expression, token, rhs, span);
+            expression = Term::expression(expression, token, rhs, span);
         }
 
         Ok(expression)
@@ -376,7 +376,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// factor = unary ( ( "/" | "*" ) unary )* ;
     /// ```
-    fn parse_factor(&mut self, start: bool) -> Result<ExpressionKind> {
+    fn parse_factor(&mut self, start: bool) -> Result<ExprKind> {
         let mut expression = self.parse_unary(start)?;
 
         while let Ok(token) = self
@@ -386,7 +386,7 @@ impl<'a> Parser<'a> {
             let rhs = self.parse_unary(false)?;
 
             let span = expression.span().combine(rhs.span());
-            expression = FactorNode::expression(expression, token, rhs, span);
+            expression = Factor::expression(expression, token, rhs, span);
         }
 
         Ok(expression)
@@ -396,7 +396,7 @@ impl<'a> Parser<'a> {
     /// unary = ( ( "!" | "-" ) unary )
     ///       | call ;
     /// ```
-    fn parse_unary(&mut self, start: bool) -> Result<ExpressionKind> {
+    fn parse_unary(&mut self, start: bool) -> Result<ExprKind> {
         if let Ok(token) = self
             .cursor
             .eat_any(&[TokenKind::Apostrophe, TokenKind::Minus])
@@ -404,7 +404,7 @@ impl<'a> Parser<'a> {
             let expression = self.parse_unary(false)?;
 
             let span = token.span().combine(expression.span());
-            return Ok(UnaryNode::expression(token, expression, span));
+            return Ok(Unary::expression(token, expression, span));
         }
 
         self.parse_call(start)
@@ -413,7 +413,7 @@ impl<'a> Parser<'a> {
     ///```ebnf
     /// call = primary ( "(" arguments? ")" )* ;
     ///```
-    fn parse_call(&mut self, start: bool) -> Result<ExpressionKind> {
+    fn parse_call(&mut self, start: bool) -> Result<ExprKind> {
         let mut primary = self.parse_primary(start)?;
 
         while self.cursor.eat(TokenKind::Parent(true)).is_ok() {
@@ -426,10 +426,10 @@ impl<'a> Parser<'a> {
     ///```ebnf
     /// call = primary ( "(" arguments? ")" )* ;
     ///```
-    fn finish_parse_call(&mut self, callee: ExpressionKind) -> Result<ExpressionKind> {
+    fn finish_parse_call(&mut self, callee: ExprKind) -> Result<ExprKind> {
         if let Ok(end) = self.cursor.eat(TokenKind::Parent(true)) {
             let span = callee.span().combine(end.span());
-            return Ok(CallNode::expression(callee, Vec::new(), span));
+            return Ok(Call::expression(callee, Vec::new(), span));
         }
 
         let mut arguments = Vec::new();
@@ -444,31 +444,31 @@ impl<'a> Parser<'a> {
         let end = self.cursor.eat(TokenKind::Parent(false))?;
 
         let span = callee.span().combine(end.span());
-        Ok(CallNode::expression(callee, arguments, span))
+        Ok(Call::expression(callee, arguments, span))
     }
 
     /// ```ebnf
     /// primary = NUMBER | STRING | IDENTIFIER | "true" | "false" | "(" expression ")" ;
     /// ```
-    fn parse_primary(&mut self, start: bool) -> Result<ExpressionKind> {
+    fn parse_primary(&mut self, start: bool) -> Result<ExprKind> {
         if let Ok(token) = self.cursor.eat(TokenKind::Int) {
-            Ok(LiteralNode::expression(token, LiteralKind::Int))
+            Ok(Literal::expression(token, LiteralKind::Int))
         } else if let Ok(token) = self.cursor.eat(TokenKind::Decimal) {
-            Ok(LiteralNode::expression(token, LiteralKind::Decimal))
+            Ok(Literal::expression(token, LiteralKind::Decimal))
         } else if let Ok(token) = self.cursor.eat(TokenKind::String) {
-            Ok(LiteralNode::expression(token, LiteralKind::String))
+            Ok(Literal::expression(token, LiteralKind::String))
         } else if let Ok(token) = self.cursor.eat(TokenKind::True) {
-            Ok(LiteralNode::expression(token, LiteralKind::Bool))
+            Ok(Literal::expression(token, LiteralKind::Bool))
         } else if let Ok(token) = self.cursor.eat(TokenKind::False) {
-            Ok(LiteralNode::expression(token, LiteralKind::Bool))
+            Ok(Literal::expression(token, LiteralKind::Bool))
         } else if let Ok(token) = self.cursor.eat(TokenKind::Id) {
-            Ok(IdNode::expression(token))
+            Ok(Id::expression(token))
         } else if let Ok(start) = self.cursor.eat(TokenKind::Parent(true)) {
             let expression = self.parse_expression(false)?;
             let end = self.cursor.eat(TokenKind::Parent(false))?;
 
             let span = start.span().combine(end.span());
-            Ok(GroupingNode::expression(expression, span))
+            Ok(Grouping::expression(expression, span))
         } else {
             let token = self.cursor.peek()?;
             Err(DidntExpect::error(

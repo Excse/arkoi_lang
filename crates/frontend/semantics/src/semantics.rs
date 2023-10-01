@@ -2,19 +2,19 @@
 use serde::Serialize;
 
 use crate::error::SemanticError;
-use ast::{traversal::Visitable, ProgramNode};
+use ast::{traversal::Visitable, Program};
 use name_resolution::NameResolution;
 use type_checker::TypeChecker;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct Semantics<'a> {
-    program: &'a ProgramNode,
+    program: &'a Program,
     pub errors: Vec<SemanticError>,
 }
 
 impl<'a> Semantics<'a> {
-    pub fn new(program: &'a ProgramNode) -> Self {
+    pub fn new(program: &'a Program) -> Self {
         Semantics {
             program,
             errors: Vec::new(),

@@ -1,8 +1,8 @@
-use ast::TypeKind;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
 use crate::Type;
+use ast::TypeKind;
 use diagnostics::{
     positional::{Span, Spanned},
     report::{Report, Reportable},

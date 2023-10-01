@@ -1,7 +1,7 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use std::ops::Range;
+use std::ops::{Deref, Range};
 
 pub trait Spannable<'a> {
     fn span(&'a self) -> &'a Span;
@@ -10,8 +10,16 @@ pub trait Spannable<'a> {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Spanned<C> {
-    pub content: C,
+    content: C,
     pub span: Span,
+}
+
+impl<C> Deref for Spanned<C> {
+    type Target = C;
+
+    fn deref(&self) -> &Self::Target {
+        &self.content
+    }
 }
 
 impl<'a, C> Spannable<'a> for Spanned<C> {

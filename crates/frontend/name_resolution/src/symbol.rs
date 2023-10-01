@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use lasso::Spur;
 
-use ast::BlockNode;
+use ast::Block;
 use diagnostics::positional::Spanned;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -15,7 +15,7 @@ pub enum SymbolKind {
     GlobalVar,
     Parameter,
     // TODO: Find a way to prevent the clone
-    Function(Rc<BlockNode>),
+    Function(Rc<Block>),
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]

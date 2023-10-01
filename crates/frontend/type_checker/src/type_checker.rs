@@ -4,8 +4,8 @@ use serde::Serialize;
 use crate::error::{InvalidBinaryType, InvalidUnaryType, NoTypeFound, Result, TypeError};
 use ast::{
     traversal::{Visitable, Visitor},
-    BlockNode, CallNode, ComparisonNode, EqualityNode, FactorNode, LiteralKind, LiteralNode,
-    ProgramNode, TermNode, TypeKind, UnaryNode, UnaryOperator,
+    Block, Call, Comparison, Equality, Factor, LiteralKind, Literal,
+    Program, Term, TypeKind, Unary, UnaryOperator,
 };
 use diagnostics::positional::{Spannable, Spanned};
 
@@ -35,7 +35,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(None)
     }
 
-    fn visit_program(&mut self, node: &'a ProgramNode) -> Result {
+    fn visit_program(&mut self, node: &'a Program) -> Result {
         node.statements
             .iter()
             .for_each(|statement| match statement.accept(self) {
@@ -46,7 +46,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_block(&mut self, node: &'a BlockNode) -> Result {
+    fn visit_block(&mut self, node: &'a Block) -> Result {
         node.statements
             .iter()
             .for_each(|statement| match statement.accept(self) {
@@ -57,7 +57,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_call(&mut self, node: &'a CallNode) -> Result {
+    fn visit_call(&mut self, node: &'a Call) -> Result {
         node.callee.accept(self)?;
 
         node.arguments
@@ -70,7 +70,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_equality(&mut self, node: &'a EqualityNode) -> Result {
+    fn visit_equality(&mut self, node: &'a Equality) -> Result {
         let lhs_span = *node.lhs.span();
         let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
         let rhs_span = *node.lhs.span();
@@ -90,7 +90,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(Some(type_))
     }
 
-    fn visit_comparison(&mut self, node: &'a ComparisonNode) -> Result {
+    fn visit_comparison(&mut self, node: &'a Comparison) -> Result {
         let lhs_span = *node.lhs.span();
         let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
         let rhs_span = *node.lhs.span();
@@ -111,7 +111,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(Some(type_))
     }
 
-    fn visit_term(&mut self, node: &'a TermNode) -> Result {
+    fn visit_term(&mut self, node: &'a Term) -> Result {
         let lhs_span = *node.lhs.span();
         let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
         let rhs_span = *node.lhs.span();
@@ -132,7 +132,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(Some(type_))
     }
 
-    fn visit_factor(&mut self, node: &'a FactorNode) -> Result {
+    fn visit_factor(&mut self, node: &'a Factor) -> Result {
         let lhs_span = *node.lhs.span();
         let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
         let rhs_span = *node.lhs.span();
@@ -153,7 +153,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(Some(type_))
     }
 
-    fn visit_unary(&mut self, node: &'a UnaryNode) -> Result {
+    fn visit_unary(&mut self, node: &'a Unary) -> Result {
         let expression_span = *node.expression.span();
         let expression = node
             .expression
@@ -173,7 +173,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(Some(type_))
     }
 
-    fn visit_literal(&mut self, node: &'a LiteralNode) -> Result {
+    fn visit_literal(&mut self, node: &'a Literal) -> Result {
         let type_ = Type::new(match node.kind {
             LiteralKind::Int => TypeKind::Int(
                 false,

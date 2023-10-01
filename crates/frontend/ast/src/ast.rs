@@ -12,18 +12,18 @@ use lexer::token::{Token, TokenKind};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default, PartialEq, Clone)]
-pub struct ProgramNode {
-    pub statements: Vec<StatementKind>,
+pub struct Program {
+    pub statements: Vec<StmtKind>,
     span: Span,
 }
 
-impl ProgramNode {
-    pub fn new(statements: Vec<StatementKind>, span: Span) -> Self {
-        ProgramNode { statements, span }
+impl Program {
+    pub fn new(statements: Vec<StmtKind>, span: Span) -> Self {
+        Program { statements, span }
     }
 }
 
-impl<'a> Spannable<'a> for ProgramNode {
+impl<'a> Spannable<'a> for Program {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -31,20 +31,20 @@ impl<'a> Spannable<'a> for ProgramNode {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub enum StatementKind {
-    Expression(Box<ExpressionNode>),
-    LetDeclaration(Box<LetDeclarationNode>),
-    FunDeclaration(Box<FunDeclarationNode>),
-    Block(Rc<BlockNode>),
-    Return(Box<ReturnNode>),
+pub enum StmtKind {
+    ExprStmt(Box<ExprStmt>),
+    LetDecl(Box<LetDecl>),
+    FunDecl(Box<FunDecl>),
+    Block(Rc<Block>),
+    Return(Box<Return>),
 }
 
-impl<'a> Spannable<'a> for StatementKind {
+impl<'a> Spannable<'a> for StmtKind {
     fn span(&'a self) -> &'a Span {
         match self {
-            Self::Expression(node) => node.span(),
-            Self::LetDeclaration(node) => node.span(),
-            Self::FunDeclaration(node) => node.span(),
+            Self::ExprStmt(node) => node.span(),
+            Self::LetDecl(node) => node.span(),
+            Self::FunDecl(node) => node.span(),
             Self::Block(node) => node.span(),
             Self::Return(node) => node.span(),
         }
@@ -53,17 +53,17 @@ impl<'a> Spannable<'a> for StatementKind {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct ExpressionNode {
-    pub expression: ExpressionKind,
+pub struct ExprStmt {
+    pub expression: ExprKind,
 }
 
-impl ExpressionNode {
-    pub fn statement(expression: ExpressionKind) -> StatementKind {
-        StatementKind::Expression(Box::new(ExpressionNode { expression }))
+impl ExprStmt {
+    pub fn statement(expression: ExprKind) -> StmtKind {
+        StmtKind::ExprStmt(Box::new(ExprStmt { expression }))
     }
 }
 
-impl<'a> Spannable<'a> for ExpressionNode {
+impl<'a> Spannable<'a> for ExprStmt {
     fn span(&'a self) -> &'a Span {
         self.expression.span()
     }
@@ -71,21 +71,21 @@ impl<'a> Spannable<'a> for ExpressionNode {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct LetDeclarationNode {
+pub struct LetDecl {
     pub name: Token,
-    pub type_: TypeNode,
-    pub expression: Option<ExpressionKind>,
+    pub type_: Type,
+    pub expression: Option<ExprKind>,
     span: Span,
 }
 
-impl LetDeclarationNode {
+impl LetDecl {
     pub fn statement(
         name: Token,
-        type_: TypeNode,
-        expression: Option<ExpressionKind>,
+        type_: Type,
+        expression: Option<ExprKind>,
         span: Span,
-    ) -> StatementKind {
-        StatementKind::LetDeclaration(Box::new(LetDeclarationNode {
+    ) -> StmtKind {
+        StmtKind::LetDecl(Box::new(LetDecl {
             name,
             type_,
             expression,
@@ -94,7 +94,7 @@ impl LetDeclarationNode {
     }
 }
 
-impl<'a> Spannable<'a> for LetDeclarationNode {
+impl<'a> Spannable<'a> for LetDecl {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -102,23 +102,23 @@ impl<'a> Spannable<'a> for LetDeclarationNode {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct FunDeclarationNode {
+pub struct FunDecl {
     pub name: Token,
-    pub parameters: Vec<ParameterNode>,
-    pub type_: TypeNode,
-    pub block: Rc<BlockNode>,
+    pub parameters: Vec<Parameter>,
+    pub type_: Type,
+    pub block: Rc<Block>,
     span: Span,
 }
 
-impl FunDeclarationNode {
+impl FunDecl {
     pub fn statement(
         name: Token,
-        parameters: Vec<ParameterNode>,
-        type_: TypeNode,
-        block: Rc<BlockNode>,
+        parameters: Vec<Parameter>,
+        type_: Type,
+        block: Rc<Block>,
         span: Span,
-    ) -> StatementKind {
-        StatementKind::FunDeclaration(Box::new(FunDeclarationNode {
+    ) -> StmtKind {
+        StmtKind::FunDecl(Box::new(FunDecl {
             name,
             parameters,
             type_,
@@ -128,7 +128,7 @@ impl FunDeclarationNode {
     }
 }
 
-impl<'a> Spannable<'a> for FunDeclarationNode {
+impl<'a> Spannable<'a> for FunDecl {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -136,18 +136,18 @@ impl<'a> Spannable<'a> for FunDeclarationNode {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct BlockNode {
-    pub statements: Vec<StatementKind>,
+pub struct Block {
+    pub statements: Vec<StmtKind>,
     span: Span,
 }
 
-impl BlockNode {
-    pub fn statement(statements: Vec<StatementKind>, span: Span) -> StatementKind {
-        StatementKind::Block(Rc::new(BlockNode { statements, span }))
+impl Block {
+    pub fn statement(statements: Vec<StmtKind>, span: Span) -> StmtKind {
+        StmtKind::Block(Rc::new(Block { statements, span }))
     }
 }
 
-impl<'a> Spannable<'a> for BlockNode {
+impl<'a> Spannable<'a> for Block {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -155,18 +155,18 @@ impl<'a> Spannable<'a> for BlockNode {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct ReturnNode {
-    pub expression: Option<ExpressionKind>,
+pub struct Return {
+    pub expression: Option<ExprKind>,
     span: Span,
 }
 
-impl ReturnNode {
-    pub fn statement(expression: Option<ExpressionKind>, span: Span) -> StatementKind {
-        StatementKind::Return(Box::new(ReturnNode { expression, span }))
+impl Return {
+    pub fn statement(expression: Option<ExprKind>, span: Span) -> StmtKind {
+        StmtKind::Return(Box::new(Return { expression, span }))
     }
 }
 
-impl<'a> Spannable<'a> for ReturnNode {
+impl<'a> Spannable<'a> for Return {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -174,19 +174,19 @@ impl<'a> Spannable<'a> for ReturnNode {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct ParameterNode {
+pub struct Parameter {
     pub name: Token,
-    pub type_: TypeNode,
+    pub type_: Type,
     span: Span,
 }
 
-impl ParameterNode {
-    pub fn new(name: Token, type_: TypeNode, span: Span) -> Self {
-        ParameterNode { name, type_, span }
+impl Parameter {
+    pub fn new(name: Token, type_: Type, span: Span) -> Self {
+        Parameter { name, type_, span }
     }
 }
 
-impl<'a> Spannable<'a> for ParameterNode {
+impl<'a> Spannable<'a> for Parameter {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -221,21 +221,21 @@ impl From<TokenKind> for TypeKind {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct TypeNode {
+pub struct Type {
     pub kind: TypeKind,
     span: Span,
 }
 
-impl TypeNode {
+impl Type {
     pub fn new(kind: impl Into<TypeKind>, span: Span) -> Self {
-        TypeNode {
+        Type {
             kind: kind.into(),
             span,
         }
     }
 }
 
-impl<'a> Spannable<'a> for TypeNode {
+impl<'a> Spannable<'a> for Type {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -243,19 +243,19 @@ impl<'a> Spannable<'a> for TypeNode {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub enum ExpressionKind {
-    Equality(Box<EqualityNode>),
-    Comparison(Box<ComparisonNode>),
-    Term(Box<TermNode>),
-    Factor(Box<FactorNode>),
-    Unary(Box<UnaryNode>),
-    Call(Box<CallNode>),
-    Grouping(Box<GroupingNode>),
-    Literal(Box<LiteralNode>),
-    Variable(Box<IdNode>),
+pub enum ExprKind {
+    Equality(Box<Equality>),
+    Comparison(Box<Comparison>),
+    Term(Box<Term>),
+    Factor(Box<Factor>),
+    Unary(Box<Unary>),
+    Call(Box<Call>),
+    Grouping(Box<Grouping>),
+    Literal(Box<Literal>),
+    Variable(Box<Id>),
 }
 
-impl<'a> Spannable<'a> for ExpressionKind {
+impl<'a> Spannable<'a> for ExprKind {
     fn span(&'a self) -> &'a Span {
         match self {
             Self::Equality(node) => node.span(),
@@ -299,21 +299,21 @@ impl From<Token> for EqualityOperator {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct EqualityNode {
-    pub lhs: ExpressionKind,
+pub struct Equality {
+    pub lhs: ExprKind,
     pub operator: EqualityOperator,
-    pub rhs: ExpressionKind,
+    pub rhs: ExprKind,
     span: Span,
 }
 
-impl EqualityNode {
+impl Equality {
     pub fn expression(
-        lhs: ExpressionKind,
+        lhs: ExprKind,
         operator: impl Into<EqualityOperator>,
-        rhs: ExpressionKind,
+        rhs: ExprKind,
         span: Span,
-    ) -> ExpressionKind {
-        ExpressionKind::Equality(Box::new(EqualityNode {
+    ) -> ExprKind {
+        ExprKind::Equality(Box::new(Equality {
             lhs,
             operator: operator.into(),
             rhs,
@@ -322,7 +322,7 @@ impl EqualityNode {
     }
 }
 
-impl<'a> Spannable<'a> for EqualityNode {
+impl<'a> Spannable<'a> for Equality {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -362,21 +362,21 @@ impl From<Token> for ComparisonOperator {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct ComparisonNode {
-    pub lhs: ExpressionKind,
+pub struct Comparison {
+    pub lhs: ExprKind,
     pub operator: ComparisonOperator,
-    pub rhs: ExpressionKind,
+    pub rhs: ExprKind,
     span: Span,
 }
 
-impl ComparisonNode {
+impl Comparison {
     pub fn expression(
-        lhs: ExpressionKind,
+        lhs: ExprKind,
         operator: impl Into<ComparisonOperator>,
-        rhs: ExpressionKind,
+        rhs: ExprKind,
         span: Span,
-    ) -> ExpressionKind {
-        ExpressionKind::Comparison(Box::new(ComparisonNode {
+    ) -> ExprKind {
+        ExprKind::Comparison(Box::new(Comparison {
             lhs,
             operator: operator.into(),
             rhs,
@@ -385,7 +385,7 @@ impl ComparisonNode {
     }
 }
 
-impl<'a> Spannable<'a> for ComparisonNode {
+impl<'a> Spannable<'a> for Comparison {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -419,21 +419,21 @@ impl From<Token> for TermOperator {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct TermNode {
-    pub lhs: ExpressionKind,
+pub struct Term {
+    pub lhs: ExprKind,
     pub operator: TermOperator,
-    pub rhs: ExpressionKind,
+    pub rhs: ExprKind,
     span: Span,
 }
 
-impl TermNode {
+impl Term {
     pub fn expression(
-        lhs: ExpressionKind,
+        lhs: ExprKind,
         operator: impl Into<TermOperator>,
-        rhs: ExpressionKind,
+        rhs: ExprKind,
         span: Span,
-    ) -> ExpressionKind {
-        ExpressionKind::Term(Box::new(TermNode {
+    ) -> ExprKind {
+        ExprKind::Term(Box::new(Term {
             lhs,
             operator: operator.into(),
             rhs,
@@ -442,7 +442,7 @@ impl TermNode {
     }
 }
 
-impl<'a> Spannable<'a> for TermNode {
+impl<'a> Spannable<'a> for Term {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -476,21 +476,21 @@ impl From<Token> for FactorOperator {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct FactorNode {
-    pub lhs: ExpressionKind,
+pub struct Factor {
+    pub lhs: ExprKind,
     pub operator: FactorOperator,
-    pub rhs: ExpressionKind,
+    pub rhs: ExprKind,
     span: Span,
 }
 
-impl FactorNode {
+impl Factor {
     pub fn expression(
-        lhs: ExpressionKind,
+        lhs: ExprKind,
         operator: impl Into<FactorOperator>,
-        rhs: ExpressionKind,
+        rhs: ExprKind,
         span: Span,
-    ) -> ExpressionKind {
-        ExpressionKind::Factor(Box::new(FactorNode {
+    ) -> ExprKind {
+        ExprKind::Factor(Box::new(Factor {
             lhs,
             operator: operator.into(),
             rhs,
@@ -499,7 +499,7 @@ impl FactorNode {
     }
 }
 
-impl<'a> Spannable<'a> for FactorNode {
+impl<'a> Spannable<'a> for Factor {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -533,19 +533,19 @@ impl From<Token> for UnaryOperator {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct UnaryNode {
+pub struct Unary {
     pub operator: UnaryOperator,
-    pub expression: ExpressionKind,
+    pub expression: ExprKind,
     span: Span,
 }
 
-impl UnaryNode {
+impl Unary {
     pub fn expression(
         operator: impl Into<UnaryOperator>,
-        expression: ExpressionKind,
+        expression: ExprKind,
         span: Span,
-    ) -> ExpressionKind {
-        ExpressionKind::Unary(Box::new(UnaryNode {
+    ) -> ExprKind {
+        ExprKind::Unary(Box::new(Unary {
             operator: operator.into(),
             expression,
             span,
@@ -553,7 +553,7 @@ impl UnaryNode {
     }
 }
 
-impl<'a> Spannable<'a> for UnaryNode {
+impl<'a> Spannable<'a> for Unary {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -561,19 +561,15 @@ impl<'a> Spannable<'a> for UnaryNode {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct CallNode {
-    pub callee: ExpressionKind,
-    pub arguments: Vec<ExpressionKind>,
+pub struct Call {
+    pub callee: ExprKind,
+    pub arguments: Vec<ExprKind>,
     span: Span,
 }
 
-impl CallNode {
-    pub fn expression(
-        callee: ExpressionKind,
-        arguments: Vec<ExpressionKind>,
-        span: Span,
-    ) -> ExpressionKind {
-        ExpressionKind::Call(Box::new(CallNode {
+impl Call {
+    pub fn expression(callee: ExprKind, arguments: Vec<ExprKind>, span: Span) -> ExprKind {
+        ExprKind::Call(Box::new(Call {
             callee,
             arguments,
             span,
@@ -581,7 +577,7 @@ impl CallNode {
     }
 }
 
-impl<'a> Spannable<'a> for CallNode {
+impl<'a> Spannable<'a> for Call {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -589,18 +585,18 @@ impl<'a> Spannable<'a> for CallNode {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct GroupingNode {
-    pub expression: ExpressionKind,
+pub struct Grouping {
+    pub expression: ExprKind,
     span: Span,
 }
 
-impl GroupingNode {
-    pub fn expression(expression: ExpressionKind, span: Span) -> ExpressionKind {
-        ExpressionKind::Grouping(Box::new(GroupingNode { expression, span }))
+impl Grouping {
+    pub fn expression(expression: ExprKind, span: Span) -> ExprKind {
+        ExprKind::Grouping(Box::new(Grouping { expression, span }))
     }
 }
 
-impl<'a> Spannable<'a> for GroupingNode {
+impl<'a> Spannable<'a> for Grouping {
     fn span(&'a self) -> &'a Span {
         &self.span
     }
@@ -608,17 +604,17 @@ impl<'a> Spannable<'a> for GroupingNode {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct IdNode {
+pub struct Id {
     pub id: Token,
 }
 
-impl IdNode {
-    pub fn expression(identifier: Token) -> ExpressionKind {
-        ExpressionKind::Variable(Box::new(IdNode { id: identifier }))
+impl Id {
+    pub fn expression(identifier: Token) -> ExprKind {
+        ExprKind::Variable(Box::new(Id { id: identifier }))
     }
 }
 
-impl<'a> Spannable<'a> for IdNode {
+impl<'a> Spannable<'a> for Id {
     fn span(&'a self) -> &'a Span {
         self.id.span()
     }
@@ -635,18 +631,18 @@ pub enum LiteralKind {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone)]
-pub struct LiteralNode {
+pub struct Literal {
     pub token: Token,
     pub kind: LiteralKind,
 }
 
-impl LiteralNode {
-    pub fn expression(token: Token, kind: LiteralKind) -> ExpressionKind {
-        ExpressionKind::Literal(Box::new(LiteralNode { token, kind }))
+impl Literal {
+    pub fn expression(token: Token, kind: LiteralKind) -> ExprKind {
+        ExprKind::Literal(Box::new(Literal { token, kind }))
     }
 }
 
-impl<'a> Spannable<'a> for LiteralNode {
+impl<'a> Spannable<'a> for Literal {
     fn span(&'a self) -> &'a Span {
         self.token.span()
     }

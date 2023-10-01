@@ -25,17 +25,13 @@ impl Scope {
         shadow: bool,
     ) -> Result<Rc<Symbol>, ResolutionError> {
         if !shadow {
-            if let Some(other) = self.lookup(name.content) {
-                return Err(NameAlreadyUsed::error(
-                    name.content,
-                    other.name.span,
-                    name.span,
-                ));
+            if let Some(other) = self.lookup(*name) {
+                return Err(NameAlreadyUsed::error(*name, other.name.span, name.span));
             }
         }
 
         let symbol = Rc::new(symbol);
-        self.symbols.insert(name.content, symbol.clone());
+        self.symbols.insert(*name, symbol.clone());
         Ok(symbol)
     }
 
