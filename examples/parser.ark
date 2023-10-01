@@ -1,2 +1,5 @@
-let test @u32 = 20 + 20 * 4 - 2;
-20 + 4;
+let test @u32 = 2 * 20 + 2 * 1;
+
+fun main() @i32 {
+  return test;
+}
