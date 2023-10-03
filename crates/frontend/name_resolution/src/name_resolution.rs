@@ -1,7 +1,12 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use std::{collections::HashMap, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{hash_map::DefaultHasher, HashMap},
+    hash::Hasher,
+    rc::Rc,
+};
 
 use crate::{
     error::{ResolutionError, Result, VariableMustBeAFunction},
@@ -10,28 +15,32 @@ use crate::{
 };
 use ast::{
     traversal::{Visitable, Visitor, Walkable},
-    Block, Call, Comparison, Equality, Factor, FunDecl, Id,
-    LetDecl, Parameter, Program, Return, Term, Unary,
+    Block, Call, Comparison, Equality, Factor, FunDecl, Id, LetDecl, Node, Parameter, Program,
+    Return, Term, Unary,
 };
 use diagnostics::positional::{Span, Spannable, Spanned};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
 pub struct ResolvedSymbols {
-    resolved: HashMap<Span, Rc<Symbol>>,
+    resolved: HashMap<u64, Rc<RefCell<Symbol>>>,
 }
 
 impl ResolvedSymbols {
-    pub fn insert(&mut self, span: impl Into<Span>, symbol: Rc<Symbol>) {
-        let span = span.into();
+    pub fn insert<'a>(&mut self, span: &impl Node<'a>, symbol: Rc<RefCell<Symbol>>) {
+        let mut hasher = DefaultHasher::new();
+        span.hash(&mut hasher);
 
-        self.resolved.insert(span, symbol);
+        let id = hasher.finish();
+        self.resolved.insert(id, symbol);
     }
 
-    pub fn get(&self, span: impl Into<Span>) -> Option<Rc<Symbol>> {
-        let span = span.into();
+    pub fn get<'a>(&self, span: &impl Node<'a>) -> Option<Rc<RefCell<Symbol>>> {
+        let mut hasher = DefaultHasher::new();
+        span.hash(&mut hasher);
 
-        self.resolved.get(&span).cloned()
+        let id = hasher.finish();
+        self.resolved.get(&id).cloned()
     }
 }
 
@@ -39,12 +48,12 @@ impl ResolvedSymbols {
 #[derive(Debug, Default)]
 pub struct NameResolution {
     table: SymbolTable,
-    resolved: ResolvedSymbols,
+    pub resolved: ResolvedSymbols,
     pub errors: Vec<ResolutionError>,
 }
 
 impl<'a> Visitor<'a> for NameResolution {
-    type Return = Option<Rc<Symbol>>;
+    type Return = Option<Rc<RefCell<Symbol>>>;
     type Error = ResolutionError;
 
     fn default_result() -> Result {
@@ -78,7 +87,7 @@ impl<'a> Visitor<'a> for NameResolution {
 
         let symbol = Symbol::new(name.clone(), kind);
         let symbol = self.table.insert(name.clone(), symbol, should_shadow)?;
-        self.resolved.insert(name.span, symbol);
+        self.resolved.insert(node, symbol);
 
         result
     }
@@ -92,7 +101,7 @@ impl<'a> Visitor<'a> for NameResolution {
         let function = SymbolKind::Function(node.block.clone());
         let symbol = Symbol::new(name.clone(), function);
         let symbol = global.insert(name.clone(), symbol, false)?;
-        self.resolved.insert(name.span, symbol);
+        self.resolved.insert(node, symbol);
 
         self.table.enter();
 
@@ -118,7 +127,7 @@ impl<'a> Visitor<'a> for NameResolution {
 
         let symbol = Symbol::new(name.clone(), SymbolKind::Parameter);
         let symbol = self.table.insert(name.clone(), symbol, false)?;
-        self.resolved.insert(name.span, symbol);
+        self.resolved.insert(node, symbol);
 
         node.walk(self)
     }
@@ -211,7 +220,7 @@ impl<'a> Visitor<'a> for NameResolution {
     fn visit_id(&mut self, node: &'a Id) -> Result {
         let name = node.id.get_spur().unwrap();
         let symbol = self.table.lookup(name)?;
-        self.resolved.insert(*node.id.span(), symbol.clone());
+        self.resolved.insert(node, symbol.clone());
 
         Ok(Some(symbol))
     }
@@ -220,14 +229,15 @@ impl<'a> Visitor<'a> for NameResolution {
 impl NameResolution {
     fn is_potential_function_symbol(
         &self,
-        symbol: Option<Rc<Symbol>>,
+        symbol: Option<Rc<RefCell<Symbol>>>,
     ) -> std::result::Result<(), ResolutionError> {
         let symbol = match symbol {
             Some(symbol) => symbol,
             None => return Ok(()),
         };
 
-        match symbol.kind {
+        let kind = symbol.borrow().kind.clone();
+        match kind {
             SymbolKind::Function(_) => Ok(()),
             _ => Err(VariableMustBeAFunction::error()),
         }
@@ -235,14 +245,15 @@ impl NameResolution {
 
     fn is_potential_variable_symbol(
         &self,
-        symbol: Option<Rc<Symbol>>,
+        symbol: Option<Rc<RefCell<Symbol>>>,
     ) -> std::result::Result<(), ResolutionError> {
         let symbol = match symbol {
             Some(symbol) => symbol,
             None => return Ok(()),
         };
 
-        match symbol.kind {
+        let kind = symbol.borrow().kind.clone();
+        match kind {
             SymbolKind::LocalVar | SymbolKind::GlobalVar | SymbolKind::Parameter => Ok(()),
             _ => Err(VariableMustBeAFunction::error()),
         }

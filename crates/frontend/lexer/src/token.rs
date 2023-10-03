@@ -1,4 +1,7 @@
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    hash::{Hash, Hasher},
+};
 
 #[cfg(feature = "serialize")]
 use serde::Serialize;
@@ -18,7 +21,7 @@ impl From<&Token> for Labelable<String> {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Token {
     pub file_id: FileID,
     pub value: Option<TokenValue>,
@@ -80,6 +83,21 @@ pub enum TokenValue {
     Bool(bool),
 }
 
+impl Hash for TokenValue {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Integer(value) => value.hash(state),
+            Self::String(value) => value.hash(state),
+            Self::Bool(value) => value.hash(state),
+            Self::Decimal(value) => {
+                // TODO: Potential flaw
+                let bits = value.to_bits();
+                bits.hash(state)
+            }
+        }
+    }
+}
+
 impl From<usize> for TokenValue {
     fn from(value: usize) -> Self {
         TokenValue::Integer(value)
@@ -104,7 +122,7 @@ impl From<bool> for TokenValue {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
 pub enum TokenKind {
     Int,
     Decimal,

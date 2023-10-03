@@ -3,15 +3,17 @@ use serde::Serialize;
 
 use std::{
     fmt::{Display, Formatter, Result},
-    rc::Rc,
+    rc::Rc, hash::Hash,
 };
 
 use crate::traversal::Visitor;
 use diagnostics::positional::{Span, Spannable};
 use lexer::token::{Token, TokenKind};
 
+pub trait Node<'a>: Hash + Spannable<'a> {}
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Default, PartialEq, Clone)]
+#[derive(Debug, Default, PartialEq, Clone, Hash)]
 pub struct Program {
     pub statements: Vec<StmtKind>,
     span: Span,
@@ -23,6 +25,8 @@ impl Program {
     }
 }
 
+impl<'a> Node<'a> for Program {}
+
 impl<'a> Spannable<'a> for Program {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -30,7 +34,7 @@ impl<'a> Spannable<'a> for Program {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub enum StmtKind {
     ExprStmt(Box<ExprStmt>),
     LetDecl(Box<LetDecl>),
@@ -38,6 +42,8 @@ pub enum StmtKind {
     Block(Rc<Block>),
     Return(Box<Return>),
 }
+
+impl<'a> Node<'a> for StmtKind {}
 
 impl<'a> Spannable<'a> for StmtKind {
     fn span(&'a self) -> &'a Span {
@@ -52,10 +58,12 @@ impl<'a> Spannable<'a> for StmtKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct ExprStmt {
     pub expression: ExprKind,
 }
+
+impl<'a> Node<'a> for ExprStmt {}
 
 impl ExprStmt {
     pub fn statement(expression: ExprKind) -> StmtKind {
@@ -70,7 +78,7 @@ impl<'a> Spannable<'a> for ExprStmt {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct LetDecl {
     pub name: Token,
     pub type_: Type,
@@ -94,6 +102,8 @@ impl LetDecl {
     }
 }
 
+impl<'a> Node<'a> for LetDecl {}
+
 impl<'a> Spannable<'a> for LetDecl {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -101,7 +111,7 @@ impl<'a> Spannable<'a> for LetDecl {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct FunDecl {
     pub name: Token,
     pub parameters: Vec<Parameter>,
@@ -128,6 +138,8 @@ impl FunDecl {
     }
 }
 
+impl<'a> Node<'a> for FunDecl {}
+
 impl<'a> Spannable<'a> for FunDecl {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -135,7 +147,7 @@ impl<'a> Spannable<'a> for FunDecl {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Block {
     pub statements: Vec<StmtKind>,
     span: Span,
@@ -147,6 +159,8 @@ impl Block {
     }
 }
 
+impl<'a> Node<'a> for Block {}
+
 impl<'a> Spannable<'a> for Block {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -154,7 +168,7 @@ impl<'a> Spannable<'a> for Block {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Return {
     pub expression: Option<ExprKind>,
     span: Span,
@@ -166,6 +180,8 @@ impl Return {
     }
 }
 
+impl<'a> Node<'a> for Return {}
+
 impl<'a> Spannable<'a> for Return {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -173,7 +189,7 @@ impl<'a> Spannable<'a> for Return {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Parameter {
     pub name: Token,
     pub type_: Type,
@@ -186,6 +202,8 @@ impl Parameter {
     }
 }
 
+impl<'a> Node<'a> for Parameter {}
+
 impl<'a> Spannable<'a> for Parameter {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -193,7 +211,7 @@ impl<'a> Spannable<'a> for Parameter {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub enum TypeKind {
     Int(bool, usize),
     Decimal(usize),
@@ -220,7 +238,7 @@ impl From<TokenKind> for TypeKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Type {
     pub kind: TypeKind,
     span: Span,
@@ -235,6 +253,8 @@ impl Type {
     }
 }
 
+impl<'a> Node<'a> for Type {}
+
 impl<'a> Spannable<'a> for Type {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -242,7 +262,7 @@ impl<'a> Spannable<'a> for Type {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub enum ExprKind {
     Equality(Box<Equality>),
     Comparison(Box<Comparison>),
@@ -254,6 +274,8 @@ pub enum ExprKind {
     Literal(Box<Literal>),
     Variable(Box<Id>),
 }
+
+impl<'a> Node<'a> for ExprKind {}
 
 impl<'a> Spannable<'a> for ExprKind {
     fn span(&'a self) -> &'a Span {
@@ -272,7 +294,7 @@ impl<'a> Spannable<'a> for ExprKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Hash)]
 pub enum EqualityOperator {
     Eq,
     NotEq,
@@ -298,7 +320,7 @@ impl From<Token> for EqualityOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Equality {
     pub lhs: ExprKind,
     pub operator: EqualityOperator,
@@ -322,6 +344,8 @@ impl Equality {
     }
 }
 
+impl<'a> Node<'a> for Equality {}
+
 impl<'a> Spannable<'a> for Equality {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -329,7 +353,7 @@ impl<'a> Spannable<'a> for Equality {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub enum ComparisonOperator {
     Greater,
     GreaterEq,
@@ -361,7 +385,7 @@ impl From<Token> for ComparisonOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Comparison {
     pub lhs: ExprKind,
     pub operator: ComparisonOperator,
@@ -385,6 +409,8 @@ impl Comparison {
     }
 }
 
+impl<'a> Node<'a> for Comparison {}
+
 impl<'a> Spannable<'a> for Comparison {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -392,7 +418,7 @@ impl<'a> Spannable<'a> for Comparison {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub enum TermOperator {
     Add,
     Sub,
@@ -418,7 +444,7 @@ impl From<Token> for TermOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Term {
     pub lhs: ExprKind,
     pub operator: TermOperator,
@@ -442,6 +468,8 @@ impl Term {
     }
 }
 
+impl<'a> Node<'a> for Term {}
+
 impl<'a> Spannable<'a> for Term {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -449,7 +477,7 @@ impl<'a> Spannable<'a> for Term {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub enum FactorOperator {
     Mul,
     Div,
@@ -475,7 +503,7 @@ impl From<Token> for FactorOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Factor {
     pub lhs: ExprKind,
     pub operator: FactorOperator,
@@ -499,6 +527,8 @@ impl Factor {
     }
 }
 
+impl<'a> Node<'a> for Factor {}
+
 impl<'a> Spannable<'a> for Factor {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -506,7 +536,7 @@ impl<'a> Spannable<'a> for Factor {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub enum UnaryOperator {
     Neg,
     LogNeg,
@@ -532,7 +562,7 @@ impl From<Token> for UnaryOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Unary {
     pub operator: UnaryOperator,
     pub expression: ExprKind,
@@ -553,6 +583,8 @@ impl Unary {
     }
 }
 
+impl<'a> Node<'a> for Unary {}
+
 impl<'a> Spannable<'a> for Unary {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -560,7 +592,7 @@ impl<'a> Spannable<'a> for Unary {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Call {
     pub callee: ExprKind,
     pub arguments: Vec<ExprKind>,
@@ -577,6 +609,8 @@ impl Call {
     }
 }
 
+impl<'a> Node<'a> for Call {}
+
 impl<'a> Spannable<'a> for Call {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -584,7 +618,7 @@ impl<'a> Spannable<'a> for Call {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Grouping {
     pub expression: ExprKind,
     span: Span,
@@ -596,6 +630,8 @@ impl Grouping {
     }
 }
 
+impl<'a> Node<'a> for Grouping {}
+
 impl<'a> Spannable<'a> for Grouping {
     fn span(&'a self) -> &'a Span {
         &self.span
@@ -603,7 +639,7 @@ impl<'a> Spannable<'a> for Grouping {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Id {
     pub id: Token,
 }
@@ -614,6 +650,8 @@ impl Id {
     }
 }
 
+impl<'a> Node<'a> for Id {}
+
 impl<'a> Spannable<'a> for Id {
     fn span(&'a self) -> &'a Span {
         self.id.span()
@@ -621,7 +659,7 @@ impl<'a> Spannable<'a> for Id {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub enum LiteralKind {
     String,
     Int,
@@ -630,7 +668,7 @@ pub enum LiteralKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash)]
 pub struct Literal {
     pub token: Token,
     pub kind: LiteralKind,
@@ -641,6 +679,8 @@ impl Literal {
         ExprKind::Literal(Box::new(Literal { token, kind }))
     }
 }
+
+impl<'a> Node<'a> for Literal {}
 
 impl<'a> Spannable<'a> for Literal {
     fn span(&'a self) -> &'a Span {

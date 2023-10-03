@@ -1,26 +1,13 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use crate::Type;
-use ast::TypeKind;
+use ast::{Type, TypeKind};
 use diagnostics::{
     positional::{Span, Spanned},
     report::{Report, Reportable},
 };
 
 pub type Result = std::result::Result<Option<Type>, TypeError>;
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone)]
-pub struct NoTypeFound {
-    span: Span,
-}
-
-impl NoTypeFound {
-    pub fn error(span: Span) -> TypeError {
-        TypeError::NoTypeFound(NoTypeFound { span })
-    }
-}
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
@@ -62,18 +49,73 @@ impl InvalidUnaryType {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
+pub struct NotMatching {
+    expected: Type,
+    got: Type,
+}
+
+impl NotMatching {
+    pub fn error(got: Type, expected: Type) -> TypeError {
+        TypeError::NotMatching(NotMatching { got, expected })
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Clone)]
 pub enum TypeError {
-    NoTypeFound(NoTypeFound),
     InvalidBinaryType(InvalidBinaryType),
     InvalidUnaryType(InvalidUnaryType),
+    NotMatching(NotMatching),
+    InternalError(InternalError),
 }
 
 impl Reportable for TypeError {
     fn into_report(self) -> Report {
         match self {
+            Self::InvalidBinaryType(_error) => todo!("{:#?}", _error),
+            Self::InvalidUnaryType(_error) => todo!("{:#?}", _error),
+            Self::NotMatching(_error) => todo!("{:#?}", _error),
+            Self::InternalError(error) => error.into_report(),
+        }
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Clone)]
+pub struct NoTypeFound {
+    span: Span,
+}
+
+impl NoTypeFound {
+    pub fn error(span: Span) -> TypeError {
+        TypeError::InternalError(InternalError::NoTypeFound(NoTypeFound { span }))
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Clone)]
+pub struct NoSymbolFound {
+    span: Span,
+}
+
+impl NoSymbolFound {
+    pub fn error(span: Span) -> TypeError {
+        TypeError::InternalError(InternalError::NoSymbolFound(NoSymbolFound { span }))
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Clone)]
+pub enum InternalError {
+    NoTypeFound(NoTypeFound),
+    NoSymbolFound(NoSymbolFound),
+}
+
+impl Reportable for InternalError {
+    fn into_report(self) -> Report {
+        match self {
             Self::NoTypeFound(_error) => todo!(),
-            Self::InvalidBinaryType(_error) => todo!(),
-            Self::InvalidUnaryType(_error) => todo!(),
+            Self::NoSymbolFound(_error) => todo!(),
         }
     }
 }

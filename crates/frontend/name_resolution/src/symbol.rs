@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use lasso::Spur;
 
-use ast::Block;
+use ast::{Block, Type};
 use diagnostics::positional::Spanned;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -23,10 +23,15 @@ pub enum SymbolKind {
 pub struct Symbol {
     pub name: Spanned<Spur>,
     pub kind: SymbolKind,
+    pub type_: Option<Type>,
 }
 
 impl Symbol {
     pub fn new(name: Spanned<Spur>, kind: SymbolKind) -> Self {
-        Symbol { name, kind }
+        Symbol {
+            name,
+            kind,
+            type_: None,
+        }
     }
 }

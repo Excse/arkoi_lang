@@ -1,7 +1,7 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use std::{collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use lasso::Spur;
 
@@ -14,7 +14,7 @@ use diagnostics::positional::Spanned;
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
 pub struct Scope {
-    symbols: HashMap<Spur, Rc<Symbol>>,
+    symbols: HashMap<Spur, Rc<RefCell<Symbol>>>,
 }
 
 impl Scope {
@@ -23,19 +23,19 @@ impl Scope {
         name: Spanned<Spur>,
         symbol: Symbol,
         shadow: bool,
-    ) -> Result<Rc<Symbol>, ResolutionError> {
+    ) -> Result<Rc<RefCell<Symbol>>, ResolutionError> {
         if !shadow {
             if let Some(other) = self.lookup(*name) {
-                return Err(NameAlreadyUsed::error(*name, other.name.span, name.span));
+                return Err(NameAlreadyUsed::error(*name, other.borrow().name.span, name.span));
             }
         }
 
-        let symbol = Rc::new(symbol);
+        let symbol = Rc::new(RefCell::new(symbol));
         self.symbols.insert(*name, symbol.clone());
         Ok(symbol)
     }
 
-    pub fn lookup(&self, name: Spur) -> Option<Rc<Symbol>> {
+    pub fn lookup(&self, name: Spur) -> Option<Rc<RefCell<Symbol>>> {
         self.symbols.get(&name).cloned()
     }
 }
@@ -76,7 +76,7 @@ impl SymbolTable {
         name: Spanned<Spur>,
         symbol: Symbol,
         shadow: bool,
-    ) -> Result<Rc<Symbol>, ResolutionError> {
+    ) -> Result<Rc<RefCell<Symbol>>, ResolutionError> {
         let scope = self
             .scopes
             .last_mut()
@@ -84,7 +84,7 @@ impl SymbolTable {
         scope.insert(name, symbol, shadow)
     }
 
-    pub fn lookup(&self, name: Spur) -> Result<Rc<Symbol>, ResolutionError> {
+    pub fn lookup(&self, name: Spur) -> Result<Rc<RefCell<Symbol>>, ResolutionError> {
         for scope in self.scopes.iter().rev() {
             if let Some(symbol) = scope.lookup(name) {
                 return Ok(symbol);

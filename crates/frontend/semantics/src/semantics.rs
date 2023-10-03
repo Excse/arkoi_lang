@@ -34,7 +34,7 @@ impl<'a> Semantics<'a> {
             );
         }
 
-        let mut type_checker = TypeChecker::default();
+        let mut type_checker = TypeChecker::new(name_resolution.resolved);
         let _ = self.program.accept(&mut type_checker);
 
         if !type_checker.errors.is_empty() {

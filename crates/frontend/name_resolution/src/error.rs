@@ -1,7 +1,7 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use std::rc::Rc;
+use std::{rc::Rc, cell::RefCell};
 
 use lasso::Spur;
 
@@ -11,7 +11,7 @@ use diagnostics::{
     report::{Report, Reportable},
 };
 
-pub type Result = std::result::Result<Option<Rc<Symbol>>, ResolutionError>;
+pub type Result = std::result::Result<Option<Rc<RefCell<Symbol>>>, ResolutionError>;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
