@@ -1,23 +1,53 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use diagnostics::report::{LabelBuilder, Labelable, Report, ReportBuilder, Reportable, Serverity};
+use diagnostics::{
+    positional::LabelSpan,
+    report::{LabelBuilder, Report, ReportBuilder, Reportable, Serverity},
+};
 
 pub(crate) type Result<T> = std::result::Result<T, ParserError>;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct DidntExpect {
-    got: Labelable<String>,
+    got: String,
+    span: LabelSpan,
     expected: String,
 }
 
 impl DidntExpect {
-    pub fn error(got: impl Into<Labelable<String>>, expected: impl Into<String>) -> ParserError {
+    pub fn error(got: String, span: LabelSpan, expected: impl Into<String>) -> ParserError {
         ParserError::new(ErrorKind::DidntExpect(DidntExpect {
-            got: got.into(),
+            got,
+            span,
             expected: expected.into(),
         }))
+    }
+}
+
+impl Reportable for DidntExpect {
+    fn into_report(self) -> Report {
+        let report_message = format!(
+            "Expected to find '[{}]' but instead got '[{}]'.",
+            self.expected, self.got,
+        );
+        let label_message = format!("Expected '[{}]' instead of this token.", self.expected);
+
+        ReportBuilder::default()
+            .message(report_message)
+            .code(1)
+            .serverity(Serverity::Error)
+            .label(
+                LabelBuilder::default()
+                    .span(self.span.span)
+                    .message(label_message)
+                    .file(self.span.file_id)
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap()
     }
 }
 
@@ -32,6 +62,22 @@ impl UnexpectedEOF {
         ParserError::new(ErrorKind::UnexpectedEOF(UnexpectedEOF {
             expected: expected.into(),
         }))
+    }
+}
+
+impl Reportable for UnexpectedEOF {
+    fn into_report(self) -> Report {
+        let report_message = format!(
+            "Expected to find '[{}]' but came to the end of the file.",
+            self.expected
+        );
+
+        ReportBuilder::default()
+            .message(report_message)
+            .code(2)
+            .serverity(Serverity::Error)
+            .build()
+            .unwrap()
     }
 }
 
@@ -71,8 +117,8 @@ pub struct ParserError {
 impl Reportable for ParserError {
     fn into_report(self) -> Report {
         match self.kind {
-            ErrorKind::UnexpectedEOF(error) => unexpected_eof(error),
-            ErrorKind::DidntExpect(error) => didnt_expect(error),
+            ErrorKind::UnexpectedEOF(error) => error.into_report(),
+            ErrorKind::DidntExpect(error) => error.into_report(),
             ErrorKind::InternalError(error) => panic!("Error: {:?}", error),
         }
     }
@@ -90,45 +136,4 @@ impl ParserError {
         self.wrong_start = wrong_start;
         self
     }
-}
-
-fn didnt_expect(args: DidntExpect) -> Report {
-    let report_message = format!(
-        "Expected to find '[{}]' but instead got '[{}]'.",
-        args.expected, *args.got,
-    );
-    let label_message = format!("Expected '[{}]' instead of this token.", args.expected);
-
-    ReportBuilder::default()
-        .message(report_message)
-        .code(1)
-        .serverity(Serverity::Error)
-        // .message_colors(&[Color::Red, Color::Blue])
-        .label(
-            LabelBuilder::default()
-                .span(args.got.span)
-                .message(label_message)
-                .file(args.got.file_id)
-                // .message_colors(&[Color::Red])
-                // .color(Color::Blue)
-                .build()
-                .unwrap(),
-        )
-        .build()
-        .unwrap()
-}
-
-fn unexpected_eof(args: UnexpectedEOF) -> Report {
-    let report_message = format!(
-        "Expected to find '[{}]' but came to the end of the file.",
-        args.expected
-    );
-
-    ReportBuilder::default()
-        .message(report_message)
-        .code(2)
-        .serverity(Serverity::Error)
-        // .message_colors(&[Color::Red])
-        .build()
-        .unwrap()
 }

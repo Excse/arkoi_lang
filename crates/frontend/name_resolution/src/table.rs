@@ -1,3 +1,4 @@
+use diagnostics::positional::LabelSpan;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -9,7 +10,6 @@ use crate::{
     error::{NameAlreadyUsed, ResolutionError, SymbolNotFound},
     symbol::Symbol,
 };
-use diagnostics::positional::Spanned;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
@@ -20,18 +20,19 @@ pub struct Scope {
 impl Scope {
     pub fn insert(
         &mut self,
-        name: Spanned<Spur>,
+        name: Spur,
+        span: LabelSpan,
         symbol: Symbol,
         shadow: bool,
     ) -> Result<Rc<RefCell<Symbol>>, ResolutionError> {
         if !shadow {
-            if let Some(other) = self.lookup(*name) {
-                return Err(NameAlreadyUsed::error(*name, other.borrow().name.span, name.span));
+            if let Some(other) = self.lookup(name) {
+                return Err(NameAlreadyUsed::error(name, other.borrow().span, span));
             }
         }
 
         let symbol = Rc::new(RefCell::new(symbol));
-        self.symbols.insert(*name, symbol.clone());
+        self.symbols.insert(name, symbol.clone());
         Ok(symbol)
     }
 
@@ -73,7 +74,8 @@ impl SymbolTable {
 
     pub fn insert(
         &mut self,
-        name: Spanned<Spur>,
+        name: Spur,
+        span: LabelSpan,
         symbol: Symbol,
         shadow: bool,
     ) -> Result<Rc<RefCell<Symbol>>, ResolutionError> {
@@ -81,7 +83,7 @@ impl SymbolTable {
             .scopes
             .last_mut()
             .expect("There should at least be one scope (global).");
-        scope.insert(name, symbol, shadow)
+        scope.insert(name, span, symbol, shadow)
     }
 
     pub fn lookup(&self, name: Spur) -> Result<Rc<RefCell<Symbol>>, ResolutionError> {

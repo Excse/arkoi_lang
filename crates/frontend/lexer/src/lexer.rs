@@ -4,7 +4,7 @@ use serde::Serialize;
 use lasso::Rodeo;
 
 use crate::cursor::Cursor;
-use crate::error::{InternalError, LexerError, Result};
+use crate::error::{LexerError, Result, UnexpectedEOF};
 use crate::token::TokenKind;
 use diagnostics::file::{FileID, Files};
 
@@ -30,7 +30,7 @@ impl<'a> Lexer<'a> {
     pub(crate) fn next_token_kind(&mut self) -> Result<TokenKind> {
         let current = match self.cursor.peek() {
             Some(char) => char,
-            None => return Err(LexerError::Internal(InternalError::UnexpectedEOF)),
+            None => return Err(UnexpectedEOF::error()),
         };
 
         self.cursor.mark_start();
@@ -64,7 +64,7 @@ impl<'a> Lexer<'a> {
             Some('!') => TokenKind::Apostrophe,
             Some(';') => TokenKind::Semicolon,
             Some(char) => TokenKind::Unknown(char),
-            None => return Err(LexerError::Internal(InternalError::UnexpectedEOF)),
+            None => return Err(UnexpectedEOF::error()),
         };
 
         let current = match self.cursor.peek() {

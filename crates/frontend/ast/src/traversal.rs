@@ -245,7 +245,7 @@ impl<'a, V: Visitor<'a>> Walkable<'a, V> for ExprKind {
             ExprKind::Call(node) => node.accept(visitor),
             ExprKind::Grouping(node) => node.accept(visitor),
             ExprKind::Literal(node) => node.accept(visitor),
-            ExprKind::Variable(node) => node.accept(visitor),
+            ExprKind::Id(node) => node.accept(visitor),
         }
     }
 }

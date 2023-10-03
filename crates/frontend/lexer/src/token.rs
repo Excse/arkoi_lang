@@ -8,17 +8,7 @@ use serde::Serialize;
 
 use lasso::Spur;
 
-use diagnostics::{
-    file::FileID,
-    positional::{Span, Spannable},
-    report::Labelable,
-};
-
-impl From<&Token> for Labelable<String> {
-    fn from(value: &Token) -> Self {
-        Labelable::new(value.kind.to_string(), value.span, value.file_id)
-    }
-}
+use diagnostics::{file::FileID, positional::LabelSpan};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, PartialEq, Clone, Hash)]
@@ -26,11 +16,16 @@ pub struct Token {
     pub file_id: FileID,
     pub value: Option<TokenValue>,
     pub kind: TokenKind,
-    span: Span,
+    pub span: LabelSpan,
 }
 
 impl Token {
-    pub fn new(span: Span, file_id: FileID, value: Option<TokenValue>, kind: TokenKind) -> Token {
+    pub fn new(
+        span: LabelSpan,
+        file_id: FileID,
+        value: Option<TokenValue>,
+        kind: TokenKind,
+    ) -> Token {
         Token {
             span,
             file_id,
@@ -65,12 +60,6 @@ impl Token {
             Some(TokenValue::Bool(value)) => Some(value),
             _ => None,
         }
-    }
-}
-
-impl<'a> Spannable<'a> for Token {
-    fn span(&'a self) -> &'a Span {
-        &self.span
     }
 }
 

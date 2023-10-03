@@ -9,26 +9,34 @@ use crate::{
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub struct TokenIterator<'a>(Lexer<'a>);
+pub struct TokenIterator<'a> {
+    lexer: Lexer<'a>,
+}
+
+impl<'a> TokenIterator<'a> {
+    pub fn new(lexer: Lexer<'a>) -> Self {
+        TokenIterator { lexer }
+    }
+}
 
 impl<'a> TokenIterator<'a> {
     fn next_token(&mut self) -> Option<Token> {
-        let token_kind = match self.0.next_token_kind() {
+        let token_kind = match self.lexer.next_token_kind() {
             Ok(token_kind) => token_kind,
             Err(error) => match error {
-                LexerError::Internal(_) => {
-                    self.0.errors.push(error);
+                LexerError::InternalError(_) => {
+                    self.lexer.errors.push(error);
                     return None;
                 }
                 _ => {
-                    self.0.errors.push(error);
+                    self.lexer.errors.push(error);
                     return self.next_token();
                 }
             },
         };
 
-        let content = self.0.cursor.as_str();
-        let span = self.0.cursor.as_span();
+        let content = self.lexer.cursor.as_str();
+        let span = self.lexer.cursor.as_span();
 
         let value = match token_kind {
             TokenKind::Int => {
@@ -40,12 +48,12 @@ impl<'a> TokenIterator<'a> {
                 Some(content)
             }
             TokenKind::Id => {
-                let content = self.0.interner.get_or_intern(content).into();
+                let content = self.lexer.interner.get_or_intern(content).into();
                 Some(content)
             }
             TokenKind::String => {
                 let content = &content[1..content.len() - 1];
-                let content = self.0.interner.get_or_intern(content).into();
+                let content = self.lexer.interner.get_or_intern(content).into();
                 Some(content)
             }
             TokenKind::True => Some(true.into()),
@@ -53,7 +61,7 @@ impl<'a> TokenIterator<'a> {
             _ => None,
         };
 
-        Some(Token::new(span, self.0.file_id, value, token_kind))
+        Some(Token::new(span, self.lexer.file_id, value, token_kind))
     }
 }
 
@@ -70,8 +78,6 @@ impl<'a> IntoIterator for Lexer<'a> {
     type IntoIter = TokenIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        TokenIterator(self)
+        TokenIterator::new(self)
     }
 }
-
-

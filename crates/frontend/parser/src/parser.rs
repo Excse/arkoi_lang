@@ -1,14 +1,13 @@
+use diagnostics::positional::LabelSpan;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
 use crate::cursor::Cursor;
 use crate::error::{DidntExpect, ErrorKind, InternalError, ParserError, Result};
 use ast::{
-    Block, Call, Comparison, Equality, ExprKind, ExprStmt, Factor,
-    FunDecl, Grouping, Id, LetDecl, LiteralKind, Literal,
-    Parameter, Program, Return, StmtKind, Term, Type, Unary,
+    Block, Call, Comparison, Equality, ExprKind, ExprStmt, Factor, FunDecl, Grouping, Id, LetDecl,
+    Literal, LiteralKind, Parameter, Program, Return, StmtKind, Term, Type, Unary,
 };
-use diagnostics::positional::{Span, Spannable};
 use lexer::iterator::TokenIterator;
 use lexer::token::TokenKind;
 
@@ -52,9 +51,9 @@ impl<'a> Parser<'a> {
 
         let span = if let Some(start) = statements.first() {
             let end = statements.last().unwrap();
-            start.span().combine(end.span())
+            start.span().combine(&end.span())
         } else {
-            Span::single(0)
+            LabelSpan::default()
         };
 
         Program::new(statements, span)
@@ -78,7 +77,11 @@ impl<'a> Parser<'a> {
         }
 
         let token = self.cursor.peek()?;
-        Err(DidntExpect::error(token, "fun or let declaration"))
+        Err(DidntExpect::error(
+            token.kind.to_string(),
+            token.span,
+            "fun or let declaration",
+        ))
     }
 
     /// ```ebnf
@@ -99,7 +102,11 @@ impl<'a> Parser<'a> {
         }
 
         let token = self.cursor.peek()?;
-        Err(DidntExpect::error(token, "expression statement or block"))
+        Err(DidntExpect::error(
+            token.kind.to_string(),
+            token.span,
+            "expression statement or block",
+        ))
     }
 
     /// ```ebnf
@@ -123,7 +130,7 @@ impl<'a> Parser<'a> {
             .map_err(|error| error.wrong_start(true))?;
 
         if let Ok(end) = self.cursor.eat(TokenKind::Brace(false)) {
-            let span = start.span().combine(end.span());
+            let span = start.span.combine(&end.span);
             return Ok(Block::statement(Vec::new(), span));
         }
 
@@ -150,7 +157,7 @@ impl<'a> Parser<'a> {
 
         let end = self.cursor.eat(TokenKind::Brace(false))?;
 
-        let span = start.span().combine(end.span());
+        let span = start.span.combine(&end.span);
         Ok(Block::statement(statements, span))
     }
 
@@ -177,7 +184,11 @@ impl<'a> Parser<'a> {
         }
 
         let token = self.cursor.peek()?;
-        Err(DidntExpect::error(token, "statement, let declaration"))
+        Err(DidntExpect::error(
+            token.kind.to_string(),
+            token.span,
+            "statement, let declaration",
+        ))
     }
 
     /// ```ebnf
@@ -193,7 +204,7 @@ impl<'a> Parser<'a> {
 
         let end = self.cursor.eat(TokenKind::Semicolon)?;
 
-        let span = start.span().combine(end.span());
+        let span = start.span.combine(&end.span);
         Ok(Return::statement(expression, span))
     }
 
@@ -227,7 +238,7 @@ impl<'a> Parser<'a> {
             _ => panic!("Couldn't unbox the block. This shouldn't have happened."),
         };
 
-        let span = start.span().combine(block.span());
+        let span = start.span.combine(&block.span);
         Ok(FunDecl::statement(
             identifier, parameters, type_, block, span,
         ))
@@ -243,7 +254,7 @@ impl<'a> Parser<'a> {
             let id = self.cursor.eat(TokenKind::Id)?;
             let type_ = self.parse_type()?;
 
-            let span = id.span().combine(type_.span());
+            let span = id.span.combine(&type_.span);
             parameters.push(Parameter::new(id, type_, span));
 
             if self.cursor.eat(TokenKind::Comma).is_err() {
@@ -279,7 +290,7 @@ impl<'a> Parser<'a> {
             TokenKind::Bool,
         ])?;
 
-        let span = start.span().combine(token.span());
+        let span = start.span.combine(&token.span);
         Ok(Type::new(token.kind, span))
     }
 
@@ -303,7 +314,7 @@ impl<'a> Parser<'a> {
 
         let end = self.cursor.eat(TokenKind::Semicolon)?;
 
-        let span = start.span().combine(end.span());
+        let span = start.span.combine(&end.span);
         Ok(LetDecl::statement(name, type_, expression, span))
     }
 
@@ -329,7 +340,7 @@ impl<'a> Parser<'a> {
         while let Ok(token) = self.cursor.eat_any(&[TokenKind::EqEq, TokenKind::NotEq]) {
             let rhs = self.parse_comparison(false)?;
 
-            let span = expression.span().combine(rhs.span());
+            let span = expression.span().combine(&rhs.span());
             expression = Equality::expression(expression, token, rhs, span);
         }
 
@@ -350,7 +361,7 @@ impl<'a> Parser<'a> {
         ]) {
             let rhs = self.parse_term(false)?;
 
-            let span = expression.span().combine(rhs.span());
+            let span = expression.span().combine(&rhs.span());
             expression = Comparison::expression(expression, token, rhs, span);
         }
 
@@ -366,7 +377,7 @@ impl<'a> Parser<'a> {
         while let Ok(token) = self.cursor.eat_any(&[TokenKind::Plus, TokenKind::Minus]) {
             let rhs = self.parse_factor(false)?;
 
-            let span = expression.span().combine(rhs.span());
+            let span = expression.span().combine(&rhs.span());
             expression = Term::expression(expression, token, rhs, span);
         }
 
@@ -385,7 +396,7 @@ impl<'a> Parser<'a> {
         {
             let rhs = self.parse_unary(false)?;
 
-            let span = expression.span().combine(rhs.span());
+            let span = expression.span().combine(&rhs.span());
             expression = Factor::expression(expression, token, rhs, span);
         }
 
@@ -403,7 +414,7 @@ impl<'a> Parser<'a> {
         {
             let expression = self.parse_unary(false)?;
 
-            let span = token.span().combine(expression.span());
+            let span = token.span.combine(&expression.span());
             return Ok(Unary::expression(token, expression, span));
         }
 
@@ -428,7 +439,7 @@ impl<'a> Parser<'a> {
     ///```
     fn finish_parse_call(&mut self, callee: ExprKind) -> Result<ExprKind> {
         if let Ok(end) = self.cursor.eat(TokenKind::Parent(true)) {
-            let span = callee.span().combine(end.span());
+            let span = callee.span().combine(&end.span);
             return Ok(Call::expression(callee, Vec::new(), span));
         }
 
@@ -443,7 +454,7 @@ impl<'a> Parser<'a> {
 
         let end = self.cursor.eat(TokenKind::Parent(false))?;
 
-        let span = callee.span().combine(end.span());
+        let span = callee.span().combine(&end.span);
         Ok(Call::expression(callee, arguments, span))
     }
 
@@ -467,12 +478,13 @@ impl<'a> Parser<'a> {
             let expression = self.parse_expression(false)?;
             let end = self.cursor.eat(TokenKind::Parent(false))?;
 
-            let span = start.span().combine(end.span());
+            let span = start.span.combine(&end.span);
             Ok(Grouping::expression(expression, span))
         } else {
             let token = self.cursor.peek()?;
             Err(DidntExpect::error(
-                token,
+                token.kind.to_string(),
+                token.span,
                 "int, decimal, string, true, false, identifier, oparent".to_string(),
             )
             .wrong_start(start))

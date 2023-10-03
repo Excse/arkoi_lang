@@ -4,8 +4,6 @@ use serde::Serialize;
 use std::iter::Peekable;
 
 use crate::error::{DidntExpect, EndOfFile, Result, UnexpectedEOF};
-use diagnostics::positional::Spannable;
-use diagnostics::report::Labelable;
 use lexer::{
     iterator::TokenIterator,
     token::{Token, TokenKind},
@@ -114,7 +112,8 @@ impl<'a> Cursor<'a> {
             .join(", ");
 
         Err(DidntExpect::error(
-            Labelable::new(token.kind.to_string(), token.span().clone(), token.file_id),
+            token.kind.to_string(),
+            token.span,
             expected,
         ))
     }
@@ -132,7 +131,8 @@ impl<'a> Cursor<'a> {
         }
 
         Err(DidntExpect::error(
-            Labelable::new(token.kind.to_string(), token.span().clone(), token.file_id),
+            token.kind.to_string(),
+            token.span,
             expected.to_string(),
         ))
     }

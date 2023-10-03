@@ -2,7 +2,6 @@
 use serde::Serialize;
 
 use std::fmt::Display;
-use std::ops::Deref;
 
 use derive_builder::UninitializedFieldError;
 
@@ -121,31 +120,6 @@ impl ReportBuilder {
     }
 }
 
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, PartialEq)]
-pub struct Labelable<C> {
-    content: C,
-    pub span: Span,
-    pub file_id: FileID,
-}
-
-impl<C> Deref for Labelable<C> {
-    type Target = C;
-
-    fn deref(&self) -> &Self::Target {
-        &self.content
-    }
-}
-
-impl<C> Labelable<C> {
-    pub fn new(content: C, span: Span, file_id: FileID) -> Self {
-        Labelable {
-            content,
-            span,
-            file_id,
-        }
-    }
-}
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Builder, Clone, PartialEq)]

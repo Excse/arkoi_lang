@@ -1,36 +1,26 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use std::ops::{Deref, Range};
+use std::ops::Range;
 
-pub trait Spannable<'a> {
-    fn span(&'a self) -> &'a Span;
-}
+use crate::file::FileID;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, PartialEq)]
-pub struct Spanned<C> {
-    content: C,
+#[derive(Debug, Clone, Default, Copy, PartialEq, Hash)]
+pub struct LabelSpan {
     pub span: Span,
+    pub file_id: FileID,
 }
 
-impl<C> Deref for Spanned<C> {
-    type Target = C;
-
-    fn deref(&self) -> &Self::Target {
-        &self.content
+impl LabelSpan {
+    pub fn new(span: Span, file_id: FileID) -> Self {
+        LabelSpan { span, file_id }
     }
-}
 
-impl<'a, C> Spannable<'a> for Spanned<C> {
-    fn span(&'a self) -> &'a Span {
-        &self.span
-    }
-}
+    pub fn combine(&self, other: &LabelSpan) -> Self {
+        let combined = self.span.combine(&other.span);
 
-impl<C> Spanned<C> {
-    pub fn new(content: C, span: Span) -> Spanned<C> {
-        Spanned { content, span }
+        LabelSpan::new(combined, self.file_id)
     }
 }
 

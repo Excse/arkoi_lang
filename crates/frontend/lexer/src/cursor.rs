@@ -1,13 +1,12 @@
-use diagnostics::report::Labelable;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
 use std::{iter::Peekable, str::CharIndices};
 
-use crate::error::{DidntExpect, InternalError, LexerError, Result};
+use crate::error::{DidntExpect, Result, UnexpectedEOF};
 use diagnostics::{
     file::{FileID, Files},
-    positional::Span,
+    positional::{LabelSpan, Span},
 };
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -46,15 +45,15 @@ impl<'a> Cursor<'a> {
         self.start = self.current_index()
     }
 
-    pub fn as_span(&mut self) -> Span {
-        Span::new(self.start, self.current_index())
+    pub fn as_span(&mut self) -> LabelSpan {
+        LabelSpan::new(Span::new(self.start, self.current_index()), self.file_id)
     }
 
     // TODO: Remove the expect
     pub fn as_str(&mut self) -> &'a str {
         let span = self.as_span();
         self.files
-            .slice(self.file_id, &span)
+            .slice(self.file_id, &span.span)
             .expect("Couldn't slice the source")
     }
 
@@ -75,10 +74,11 @@ impl<'a> Cursor<'a> {
         match self.peek_indexed() {
             Some((_, char)) if char == expected => Ok(self.try_consume().unwrap()),
             Some((index, char)) => Err(DidntExpect::error(
-                Labelable::new(char, Span::single(index), self.file_id),
+                char,
+                LabelSpan::new(Span::single(index), self.file_id),
                 expected,
             )),
-            None => Err(LexerError::Internal(InternalError::UnexpectedEOF)),
+            None => Err(UnexpectedEOF::error()),
         }
     }
 
@@ -89,10 +89,11 @@ impl<'a> Cursor<'a> {
         match self.peek_indexed() {
             Some((_, char)) if predicate(char) => Ok(self.try_consume().unwrap()),
             Some((index, char)) => Err(DidntExpect::error(
-                Labelable::new(char, Span::single(index), self.file_id),
+                char,
+                LabelSpan::new(Span::single(index), self.file_id),
                 message,
             )),
-            None => Err(LexerError::Internal(InternalError::UnexpectedEOF)),
+            None => Err(UnexpectedEOF::error()),
         }
     }
 

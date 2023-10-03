@@ -18,7 +18,6 @@ use ast::{
     Block, Call, Comparison, Equality, Factor, FunDecl, Id, LetDecl, Node, Parameter, Program,
     Return, Term, Unary,
 };
-use diagnostics::positional::{Span, Spannable, Spanned};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
@@ -75,7 +74,6 @@ impl<'a> Visitor<'a> for NameResolution {
         let should_shadow = !self.table.is_global();
 
         let name = node.name.get_spur().unwrap();
-        let name = Spanned::new(name, *node.name.span());
 
         let kind = if should_shadow {
             SymbolKind::GlobalVar
@@ -85,8 +83,10 @@ impl<'a> Visitor<'a> for NameResolution {
 
         let result = node.walk(self);
 
-        let symbol = Symbol::new(name.clone(), kind);
-        let symbol = self.table.insert(name.clone(), symbol, should_shadow)?;
+        let symbol = Symbol::new(name, node.name.span, kind);
+        let symbol = self
+            .table
+            .insert(name, node.name.span, symbol, should_shadow)?;
         self.resolved.insert(node, symbol);
 
         result
@@ -96,11 +96,10 @@ impl<'a> Visitor<'a> for NameResolution {
         let global = self.table.global_scope();
 
         let name = node.name.get_spur().unwrap();
-        let name = Spanned::new(name, *node.name.span());
 
         let function = SymbolKind::Function(node.block.clone());
-        let symbol = Symbol::new(name.clone(), function);
-        let symbol = global.insert(name.clone(), symbol, false)?;
+        let symbol = Symbol::new(name, node.name.span, function);
+        let symbol = global.insert(name, node.name.span, symbol, false)?;
         self.resolved.insert(node, symbol);
 
         self.table.enter();
@@ -123,10 +122,9 @@ impl<'a> Visitor<'a> for NameResolution {
 
     fn visit_parameter(&mut self, node: &'a Parameter) -> Result {
         let name = node.name.get_spur().unwrap();
-        let name = Spanned::new(name, *node.name.span());
 
-        let symbol = Symbol::new(name.clone(), SymbolKind::Parameter);
-        let symbol = self.table.insert(name.clone(), symbol, false)?;
+        let symbol = Symbol::new(name, node.name.span, SymbolKind::Parameter);
+        let symbol = self.table.insert(name, node.name.span, symbol, false)?;
         self.resolved.insert(node, symbol);
 
         node.walk(self)
