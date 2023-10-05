@@ -1,9 +1,10 @@
+use lasso::Rodeo;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 #[cfg(feature = "serdebug")]
 use serdebug::SerDebug;
 
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use termcolor::WriteColor;
 
@@ -13,16 +14,23 @@ use crate::{file::Files, report::Reportable};
 #[derive(Debug)]
 pub struct Renderer<'a, Writer: WriteColor> {
     writer: Writer,
+    interner: Rc<RefCell<Rodeo>>,
     files: &'a Files,
 }
 
 impl<'a, Writer: WriteColor> Renderer<'a, Writer> {
-    pub fn new(files: &'a Files, writer: Writer) -> Self {
-        Renderer { files, writer }
+    pub fn new(files: &'a Files, interner: Rc<RefCell<Rodeo>>, writer: Writer) -> Self {
+        Renderer {
+            files,
+            interner,
+            writer,
+        }
     }
 
     pub fn render<R: Reportable>(&mut self, report: R) {
-        let mut report = report.into_report();
+        let interner = self.interner.borrow();
+
+        let mut report = report.into_report(&interner);
         for label in report.labels.iter_mut() {
             label.gather_data(self.files);
         }
@@ -53,7 +61,10 @@ impl<'a, Writer: WriteColor> Renderer<'a, Writer> {
                 panic!("Multiline not supported yet.");
             }
 
-            files.entry(label.file).or_insert(vec![]).push(label);
+            files
+                .entry(label.span.file_id)
+                .or_insert(vec![])
+                .push(label);
         }
 
         for (file_id, labels) in files.iter() {
@@ -90,10 +101,14 @@ impl<'a, Writer: WriteColor> Renderer<'a, Writer> {
 
 #[cfg(test)]
 mod test {
+    use std::{cell::RefCell, rc::Rc};
+
+    use lasso::Rodeo;
     use termcolor::{ColorChoice, StandardStream};
 
     use crate::{
         file::Files,
+        positional::LabelSpan,
         renderer::Renderer,
         report::{LabelBuilder, ReportBuilder, Serverity},
     };
@@ -111,8 +126,7 @@ mod test {
             .serverity(Serverity::Note)
             .label(
                 LabelBuilder::default()
-                    .file(test_file)
-                    .span(0..4)
+                    .span(LabelSpan::new(0..4, test_file))
                     .message("This is a greeting.")
                     .build()
                     .unwrap(),
@@ -122,7 +136,9 @@ mod test {
             .build()
             .unwrap();
 
-        let mut renderer = Renderer::new(&files, stdout);
+        let interner = Rc::new(RefCell::new(Rodeo::new()));
+        let mut renderer = Renderer::new(&files, interner, stdout);
+
         renderer.render(report);
     }
 }

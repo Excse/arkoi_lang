@@ -1,3 +1,4 @@
+use lasso::Rodeo;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -10,15 +11,15 @@ pub(crate) type Result<T> = std::result::Result<T, ParserError>;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub struct DidntExpect {
+pub struct Unexpected {
     got: String,
     span: LabelSpan,
     expected: String,
 }
 
-impl DidntExpect {
+impl Unexpected {
     pub fn error(got: String, span: LabelSpan, expected: impl Into<String>) -> ParserError {
-        ParserError::new(ErrorKind::DidntExpect(DidntExpect {
+        ParserError::new(ErrorKind::Unexpected(Unexpected {
             got,
             span,
             expected: expected.into(),
@@ -26,8 +27,8 @@ impl DidntExpect {
     }
 }
 
-impl Reportable for DidntExpect {
-    fn into_report(self) -> Report {
+impl Reportable for Unexpected {
+    fn into_report(self, _interner: &Rodeo) -> Report {
         let report_message = format!(
             "Expected to find '[{}]' but instead got '[{}]'.",
             self.expected, self.got,
@@ -40,9 +41,8 @@ impl Reportable for DidntExpect {
             .serverity(Serverity::Error)
             .label(
                 LabelBuilder::default()
-                    .span(self.span.span)
                     .message(label_message)
-                    .file(self.span.file_id)
+                    .span(self.span)
                     .build()
                     .unwrap(),
             )
@@ -66,7 +66,7 @@ impl UnexpectedEOF {
 }
 
 impl Reportable for UnexpectedEOF {
-    fn into_report(self) -> Report {
+    fn into_report(self, _interner: &Rodeo) -> Report {
         let report_message = format!(
             "Expected to find '[{}]' but came to the end of the file.",
             self.expected
@@ -84,9 +84,19 @@ impl Reportable for UnexpectedEOF {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub enum ErrorKind {
-    DidntExpect(DidntExpect),
+    Unexpected(Unexpected),
     UnexpectedEOF(UnexpectedEOF),
     InternalError(InternalError),
+}
+
+impl Reportable for ErrorKind {
+    fn into_report(self, interner: &Rodeo) -> Report {
+        match self {
+            Self::UnexpectedEOF(error) => error.into_report(interner),
+            Self::Unexpected(error) => error.into_report(interner),
+            Self::InternalError(error) => error.into_report(interner),
+        }
+    }
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -101,10 +111,29 @@ impl EndOfFile {
     }
 }
 
+impl Reportable for EndOfFile {
+    fn into_report(self, _interner: &Rodeo) -> Report {
+        ReportBuilder::default()
+            .message("Unexpectedly reached the end of the file.")
+            .code(2)
+            .serverity(Serverity::Bug)
+            .build()
+            .unwrap()
+    }
+}
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub enum InternalError {
     EndOfFile(EndOfFile),
+}
+
+impl Reportable for InternalError {
+    fn into_report(self, interner: &Rodeo) -> Report {
+        match self {
+            Self::EndOfFile(error) => error.into_report(interner),
+        }
+    }
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -115,12 +144,8 @@ pub struct ParserError {
 }
 
 impl Reportable for ParserError {
-    fn into_report(self) -> Report {
-        match self.kind {
-            ErrorKind::UnexpectedEOF(error) => error.into_report(),
-            ErrorKind::DidntExpect(error) => error.into_report(),
-            ErrorKind::InternalError(error) => panic!("Error: {:?}", error),
-        }
+    fn into_report(self, interner: &Rodeo) -> Report {
+        self.kind.into_report(interner)
     }
 }
 

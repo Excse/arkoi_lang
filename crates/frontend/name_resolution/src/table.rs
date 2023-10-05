@@ -86,13 +86,13 @@ impl SymbolTable {
         scope.insert(name, span, symbol, shadow)
     }
 
-    pub fn lookup(&self, name: Spur) -> Result<Rc<RefCell<Symbol>>, ResolutionError> {
+    pub fn lookup(&self, name: Spur, span: LabelSpan) -> Result<Rc<RefCell<Symbol>>, ResolutionError> {
         for scope in self.scopes.iter().rev() {
             if let Some(symbol) = scope.lookup(name) {
                 return Ok(symbol);
             }
         }
 
-        Err(SymbolNotFound::error())
+        Err(SymbolNotFound::error(span))
     }
 }

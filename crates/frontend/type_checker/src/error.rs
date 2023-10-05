@@ -1,10 +1,11 @@
+use lasso::Rodeo;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
 use ast::{Type, TypeKind};
 use diagnostics::{
     positional::LabelSpan,
-    report::{Report, Reportable},
+    report::{LabelBuilder, Report, ReportBuilder, Reportable, Serverity},
 };
 
 pub type Result = std::result::Result<Option<Type>, TypeError>;
@@ -34,28 +35,22 @@ impl InvalidBinaryType {
     }
 }
 
-// impl Reportable for InvalidBinaryType {
-//     fn into_report(self) -> Report {
-//         let report_message = format!(
-//             "There is no binary operator that supports: {} {} {}",
-//             self.lhs, self.operator, self.rhs
-//         );
+impl Reportable for InvalidBinaryType {
+    fn into_report(self, _interner: &Rodeo) -> Report {
+        let report_message = format!(
+            "There is no binary operator that supports: {} {} {}",
+            self.lhs, self.operator, self.rhs
+        );
 
-//         ReportBuilder::default()
-//             .message(report_message)
-//             .code(1)
-//             .serverity(Serverity::Error)
-//             .label(
-//                 LabelBuilder::default()
-//                     .span(*self.span.span())
-//                     .file(*self.span)
-//                     .build()
-//                     .unwrap(),
-//             )
-//             .build()
-//             .unwrap()
-//     }
-// }
+        ReportBuilder::default()
+            .message(report_message)
+            .code(1)
+            .serverity(Serverity::Error)
+            .label(LabelBuilder::default().span(self.span).build().unwrap())
+            .build()
+            .unwrap()
+    }
+}
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
@@ -75,6 +70,23 @@ impl InvalidUnaryType {
     }
 }
 
+impl Reportable for InvalidUnaryType {
+    fn into_report(self, _interner: &Rodeo) -> Report {
+        let report_message = format!(
+            "There is no unary operator that supports: {} {}",
+            self.operator, self.expression
+        );
+
+        ReportBuilder::default()
+            .message(report_message)
+            .code(1)
+            .serverity(Serverity::Error)
+            .label(LabelBuilder::default().span(self.span).build().unwrap())
+            .build()
+            .unwrap()
+    }
+}
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub struct NotMatching {
@@ -88,6 +100,34 @@ impl NotMatching {
     }
 }
 
+impl Reportable for NotMatching {
+    fn into_report(self, _interner: &Rodeo) -> Report {
+        let report_message = format!(
+            "Expected to find the type '{}' but instead got '{}'",
+            self.expected.kind, self.got.kind
+        );
+
+        let instead_message = format!(
+            "Got '{}' but instead expected '{}'",
+            self.got.kind, self.expected.kind
+        );
+
+        ReportBuilder::default()
+            .message(report_message)
+            .code(1)
+            .serverity(Serverity::Error)
+            .label(
+                LabelBuilder::default()
+                    .message(instead_message)
+                    .span(self.got.span)
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap()
+    }
+}
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub enum TypeError {
@@ -98,12 +138,12 @@ pub enum TypeError {
 }
 
 impl Reportable for TypeError {
-    fn into_report(self) -> Report {
+    fn into_report(self, interner: &Rodeo) -> Report {
         match self {
-            Self::InvalidBinaryType(_error) => todo!("{:#?}", _error),
-            Self::InvalidUnaryType(_error) => todo!("{:#?}", _error),
-            Self::NotMatching(_error) => todo!("{:#?}", _error),
-            Self::InternalError(error) => panic!("Internal error: {:#?}", error),
+            Self::InvalidBinaryType(error) => error.into_report(interner),
+            Self::InvalidUnaryType(error) => error.into_report(interner),
+            Self::NotMatching(error) => error.into_report(interner),
+            Self::InternalError(error) => error.into_report(interner),
         }
     }
 }
@@ -120,6 +160,18 @@ impl NoTypeFound {
     }
 }
 
+impl Reportable for NoTypeFound {
+    fn into_report(self, _interner: &Rodeo) -> Report {
+        ReportBuilder::default()
+            .message("Couldn't find a type for this node:")
+            .code(1)
+            .serverity(Serverity::Bug)
+            .label(LabelBuilder::default().span(self.span).build().unwrap())
+            .build()
+            .unwrap()
+    }
+}
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub struct NoSymbolFound {
@@ -132,9 +184,30 @@ impl NoSymbolFound {
     }
 }
 
+impl Reportable for NoSymbolFound {
+    fn into_report(self, _interner: &Rodeo) -> Report {
+        ReportBuilder::default()
+            .message("Couldn't find a symbol for this node:")
+            .code(1)
+            .serverity(Serverity::Bug)
+            .label(LabelBuilder::default().span(self.span).build().unwrap())
+            .build()
+            .unwrap()
+    }
+}
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub enum InternalError {
     NoTypeFound(NoTypeFound),
     NoSymbolFound(NoSymbolFound),
+}
+
+impl Reportable for InternalError {
+    fn into_report(self, interner: &Rodeo) -> Report {
+        match self {
+            Self::NoSymbolFound(error) => error.into_report(interner),
+            Self::NoTypeFound(error) => error.into_report(interner),
+        }
+    }
 }

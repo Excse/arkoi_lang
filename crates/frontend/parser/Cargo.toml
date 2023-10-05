@@ -13,6 +13,7 @@ lexer = { path = "../lexer" }
 ast = { path = "../ast" }
 
 serde = { version = "1.0.188", features = ["derive"], optional = true }
+lasso = { version = "0.7.2", features = ["serialize"] }
 
 [features]
 default = [ "serialize" ]

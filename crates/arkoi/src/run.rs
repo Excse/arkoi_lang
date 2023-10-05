@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{cell::RefCell, path::PathBuf, rc::Rc};
 
 use clap::Args;
 use lasso::Rodeo;
@@ -30,10 +30,10 @@ pub fn run(args: RunArgs) {
     let file_id = files.add(input_path, &source);
 
     let stdout = StandardStream::stdout(ColorChoice::Auto);
-    let mut renderer = Renderer::new(&files, stdout);
-    let mut interner = Rodeo::new();
+    let interner = Rc::new(RefCell::new(Rodeo::new()));
+    let mut renderer = Renderer::new(&files, interner.clone(), stdout);
 
-    let lexer = Lexer::new(&files, file_id, &mut interner);
+    let lexer = Lexer::new(&files, file_id, interner.clone());
     if !lexer.errors.is_empty() {
         for error in lexer.errors {
             renderer.render(error);
@@ -65,7 +65,7 @@ pub fn run(args: RunArgs) {
         return;
     }
 
-    let mut interpreter = Interpreter::new(&mut interner);
+    let mut interpreter = Interpreter::new(interner);
     program.statements.iter().for_each(|statement| {
         println!("{:?}", interpreter.visit_stmt(statement));
     });

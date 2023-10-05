@@ -48,12 +48,14 @@ impl<'a> TokenIterator<'a> {
                 Some(content)
             }
             TokenKind::Id => {
-                let content = self.lexer.interner.get_or_intern(content).into();
+                let mut interner = self.lexer.interner.borrow_mut();
+                let content = interner.get_or_intern(content).into();
                 Some(content)
             }
             TokenKind::String => {
                 let content = &content[1..content.len() - 1];
-                let content = self.lexer.interner.get_or_intern(content).into();
+                let mut interner = self.lexer.interner.borrow_mut();
+                let content = interner.get_or_intern(content).into();
                 Some(content)
             }
             TokenKind::True => Some(true.into()),

@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use std::iter::Peekable;
 
-use crate::error::{DidntExpect, EndOfFile, Result, UnexpectedEOF};
+use crate::error::{Unexpected, EndOfFile, Result, UnexpectedEOF};
 use lexer::{
     iterator::TokenIterator,
     token::{Token, TokenKind},
@@ -111,7 +111,7 @@ impl<'a> Cursor<'a> {
             .collect::<Vec<String>>()
             .join(", ");
 
-        Err(DidntExpect::error(
+        Err(Unexpected::error(
             token.kind.to_string(),
             token.span,
             expected,
@@ -130,7 +130,7 @@ impl<'a> Cursor<'a> {
             return Ok(self.iterator.next().unwrap());
         }
 
-        Err(DidntExpect::error(
+        Err(Unexpected::error(
             token.kind.to_string(),
             token.span,
             expected.to_string(),

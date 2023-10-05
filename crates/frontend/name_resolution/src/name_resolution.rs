@@ -1,3 +1,4 @@
+use diagnostics::positional::LabelSpan;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -9,7 +10,7 @@ use std::{
 };
 
 use crate::{
-    error::{ResolutionError, Result, VariableMustBeAFunction},
+    error::{InvalidSymbolKind, ResolutionError, Result},
     symbol::{Symbol, SymbolKind},
     table::SymbolTable,
 };
@@ -147,7 +148,7 @@ impl<'a> Visitor<'a> for NameResolution {
 
     fn visit_call(&mut self, node: &'a Call) -> Result {
         let symbol = node.callee.accept(self)?;
-        self.is_potential_function_symbol(symbol)?;
+        self.is_potential_function_symbol(symbol, node.span)?;
 
         node.arguments
             .iter()
@@ -161,47 +162,47 @@ impl<'a> Visitor<'a> for NameResolution {
 
     fn visit_equality(&mut self, node: &'a Equality) -> Result {
         let lhs = node.lhs.accept(self)?;
-        self.is_potential_variable_symbol(lhs)?;
+        self.is_potential_variable_symbol(lhs, node.lhs.span())?;
 
         let rhs = node.rhs.accept(self)?;
-        self.is_potential_variable_symbol(rhs)?;
+        self.is_potential_variable_symbol(rhs, node.rhs.span())?;
 
         Self::default_result()
     }
 
     fn visit_comparison(&mut self, node: &'a Comparison) -> Result {
         let lhs = node.lhs.accept(self)?;
-        self.is_potential_variable_symbol(lhs)?;
+        self.is_potential_variable_symbol(lhs, node.lhs.span())?;
 
         let rhs = node.rhs.accept(self)?;
-        self.is_potential_variable_symbol(rhs)?;
+        self.is_potential_variable_symbol(rhs, node.rhs.span())?;
 
         Self::default_result()
     }
 
     fn visit_term(&mut self, node: &'a Term) -> Result {
         let lhs = node.lhs.accept(self)?;
-        self.is_potential_variable_symbol(lhs)?;
+        self.is_potential_variable_symbol(lhs, node.lhs.span())?;
 
         let rhs = node.rhs.accept(self)?;
-        self.is_potential_variable_symbol(rhs)?;
+        self.is_potential_variable_symbol(rhs, node.rhs.span())?;
 
         Self::default_result()
     }
 
     fn visit_factor(&mut self, node: &'a Factor) -> Result {
         let lhs = node.lhs.accept(self)?;
-        self.is_potential_variable_symbol(lhs)?;
+        self.is_potential_variable_symbol(lhs, node.lhs.span())?;
 
         let rhs = node.rhs.accept(self)?;
-        self.is_potential_variable_symbol(rhs)?;
+        self.is_potential_variable_symbol(rhs, node.rhs.span())?;
 
         Self::default_result()
     }
 
     fn visit_unary(&mut self, node: &'a Unary) -> Result {
         let symbol = node.expression.accept(self)?;
-        self.is_potential_variable_symbol(symbol)?;
+        self.is_potential_variable_symbol(symbol, node.span)?;
 
         Self::default_result()
     }
@@ -209,7 +210,7 @@ impl<'a> Visitor<'a> for NameResolution {
     fn visit_return(&mut self, node: &'a Return) -> Result {
         if let Some(ref expression) = node.expression {
             let symbol = expression.accept(self)?;
-            self.is_potential_variable_symbol(symbol)?;
+            self.is_potential_variable_symbol(symbol, expression.span())?;
         }
 
         Self::default_result()
@@ -217,7 +218,7 @@ impl<'a> Visitor<'a> for NameResolution {
 
     fn visit_id(&mut self, node: &'a Id) -> Result {
         let name = node.id.get_spur().unwrap();
-        let symbol = self.table.lookup(name)?;
+        let symbol = self.table.lookup(name, node.id.span)?;
         self.resolved.insert(node, symbol.clone());
 
         Ok(Some(symbol))
@@ -228,6 +229,7 @@ impl NameResolution {
     fn is_potential_function_symbol(
         &self,
         symbol: Option<Rc<RefCell<Symbol>>>,
+        span: LabelSpan,
     ) -> std::result::Result<(), ResolutionError> {
         let symbol = match symbol {
             Some(symbol) => symbol,
@@ -237,13 +239,14 @@ impl NameResolution {
         let kind = symbol.borrow().kind.clone();
         match kind {
             SymbolKind::Function(_) => Ok(()),
-            _ => Err(VariableMustBeAFunction::error()),
+            _ => Err(InvalidSymbolKind::error(kind, "function", span)),
         }
     }
 
     fn is_potential_variable_symbol(
         &self,
         symbol: Option<Rc<RefCell<Symbol>>>,
+        span: LabelSpan,
     ) -> std::result::Result<(), ResolutionError> {
         let symbol = match symbol {
             Some(symbol) => symbol,
@@ -253,7 +256,7 @@ impl NameResolution {
         let kind = symbol.borrow().kind.clone();
         match kind {
             SymbolKind::LocalVar | SymbolKind::GlobalVar | SymbolKind::Parameter => Ok(()),
-            _ => Err(VariableMustBeAFunction::error()),
+            _ => Err(InvalidSymbolKind::error(kind, "variable/parameter", span)),
         }
     }
 }

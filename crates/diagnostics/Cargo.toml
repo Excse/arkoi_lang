@@ -7,6 +7,7 @@ version = { workspace = true }
 
 [dependencies]
 serde = { version = "1.0.188", features = ["derive"], optional = true }
+lasso = { version = "0.7.2", features = ["serialize"] }
 derive_builder = "0.12.0"
 strum_macros = "0.25"
 termcolor = "1.2.0"

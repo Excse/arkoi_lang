@@ -13,8 +13,11 @@ pub struct LabelSpan {
 }
 
 impl LabelSpan {
-    pub fn new(span: Span, file_id: FileID) -> Self {
-        LabelSpan { span, file_id }
+    pub fn new(span: impl Into<Span>, file_id: FileID) -> Self {
+        LabelSpan {
+            span: span.into(),
+            file_id,
+        }
     }
 
     pub fn combine(&self, other: &LabelSpan) -> Self {

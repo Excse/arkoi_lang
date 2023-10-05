@@ -1,7 +1,10 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use std::rc::Rc;
+use std::{
+    fmt::{Display, Formatter},
+    rc::Rc,
+};
 
 use lasso::Spur;
 
@@ -16,6 +19,17 @@ pub enum SymbolKind {
     Parameter,
     // TODO: Find a way to prevent the clone
     Function(Rc<Block>),
+}
+
+impl Display for SymbolKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::LocalVar => write!(f, "local variable"),
+            Self::GlobalVar => write!(f, "global variable"),
+            Self::Parameter => write!(f, "parameter"),
+            Self::Function(_) => write!(f, "function"),
+        }
+    }
 }
 
 impl PartialEq for SymbolKind {

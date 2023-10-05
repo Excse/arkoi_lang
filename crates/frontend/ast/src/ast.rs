@@ -544,7 +544,7 @@ impl<'a> Node<'a> for Unary {}
 pub struct Call {
     pub callee: ExprKind,
     pub arguments: Vec<ExprKind>,
-    span: LabelSpan,
+    pub span: LabelSpan,
 }
 
 impl Call {

@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 #[cfg(feature = "serialize")]
 use serde::Serialize;
@@ -16,8 +16,8 @@ use name_resolution::symbol::Symbol;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub struct Interpreter<'a> {
-    interner: &'a mut Rodeo,
+pub struct Interpreter {
+    interner: Rc<RefCell<Rodeo>>,
 }
 
 #[derive(Debug)]
@@ -29,7 +29,7 @@ pub enum Output {
     Function(Rc<Symbol>),
 }
 
-impl<'a> Visitor<'a> for Interpreter<'a> {
+impl<'a> Visitor<'a> for Interpreter {
     type Return = Output;
     type Error = InterpreterError;
 
@@ -40,7 +40,8 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
     fn visit_literal(&mut self, node: &'a Literal) -> Result {
         Ok(match node.token.value {
             Some(TokenValue::String(value)) => {
-                Output::String(self.interner.resolve(&value).to_string())
+                let interner = self.interner.borrow();
+                Output::String(interner.resolve(&value).to_string())
             }
             Some(TokenValue::Bool(value)) => Output::Bool(value),
             Some(TokenValue::Integer(value)) => Output::Integer(value),
@@ -179,8 +180,8 @@ impl<'a> Visitor<'a> for Interpreter<'a> {
     }
 }
 
-impl<'a> Interpreter<'a> {
-    pub fn new(interner: &'a mut Rodeo) -> Self {
+impl<'a> Interpreter {
+    pub fn new(interner: Rc<RefCell<Rodeo>>) -> Self {
         Interpreter { interner }
     }
 

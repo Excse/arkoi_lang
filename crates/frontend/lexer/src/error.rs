@@ -1,3 +1,4 @@
+use lasso::Rodeo;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -27,7 +28,7 @@ impl DidntExpect {
 }
 
 impl Reportable for DidntExpect {
-    fn into_report(self) -> Report {
+    fn into_report(self, _interner: &Rodeo) -> Report {
         let report_message = format!(
             "Expected to find '[{}]' but instead got '[{}]'.",
             self.expected, self.got,
@@ -41,8 +42,7 @@ impl Reportable for DidntExpect {
             .label(
                 LabelBuilder::default()
                     .message(label_message)
-                    .file(self.span.file_id)
-                    .span(self.span.span)
+                    .span(self.span)
                     .build()
                     .unwrap(),
             )
@@ -59,26 +59,45 @@ pub enum LexerError {
 }
 
 impl Reportable for LexerError {
-    fn into_report(self) -> Report {
+    fn into_report(self, interner: &Rodeo) -> Report {
         match self {
-            Self::DidntExpect(error) => error.into_report(),
-            Self::InternalError(error) => panic!("Internal error: {:?}", error),
+            Self::DidntExpect(error) => error.into_report(interner),
+            Self::InternalError(error) => error.into_report(interner),
         }
     }
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub struct UnexpectedEOF;
+pub struct EndOfFile;
 
-impl UnexpectedEOF {
+impl EndOfFile {
     pub fn error() -> LexerError {
-        LexerError::InternalError(InternalError::UnexpectedEOF(UnexpectedEOF))
+        LexerError::InternalError(InternalError::EndOfFile(EndOfFile))
+    }
+}
+
+impl Reportable for EndOfFile {
+    fn into_report(self, _interner: &Rodeo) -> Report {
+        ReportBuilder::default()
+            .message("Unexpectedly reached the end of the file.")
+            .code(2)
+            .serverity(Serverity::Bug)
+            .build()
+            .unwrap()
     }
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub enum InternalError {
-    UnexpectedEOF(UnexpectedEOF),
+    EndOfFile(EndOfFile),
+}
+
+impl Reportable for InternalError {
+    fn into_report(self, interner: &Rodeo) -> Report {
+        match self {
+            Self::EndOfFile(error) => error.into_report(interner),
+        }
+    }
 }

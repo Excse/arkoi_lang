@@ -1,6 +1,8 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
+use lasso::Rodeo;
+
 use diagnostics::report::{Report, Reportable};
 use name_resolution::error::ResolutionError;
 use type_checker::error::TypeError;
@@ -13,10 +15,10 @@ pub enum SemanticError {
 }
 
 impl Reportable for SemanticError {
-    fn into_report(self) -> Report {
+    fn into_report(self, interner: &Rodeo) -> Report {
         match self {
-            Self::NameResolution(error) => error.into_report(),
-            Self::TypeChecker(error) => error.into_report(),
+            Self::NameResolution(error) => error.into_report(interner),
+            Self::TypeChecker(error) => error.into_report(interner),
         }
     }
 }

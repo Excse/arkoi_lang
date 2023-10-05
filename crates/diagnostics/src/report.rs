@@ -1,3 +1,4 @@
+use lasso::Rodeo;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -6,8 +7,8 @@ use std::fmt::Display;
 use derive_builder::UninitializedFieldError;
 
 use crate::{
-    file::{FileID, Files},
-    positional::Span,
+    file::Files,
+    positional::{LabelSpan, Span},
 };
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -67,11 +68,11 @@ impl Display for ReportBuilderError {
 }
 
 pub trait Reportable {
-    fn into_report(self) -> Report;
+    fn into_report(self, interner: &Rodeo) -> Report;
 }
 
 impl Reportable for Report {
-    fn into_report(self) -> Report {
+    fn into_report(self, _interner: &Rodeo) -> Report {
         self
     }
 }
@@ -106,8 +107,8 @@ impl ReportBuilder {
 
         for (index, label) in labels.iter().enumerate() {
             for other in labels.iter().skip(index + 1) {
-                if label.span.intersect(&other.span) {
-                    overlapping.push((label.span, other.span));
+                if label.span.span.intersect(&other.span.span) {
+                    overlapping.push((label.span.span, other.span.span));
                 }
             }
         }
@@ -120,13 +121,10 @@ impl ReportBuilder {
     }
 }
 
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Builder, Clone, PartialEq)]
 pub struct Label {
-    pub(crate) file: FileID,
-    #[builder(setter(into))]
-    pub(crate) span: Span,
+    pub(crate) span: LabelSpan,
     #[builder(setter(into, strip_option))]
     pub(crate) message: Option<String>,
 
@@ -138,9 +136,13 @@ pub struct Label {
 
 impl Label {
     pub fn gather_data(&mut self, files: &Files) {
-        let file = files.get(self.file).expect("Couldn't find the file.");
+        let file = files
+            .get(self.span.file_id)
+            .expect("Couldn't find the file.");
 
-        let line_span = file.find_line_span(&self.span).expect("Invalid line span.");
+        let line_span = file
+            .find_line_span(&self.span.span)
+            .expect("Invalid line span.");
         let multiline = line_span.start != line_span.end;
 
         self.line_span = Some(line_span);
@@ -167,16 +169,14 @@ mod test {
             .serverity(Serverity::Note)
             .label(
                 LabelBuilder::default()
-                    .file(test_file)
-                    .span(0..4)
+                    .span(LabelSpan::new(0..4, test_file))
                     .message("")
                     .build()
                     .unwrap(),
             )
             .label(
                 LabelBuilder::default()
-                    .file(test_file)
-                    .span(3..6)
+                    .span(LabelSpan::new(3..6, test_file))
                     .message("")
                     .build()
                     .unwrap(),
@@ -201,16 +201,14 @@ mod test {
             .serverity(Serverity::Note)
             .label(
                 LabelBuilder::default()
-                    .file(test_file)
-                    .span(0..4)
+                    .span(LabelSpan::new(0..4, test_file))
                     .message("This is a greeting.")
                     .build()
                     .unwrap(),
             )
             .label(
                 LabelBuilder::default()
-                    .file(test_file)
-                    .span(5..8)
+                    .span(LabelSpan::new(5..8, test_file))
                     .message("This is another greeting.")
                     .build()
                     .unwrap(),

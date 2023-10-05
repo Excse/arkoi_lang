@@ -1,13 +1,13 @@
-use diagnostics::positional::LabelSpan;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
 use crate::cursor::Cursor;
-use crate::error::{DidntExpect, ErrorKind, InternalError, ParserError, Result};
+use crate::error::{ErrorKind, InternalError, ParserError, Result, Unexpected};
 use ast::{
     Block, Call, Comparison, Equality, ExprKind, ExprStmt, Factor, FunDecl, Grouping, Id, LetDecl,
     Literal, LiteralKind, Parameter, Program, Return, StmtKind, Term, Type, Unary,
 };
+use diagnostics::positional::LabelSpan;
 use lexer::iterator::TokenIterator;
 use lexer::token::TokenKind;
 
@@ -77,7 +77,7 @@ impl<'a> Parser<'a> {
         }
 
         let token = self.cursor.peek()?;
-        Err(DidntExpect::error(
+        Err(Unexpected::error(
             token.kind.to_string(),
             token.span,
             "fun or let declaration",
@@ -102,7 +102,7 @@ impl<'a> Parser<'a> {
         }
 
         let token = self.cursor.peek()?;
-        Err(DidntExpect::error(
+        Err(Unexpected::error(
             token.kind.to_string(),
             token.span,
             "expression statement or block",
@@ -184,7 +184,7 @@ impl<'a> Parser<'a> {
         }
 
         let token = self.cursor.peek()?;
-        Err(DidntExpect::error(
+        Err(Unexpected::error(
             token.kind.to_string(),
             token.span,
             "statement, let declaration",
@@ -482,7 +482,7 @@ impl<'a> Parser<'a> {
             Ok(Grouping::expression(expression, span))
         } else {
             let token = self.cursor.peek()?;
-            Err(DidntExpect::error(
+            Err(Unexpected::error(
                 token.kind.to_string(),
                 token.span,
                 "int, decimal, string, true, false, identifier, oparent".to_string(),

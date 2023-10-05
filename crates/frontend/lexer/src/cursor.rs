@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use std::{iter::Peekable, str::CharIndices};
 
-use crate::error::{DidntExpect, Result, UnexpectedEOF};
+use crate::error::{DidntExpect, Result, EndOfFile};
 use diagnostics::{
     file::{FileID, Files},
     positional::{LabelSpan, Span},
@@ -78,7 +78,7 @@ impl<'a> Cursor<'a> {
                 LabelSpan::new(Span::single(index), self.file_id),
                 expected,
             )),
-            None => Err(UnexpectedEOF::error()),
+            None => Err(EndOfFile::error()),
         }
     }
 
@@ -93,7 +93,7 @@ impl<'a> Cursor<'a> {
                 LabelSpan::new(Span::single(index), self.file_id),
                 message,
             )),
-            None => Err(UnexpectedEOF::error()),
+            None => Err(EndOfFile::error()),
         }
     }
 
