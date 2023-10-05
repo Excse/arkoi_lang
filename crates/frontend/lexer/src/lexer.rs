@@ -1,8 +1,8 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 #[cfg(feature = "serialize")]
 use serde::Serialize;
+
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use lasso::Rodeo;
 

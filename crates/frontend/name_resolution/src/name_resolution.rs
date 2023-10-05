@@ -1,4 +1,3 @@
-use diagnostics::positional::LabelSpan;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -19,6 +18,7 @@ use ast::{
     Block, Call, Comparison, Equality, Factor, FunDecl, Id, LetDecl, Node, Parameter, Program,
     Return, Term, Unary,
 };
+use diagnostics::positional::LabelSpan;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]

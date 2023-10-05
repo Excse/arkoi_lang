@@ -1,10 +1,10 @@
-use lasso::Rodeo;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
 use std::fmt::Display;
 
 use derive_builder::UninitializedFieldError;
+use lasso::Rodeo;
 
 use crate::{
     file::Files,

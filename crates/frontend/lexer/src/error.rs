@@ -1,4 +1,3 @@
-use lasso::Rodeo;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -6,6 +5,7 @@ use diagnostics::{
     positional::LabelSpan,
     report::{LabelBuilder, Report, ReportBuilder, Reportable, Serverity},
 };
+use lasso::Rodeo;
 
 pub type Result<T> = std::result::Result<T, LexerError>;
 

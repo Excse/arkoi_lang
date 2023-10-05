@@ -1,6 +1,7 @@
-use lasso::Rodeo;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
+
+use lasso::Rodeo;
 
 use ast::{Type, TypeKind};
 use diagnostics::{

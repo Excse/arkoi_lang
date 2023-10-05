@@ -1,4 +1,3 @@
-use diagnostics::positional::LabelSpan;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -9,6 +8,7 @@ use std::{
 };
 
 use crate::traversal::Visitor;
+use diagnostics::positional::LabelSpan;
 use lexer::token::{Token, TokenKind};
 
 pub trait Node<'a>: Hash {}
@@ -154,7 +154,7 @@ impl Return {
 impl<'a> Node<'a> for Return {}
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug,  Clone, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct Parameter {
     pub name: Token,
     pub type_: Type,

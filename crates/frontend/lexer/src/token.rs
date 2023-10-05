@@ -1,10 +1,10 @@
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+
 use std::{
     fmt::Display,
     hash::{Hash, Hasher},
 };
-
-#[cfg(feature = "serialize")]
-use serde::Serialize;
 
 use lasso::Spur;
 

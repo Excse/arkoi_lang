@@ -1,4 +1,3 @@
-use diagnostics::positional::LabelSpan;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -10,6 +9,7 @@ use crate::{
     error::{NameAlreadyUsed, ResolutionError, SymbolNotFound},
     symbol::Symbol,
 };
+use diagnostics::positional::LabelSpan;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
@@ -86,7 +86,11 @@ impl SymbolTable {
         scope.insert(name, span, symbol, shadow)
     }
 
-    pub fn lookup(&self, name: Spur, span: LabelSpan) -> Result<Rc<RefCell<Symbol>>, ResolutionError> {
+    pub fn lookup(
+        &self,
+        name: Spur,
+        span: LabelSpan,
+    ) -> Result<Rc<RefCell<Symbol>>, ResolutionError> {
         for scope in self.scopes.iter().rev() {
             if let Some(symbol) = scope.lookup(name) {
                 return Ok(symbol);

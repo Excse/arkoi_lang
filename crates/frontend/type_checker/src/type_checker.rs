@@ -1,4 +1,3 @@
-use name_resolution::ResolvedSymbols;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -10,6 +9,7 @@ use ast::{
     Block, Call, Comparison, Equality, Factor, FunDecl, Id, LetDecl, Literal, LiteralKind,
     Parameter, Program, Return, Term, Type, TypeKind, Unary, UnaryOperator,
 };
+use name_resolution::ResolvedSymbols;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]

@@ -2,7 +2,6 @@ use std::{cell::RefCell, path::PathBuf, rc::Rc};
 
 use clap::Args;
 use lasso::Rodeo;
-use semantics::Semantics;
 use termcolor::{ColorChoice, StandardStream};
 
 use ast::traversal::Visitor;
@@ -10,6 +9,7 @@ use diagnostics::{file::Files, renderer::Renderer};
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
+use semantics::Semantics;
 
 #[derive(Args)]
 pub struct RunArgs {

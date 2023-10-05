@@ -1,12 +1,10 @@
-use lasso::Rodeo;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
-#[cfg(feature = "serdebug")]
-use serdebug::SerDebug;
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use termcolor::WriteColor;
+use lasso::Rodeo;
 
 use crate::{file::Files, report::Reportable};
 
