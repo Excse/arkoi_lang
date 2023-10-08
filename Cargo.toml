@@ -9,6 +9,7 @@ members = [
   "crates/frontend/semantics",
   "crates/frontend/name_resolution",
   "crates/frontend/type_checker",
+  "crates/middleend/tac",
 ]
 resolver = "2"
 
