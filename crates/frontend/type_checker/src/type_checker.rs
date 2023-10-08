@@ -29,7 +29,7 @@ impl TypeChecker {
     }
 }
 
-impl<'a> Visitor<'a> for TypeChecker {
+impl Visitor for TypeChecker {
     type Return = Option<Type>;
     type Error = TypeError;
 
@@ -37,7 +37,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(None)
     }
 
-    fn visit_program(&mut self, node: &'a Program) -> Result {
+    fn visit_program(&mut self, node: &Program) -> Result {
         node.statements
             .iter()
             .for_each(|statement| match statement.accept(self) {
@@ -48,7 +48,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_block(&mut self, node: &'a Block) -> Result {
+    fn visit_block(&mut self, node: &Block) -> Result {
         node.statements
             .iter()
             .for_each(|statement| match statement.accept(self) {
@@ -59,7 +59,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_call(&mut self, node: &'a Call) -> Result {
+    fn visit_call(&mut self, node: &Call) -> Result {
         node.callee.accept(self)?;
 
         for argument in node.arguments.iter() {
@@ -79,7 +79,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_equality(&mut self, node: &'a Equality) -> Result {
+    fn visit_equality(&mut self, node: &Equality) -> Result {
         let lhs_span = node.lhs.span();
         let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
         let rhs_span = node.lhs.span();
@@ -102,7 +102,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(Some(Type::new(type_kind, node.span)))
     }
 
-    fn visit_comparison(&mut self, node: &'a Comparison) -> Result {
+    fn visit_comparison(&mut self, node: &Comparison) -> Result {
         let lhs_span = node.lhs.span();
         let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
         let rhs_span = node.lhs.span();
@@ -121,7 +121,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(Some(Type::new(type_kind, node.span)))
     }
 
-    fn visit_term(&mut self, node: &'a Term) -> Result {
+    fn visit_term(&mut self, node: &Term) -> Result {
         let lhs_span = node.lhs.span();
         let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
         let rhs_span = node.lhs.span();
@@ -145,7 +145,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(Some(Type::new(type_kind, node.span)))
     }
 
-    fn visit_factor(&mut self, node: &'a Factor) -> Result {
+    fn visit_factor(&mut self, node: &Factor) -> Result {
         let lhs_span = node.lhs.span();
         let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
         let rhs_span = node.lhs.span();
@@ -169,7 +169,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(Some(Type::new(type_kind, node.span)))
     }
 
-    fn visit_unary(&mut self, node: &'a Unary) -> Result {
+    fn visit_unary(&mut self, node: &Unary) -> Result {
         let expression_span = node.expression.span();
         let expression = node
             .expression
@@ -192,7 +192,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(Some(Type::new(type_kind, node.span)))
     }
 
-    fn visit_return(&mut self, node: &'a Return) -> Result {
+    fn visit_return(&mut self, node: &Return) -> Result {
         if let Some(ref expression) = node.expression {
             let function_type = self
                 .current_function
@@ -210,7 +210,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_literal(&mut self, node: &'a Literal) -> Result {
+    fn visit_literal(&mut self, node: &Literal) -> Result {
         let type_kind = match node.kind {
             LiteralKind::Int => TypeKind::Int(
                 false,
@@ -238,11 +238,11 @@ impl<'a> Visitor<'a> for TypeChecker {
         Ok(Some(Type::new(type_kind, node.token.span)))
     }
 
-    fn visit_type(&mut self, node: &'a Type) -> Result {
+    fn visit_type(&mut self, node: &Type) -> Result {
         Ok(Some(node.clone()))
     }
 
-    fn visit_let_decl(&mut self, node: &'a LetDecl) -> Result {
+    fn visit_let_decl(&mut self, node: &LetDecl) -> Result {
         let name_span = node.name.span;
         let type_ = node
             .type_
@@ -263,7 +263,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_fun_decl(&mut self, node: &'a FunDecl) -> Result {
+    fn visit_fun_decl(&mut self, node: &FunDecl) -> Result {
         node.parameters
             .iter()
             .for_each(|parameter| match parameter.accept(self) {
@@ -292,7 +292,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_parameter(&mut self, node: &'a Parameter) -> Result {
+    fn visit_parameter(&mut self, node: &Parameter) -> Result {
         let name_span = node.name.span;
         let type_ = node
             .type_
@@ -309,7 +309,7 @@ impl<'a> Visitor<'a> for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_id(&mut self, node: &'a Id) -> Result {
+    fn visit_id(&mut self, node: &Id) -> Result {
         let id_span = node.id.span;
         let symbol = self
             .resolved

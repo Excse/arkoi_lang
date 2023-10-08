@@ -29,7 +29,7 @@ pub enum Output {
     Function(Rc<Symbol>),
 }
 
-impl<'a> Visitor<'a> for Interpreter {
+impl Visitor for Interpreter {
     type Return = Output;
     type Error = InterpreterError;
 
@@ -37,7 +37,7 @@ impl<'a> Visitor<'a> for Interpreter {
         Err(InterpreterError::Undefined)
     }
 
-    fn visit_literal(&mut self, node: &'a Literal) -> Result {
+    fn visit_literal(&mut self, node: &Literal) -> Result {
         Ok(match node.token.value {
             Some(TokenValue::String(value)) => {
                 let interner = self.interner.borrow();
@@ -50,7 +50,7 @@ impl<'a> Visitor<'a> for Interpreter {
         })
     }
 
-    fn visit_equality(&mut self, node: &'a Equality) -> Result {
+    fn visit_equality(&mut self, node: &Equality) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -78,7 +78,7 @@ impl<'a> Visitor<'a> for Interpreter {
         })
     }
 
-    fn visit_comparison(&mut self, node: &'a Comparison) -> Result {
+    fn visit_comparison(&mut self, node: &Comparison) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -112,7 +112,7 @@ impl<'a> Visitor<'a> for Interpreter {
         })
     }
 
-    fn visit_term(&mut self, node: &'a Term) -> Result {
+    fn visit_term(&mut self, node: &Term) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -134,7 +134,7 @@ impl<'a> Visitor<'a> for Interpreter {
         })
     }
 
-    fn visit_factor(&mut self, node: &'a Factor) -> Result {
+    fn visit_factor(&mut self, node: &Factor) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -156,7 +156,7 @@ impl<'a> Visitor<'a> for Interpreter {
         })
     }
 
-    fn visit_unary(&mut self, node: &'a Unary) -> Result {
+    fn visit_unary(&mut self, node: &Unary) -> Result {
         let expression = node.expression.accept(self)?;
 
         Ok(match (node.operator, expression) {
@@ -167,20 +167,20 @@ impl<'a> Visitor<'a> for Interpreter {
         })
     }
 
-    fn visit_id(&mut self, _node: &'a Id) -> Result {
+    fn visit_id(&mut self, _node: &Id) -> Result {
         todo!()
     }
 
-    fn visit_call(&mut self, _node: &'a Call) -> Result {
+    fn visit_call(&mut self, _node: &Call) -> Result {
         todo!()
     }
 
-    fn visit_return(&mut self, _node: &'a Return) -> Result {
+    fn visit_return(&mut self, _node: &Return) -> Result {
         todo!()
     }
 }
 
-impl<'a> Interpreter {
+impl Interpreter {
     pub fn new(interner: Rc<RefCell<Rodeo>>) -> Self {
         Interpreter { interner }
     }

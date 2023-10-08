@@ -3,10 +3,7 @@ use serde::Serialize;
 
 use std::rc::Rc;
 
-use ast::{
-    traversal::{Visitable, Visitor},
-    Term,
-};
+use ast::traversal::Visitor;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
@@ -69,7 +66,7 @@ pub struct Binary {
 }
 
 impl Binary {
-    pub fn new(lhs: Operand, op: BinaryOperator, rhs: Operand) -> Quadruple {
+    pub fn instruction(lhs: Operand, op: BinaryOperator, rhs: Operand) -> Quadruple {
         Quadruple::Binary(Box::new(Binary { lhs, op, rhs }))
     }
 }
@@ -94,7 +91,7 @@ pub struct TACTransformer {
     instructions: Vec<Quadruple>,
 }
 
-impl<'a> Visitor<'a> for TACTransformer {
+impl Visitor for TACTransformer {
     type Return = Option<Operand>;
     type Error = TACError;
 
