@@ -6,7 +6,7 @@ use std::ops::Range;
 use crate::file::FileID;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Default, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Default, Copy, PartialEq)]
 pub struct LabelSpan {
     pub span: Span,
     pub file_id: FileID,
@@ -28,7 +28,7 @@ impl LabelSpan {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Default, Eq, PartialEq, Clone, Copy, Hash)]
+#[derive(Debug, Default, Eq, PartialEq, Clone, Copy)]
 pub struct Span {
     pub(crate) start: usize,
     pub(crate) end: usize,

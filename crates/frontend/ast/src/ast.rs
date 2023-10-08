@@ -4,7 +4,6 @@ use serde::Serialize;
 use std::{
     cell::RefCell,
     fmt::{Display, Formatter, Result},
-    hash::Hash,
     rc::Rc,
 };
 
@@ -12,10 +11,8 @@ use crate::{symbol::Symbol, traversal::Visitor};
 use diagnostics::positional::LabelSpan;
 use lexer::token::{Token, TokenKind};
 
-pub trait Node<'a>: Hash {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Program {
     pub statements: Vec<StmtKind>,
     pub span: LabelSpan,
@@ -27,8 +24,6 @@ impl Program {
     }
 }
 
-impl<'a> Node<'a> for Program {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub enum StmtKind {
@@ -38,13 +33,6 @@ pub enum StmtKind {
     Block(Box<Block>),
     Return(Box<Return>),
 }
-
-// TODO: Temporary !!!!! to check something out
-impl Hash for StmtKind {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {}
-}
-
-impl<'a> Node<'a> for StmtKind {}
 
 impl StmtKind {
     pub fn span(&self) -> LabelSpan {
@@ -59,12 +47,10 @@ impl StmtKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct ExprStmt {
     pub expression: ExprKind,
 }
-
-impl<'a> Node<'a> for ExprStmt {}
 
 impl ExprStmt {
     pub fn statement(expression: ExprKind) -> StmtKind {
@@ -80,10 +66,6 @@ pub struct LetDecl {
     pub expression: Option<ExprKind>,
     pub span: LabelSpan,
     pub symbol: Option<Rc<RefCell<Symbol>>>,
-}
-
-impl Hash for LetDecl {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {}
 }
 
 impl LetDecl {
@@ -103,8 +85,6 @@ impl LetDecl {
     }
 }
 
-impl<'a> Node<'a> for LetDecl {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub struct FunDecl {
@@ -114,11 +94,6 @@ pub struct FunDecl {
     pub block: Box<Block>,
     pub span: LabelSpan,
     pub symbol: Option<Rc<RefCell<Symbol>>>,
-}
-
-// TODO: JUST TEMPORARY
-impl Hash for FunDecl {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {}
 }
 
 impl FunDecl {
@@ -140,10 +115,8 @@ impl FunDecl {
     }
 }
 
-impl<'a> Node<'a> for FunDecl {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Block {
     pub statements: Vec<StmtKind>,
     pub span: LabelSpan,
@@ -155,10 +128,8 @@ impl Block {
     }
 }
 
-impl<'a> Node<'a> for Block {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Return {
     pub expression: Option<ExprKind>,
     pub span: LabelSpan,
@@ -170,8 +141,6 @@ impl Return {
     }
 }
 
-impl<'a> Node<'a> for Return {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub struct Parameter {
@@ -179,10 +148,6 @@ pub struct Parameter {
     pub type_: Type,
     pub span: LabelSpan,
     pub symbol: Option<Rc<RefCell<Symbol>>>,
-}
-
-impl Hash for Parameter {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {}
 }
 
 impl Parameter {
@@ -196,10 +161,8 @@ impl Parameter {
     }
 }
 
-impl<'a> Node<'a> for Parameter {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TypeKind {
     Int(bool, usize),
     Decimal(usize),
@@ -251,12 +214,6 @@ impl PartialEq for Type {
     }
 }
 
-impl Hash for Type {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.kind.hash(state)
-    }
-}
-
 impl Type {
     pub fn new(kind: impl Into<TypeKind>, span: LabelSpan) -> Self {
         Type {
@@ -266,10 +223,8 @@ impl Type {
     }
 }
 
-impl<'a> Node<'a> for Type {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub enum ExprKind {
     Equality(Box<Equality>),
     Comparison(Box<Comparison>),
@@ -281,8 +236,6 @@ pub enum ExprKind {
     Literal(Box<Literal>),
     Id(Box<Id>),
 }
-
-impl<'a> Node<'a> for ExprKind {}
 
 impl ExprKind {
     pub fn span(&self) -> LabelSpan {
@@ -301,7 +254,7 @@ impl ExprKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Copy, Clone, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum EqualityOperator {
     Eq,
     NotEq,
@@ -327,7 +280,7 @@ impl From<Token> for EqualityOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Equality {
     pub lhs: ExprKind,
     pub operator: EqualityOperator,
@@ -351,10 +304,8 @@ impl Equality {
     }
 }
 
-impl<'a> Node<'a> for Equality {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ComparisonOperator {
     Greater,
     GreaterEq,
@@ -386,7 +337,7 @@ impl From<Token> for ComparisonOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Comparison {
     pub lhs: ExprKind,
     pub operator: ComparisonOperator,
@@ -410,10 +361,8 @@ impl Comparison {
     }
 }
 
-impl<'a> Node<'a> for Comparison {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TermOperator {
     Add,
     Sub,
@@ -439,7 +388,7 @@ impl From<Token> for TermOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Term {
     pub lhs: ExprKind,
     pub operator: TermOperator,
@@ -463,10 +412,8 @@ impl Term {
     }
 }
 
-impl<'a> Node<'a> for Term {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FactorOperator {
     Mul,
     Div,
@@ -492,7 +439,7 @@ impl From<Token> for FactorOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Factor {
     pub lhs: ExprKind,
     pub operator: FactorOperator,
@@ -516,10 +463,8 @@ impl Factor {
     }
 }
 
-impl<'a> Node<'a> for Factor {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnaryOperator {
     Neg,
     LogNeg,
@@ -545,7 +490,7 @@ impl From<Token> for UnaryOperator {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Unary {
     pub operator: UnaryOperator,
     pub expression: ExprKind,
@@ -566,10 +511,8 @@ impl Unary {
     }
 }
 
-impl<'a> Node<'a> for Unary {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Call {
     pub callee: ExprKind,
     pub arguments: Vec<ExprKind>,
@@ -586,10 +529,8 @@ impl Call {
     }
 }
 
-impl<'a> Node<'a> for Call {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Grouping {
     pub expression: ExprKind,
     span: LabelSpan,
@@ -601,17 +542,11 @@ impl Grouping {
     }
 }
 
-impl<'a> Node<'a> for Grouping {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub struct Id {
     pub id: Token,
     pub symbol: Option<Rc<RefCell<Symbol>>>,
-}
-
-impl Hash for Id {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {}
 }
 
 impl Id {
@@ -620,10 +555,8 @@ impl Id {
     }
 }
 
-impl<'a> Node<'a> for Id {}
-
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LiteralKind {
     String,
     Int,
@@ -632,7 +565,7 @@ pub enum LiteralKind {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Literal {
     pub token: Token,
     pub kind: LiteralKind,
@@ -643,5 +576,3 @@ impl Literal {
         ExprKind::Literal(Box::new(Literal { token, kind }))
     }
 }
-
-impl<'a> Node<'a> for Literal {}

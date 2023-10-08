@@ -55,10 +55,6 @@ pub struct Symbol {
     pub span: LabelSpan,
 }
 
-impl std::hash::Hash for Symbol {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {}
-}
-
 impl Symbol {
     pub fn new(name: Spur, span: LabelSpan, kind: SymbolKind) -> Self {
         Symbol {

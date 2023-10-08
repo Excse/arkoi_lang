@@ -1,7 +1,7 @@
-use std::{cell::RefCell, rc::Rc};
-
 #[cfg(feature = "serialize")]
 use serde::Serialize;
+
+use std::{cell::RefCell, rc::Rc};
 
 use crate::error::{
     InvalidBinaryType, InvalidUnaryType, NoSymbolFound, NoTypeFound, NotMatching, Result, TypeError,
