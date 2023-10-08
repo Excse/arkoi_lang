@@ -37,7 +37,7 @@ impl Visitor for Interpreter {
         Err(InterpreterError::Undefined)
     }
 
-    fn visit_literal(&mut self, node: &Literal) -> Result {
+    fn visit_literal(&mut self, node: &mut Literal) -> Result {
         Ok(match node.token.value {
             Some(TokenValue::String(value)) => {
                 let interner = self.interner.borrow();
@@ -50,7 +50,7 @@ impl Visitor for Interpreter {
         })
     }
 
-    fn visit_equality(&mut self, node: &Equality) -> Result {
+    fn visit_equality(&mut self, node: &mut Equality) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -78,7 +78,7 @@ impl Visitor for Interpreter {
         })
     }
 
-    fn visit_comparison(&mut self, node: &Comparison) -> Result {
+    fn visit_comparison(&mut self, node: &mut Comparison) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -112,7 +112,7 @@ impl Visitor for Interpreter {
         })
     }
 
-    fn visit_term(&mut self, node: &Term) -> Result {
+    fn visit_term(&mut self, node: &mut Term) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -134,7 +134,7 @@ impl Visitor for Interpreter {
         })
     }
 
-    fn visit_factor(&mut self, node: &Factor) -> Result {
+    fn visit_factor(&mut self, node: &mut Factor) -> Result {
         let lhs = node.lhs.accept(self)?;
         let rhs = node.rhs.accept(self)?;
 
@@ -156,7 +156,7 @@ impl Visitor for Interpreter {
         })
     }
 
-    fn visit_unary(&mut self, node: &Unary) -> Result {
+    fn visit_unary(&mut self, node: &mut Unary) -> Result {
         let expression = node.expression.accept(self)?;
 
         Ok(match (node.operator, expression) {
@@ -167,15 +167,15 @@ impl Visitor for Interpreter {
         })
     }
 
-    fn visit_id(&mut self, _node: &Id) -> Result {
+    fn visit_id(&mut self, _node: &mut Id) -> Result {
         todo!()
     }
 
-    fn visit_call(&mut self, _node: &Call) -> Result {
+    fn visit_call(&mut self, _node: &mut Call) -> Result {
         todo!()
     }
 
-    fn visit_return(&mut self, _node: &Return) -> Result {
+    fn visit_return(&mut self, _node: &mut Return) -> Result {
         todo!()
     }
 }

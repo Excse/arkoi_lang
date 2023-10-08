@@ -3,12 +3,12 @@ use serde::Serialize;
 
 use std::{
     fmt::{Display, Formatter},
-    rc::Rc,
+    rc::Rc, cell::RefCell,
 };
 
 use lasso::Spur;
 
-use ast::{Block, Type};
+use ast::{Type, FunDecl};
 use diagnostics::positional::LabelSpan;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -18,7 +18,7 @@ pub enum SymbolKind {
     GlobalVar,
     Parameter,
     // TODO: Find a way to prevent the clone
-    Function(Rc<Block>),
+    Function(Rc<RefCell<FunDecl>>),
 }
 
 impl Display for SymbolKind {

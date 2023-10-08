@@ -2,6 +2,7 @@
 use serde::Serialize;
 
 use std::{
+    cell::RefCell,
     fmt::{Display, Formatter, Result},
     hash::Hash,
     rc::Rc,
@@ -29,13 +30,18 @@ impl Program {
 impl<'a> Node<'a> for Program {}
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub enum StmtKind {
     ExprStmt(Box<ExprStmt>),
     LetDecl(Box<LetDecl>),
-    FunDecl(Box<FunDecl>),
-    Block(Rc<Block>),
+    FunDecl(Rc<RefCell<FunDecl>>),
+    Block(Box<Block>),
     Return(Box<Return>),
+}
+
+// TODO: Temporary !!!!! to check something out
+impl Hash for StmtKind {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {}
 }
 
 impl<'a> Node<'a> for StmtKind {}
@@ -45,7 +51,7 @@ impl StmtKind {
         match self {
             Self::ExprStmt(node) => node.expression.span(),
             Self::LetDecl(node) => node.span,
-            Self::FunDecl(node) => node.span,
+            Self::FunDecl(node) => node.borrow().span,
             Self::Block(node) => node.span,
             Self::Return(node) => node.span,
         }
@@ -94,13 +100,18 @@ impl LetDecl {
 impl<'a> Node<'a> for LetDecl {}
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct FunDecl {
     pub name: Token,
     pub parameters: Vec<Parameter>,
     pub type_: Type,
-    pub block: Rc<Block>,
+    pub block: Box<Block>,
     pub span: LabelSpan,
+}
+
+// TODO: JUST TEMPORARY
+impl Hash for FunDecl {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {}
 }
 
 impl FunDecl {
@@ -108,16 +119,16 @@ impl FunDecl {
         name: Token,
         parameters: Vec<Parameter>,
         type_: Type,
-        block: Rc<Block>,
+        block: Box<Block>,
         span: LabelSpan,
     ) -> StmtKind {
-        StmtKind::FunDecl(Box::new(FunDecl {
+        StmtKind::FunDecl(Rc::new(RefCell::new(FunDecl {
             name,
             parameters,
             type_,
             block,
             span,
-        }))
+        })))
     }
 }
 
@@ -132,7 +143,7 @@ pub struct Block {
 
 impl Block {
     pub fn statement(statements: Vec<StmtKind>, span: LabelSpan) -> StmtKind {
-        StmtKind::Block(Rc::new(Block { statements, span }))
+        StmtKind::Block(Box::new(Block { statements, span }))
     }
 }
 

@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -37,9 +39,9 @@ impl Visitor for TypeChecker {
         Ok(None)
     }
 
-    fn visit_program(&mut self, node: &Program) -> Result {
+    fn visit_program(&mut self, node: &mut Program) -> Result {
         node.statements
-            .iter()
+            .iter_mut()
             .for_each(|statement| match statement.accept(self) {
                 Ok(_) => {}
                 Err(error) => self.errors.push(error),
@@ -48,9 +50,9 @@ impl Visitor for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_block(&mut self, node: &Block) -> Result {
+    fn visit_block(&mut self, node: &mut Block) -> Result {
         node.statements
-            .iter()
+            .iter_mut()
             .for_each(|statement| match statement.accept(self) {
                 Ok(_) => {}
                 Err(error) => self.errors.push(error),
@@ -59,11 +61,11 @@ impl Visitor for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_call(&mut self, node: &Call) -> Result {
+    fn visit_call(&mut self, node: &mut Call) -> Result {
         node.callee.accept(self)?;
 
-        for argument in node.arguments.iter() {
-            let type_ = match argument.accept(self) {
+        for argument in node.arguments.iter_mut() {
+            let _type_ = match argument.accept(self) {
                 Ok(Some(type_)) => type_,
                 Ok(None) => {
                     self.errors.push(NoTypeFound::error(argument.span()));
@@ -79,7 +81,7 @@ impl Visitor for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_equality(&mut self, node: &Equality) -> Result {
+    fn visit_equality(&mut self, node: &mut Equality) -> Result {
         let lhs_span = node.lhs.span();
         let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
         let rhs_span = node.lhs.span();
@@ -102,7 +104,7 @@ impl Visitor for TypeChecker {
         Ok(Some(Type::new(type_kind, node.span)))
     }
 
-    fn visit_comparison(&mut self, node: &Comparison) -> Result {
+    fn visit_comparison(&mut self, node: &mut Comparison) -> Result {
         let lhs_span = node.lhs.span();
         let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
         let rhs_span = node.lhs.span();
@@ -121,7 +123,7 @@ impl Visitor for TypeChecker {
         Ok(Some(Type::new(type_kind, node.span)))
     }
 
-    fn visit_term(&mut self, node: &Term) -> Result {
+    fn visit_term(&mut self, node: &mut Term) -> Result {
         let lhs_span = node.lhs.span();
         let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
         let rhs_span = node.lhs.span();
@@ -145,7 +147,7 @@ impl Visitor for TypeChecker {
         Ok(Some(Type::new(type_kind, node.span)))
     }
 
-    fn visit_factor(&mut self, node: &Factor) -> Result {
+    fn visit_factor(&mut self, node: &mut Factor) -> Result {
         let lhs_span = node.lhs.span();
         let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
         let rhs_span = node.lhs.span();
@@ -169,7 +171,7 @@ impl Visitor for TypeChecker {
         Ok(Some(Type::new(type_kind, node.span)))
     }
 
-    fn visit_unary(&mut self, node: &Unary) -> Result {
+    fn visit_unary(&mut self, node: &mut Unary) -> Result {
         let expression_span = node.expression.span();
         let expression = node
             .expression
@@ -192,8 +194,8 @@ impl Visitor for TypeChecker {
         Ok(Some(Type::new(type_kind, node.span)))
     }
 
-    fn visit_return(&mut self, node: &Return) -> Result {
-        if let Some(ref expression) = node.expression {
+    fn visit_return(&mut self, node: &mut Return) -> Result {
+        if let Some(ref mut expression) = node.expression {
             let function_type = self
                 .current_function
                 .clone()
@@ -210,7 +212,7 @@ impl Visitor for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_literal(&mut self, node: &Literal) -> Result {
+    fn visit_literal(&mut self, node: &mut Literal) -> Result {
         let type_kind = match node.kind {
             LiteralKind::Int => TypeKind::Int(
                 false,
@@ -238,18 +240,18 @@ impl Visitor for TypeChecker {
         Ok(Some(Type::new(type_kind, node.token.span)))
     }
 
-    fn visit_type(&mut self, node: &Type) -> Result {
+    fn visit_type(&mut self, node: &mut Type) -> Result {
         Ok(Some(node.clone()))
     }
 
-    fn visit_let_decl(&mut self, node: &LetDecl) -> Result {
+    fn visit_let_decl(&mut self, node: &mut LetDecl) -> Result {
         let name_span = node.name.span;
         let type_ = node
             .type_
             .accept(self)?
             .ok_or(NoTypeFound::error(name_span))?;
 
-        if let Some(ref expression) = node.expression {
+        if let Some(ref mut expression) = node.expression {
             expression.accept(self)?;
         }
 
@@ -263,36 +265,39 @@ impl Visitor for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_fun_decl(&mut self, node: &FunDecl) -> Result {
-        node.parameters
-            .iter()
+    fn visit_fun_decl(&mut self, node: Rc<RefCell<FunDecl>>) -> Result {
+        node.borrow_mut()
+            .parameters
+            .iter_mut()
             .for_each(|parameter| match parameter.accept(self) {
                 Ok(_) => {}
                 Err(error) => self.errors.push(error),
             });
 
-        let name_span = node.name.span;
+        let name_span = node.borrow().name.span;
         let type_ = node
+            .borrow_mut()
             .type_
             .accept(self)?
             .ok_or(NoTypeFound::error(name_span))?;
 
-        let symbol = self
-            .resolved
-            .get(node)
-            .ok_or(NoSymbolFound::error(name_span))?;
-        let mut symbol = symbol.borrow_mut();
-        symbol.type_ = Some(type_.clone());
+        // TODO: Revert changes
+        // let symbol = self
+        //     .resolved
+        //     .get(node)
+        //     .ok_or(NoSymbolFound::error(name_span))?;
+        // let mut symbol = symbol.borrow_mut();
+        // symbol.type_ = Some(type_.clone());
 
         let last = self.current_function.clone();
         self.current_function = Some(type_);
-        node.block.accept(self)?;
+        node.borrow_mut().block.accept(self)?;
         self.current_function = last;
 
         Self::default_result()
     }
 
-    fn visit_parameter(&mut self, node: &Parameter) -> Result {
+    fn visit_parameter(&mut self, node: &mut Parameter) -> Result {
         let name_span = node.name.span;
         let type_ = node
             .type_
@@ -309,7 +314,7 @@ impl Visitor for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_id(&mut self, node: &Id) -> Result {
+    fn visit_id(&mut self, node: &mut Id) -> Result {
         let id_span = node.id.span;
         let symbol = self
             .resolved

@@ -9,12 +9,12 @@ use type_checker::TypeChecker;
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
 pub struct Semantics<'a> {
-    program: &'a Program,
+    program: &'a mut Program,
     pub errors: Vec<SemanticError>,
 }
 
 impl<'a> Semantics<'a> {
-    pub fn new(program: &'a Program) -> Self {
+    pub fn new(program: &'a mut Program) -> Self {
         Semantics {
             program,
             errors: Vec::new(),

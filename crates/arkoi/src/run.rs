@@ -44,7 +44,7 @@ pub fn run(args: RunArgs) {
 
     let iterator = lexer.into_iter();
     let mut parser = Parser::new(iterator);
-    let program = parser.parse_program();
+    let mut program = parser.parse_program();
 
     if !parser.errors.is_empty() {
         for error in parser.errors {
@@ -54,7 +54,7 @@ pub fn run(args: RunArgs) {
         return;
     }
 
-    let mut semantics = Semantics::new(&program);
+    let mut semantics = Semantics::new(&mut program);
     semantics.run_all();
 
     if !semantics.errors.is_empty() {
@@ -66,7 +66,7 @@ pub fn run(args: RunArgs) {
     }
 
     let mut interpreter = Interpreter::new(interner);
-    program.statements.iter().for_each(|statement| {
+    program.statements.iter_mut().for_each(|statement| {
         println!("{:?}", interpreter.visit_stmt(statement));
     });
 }
