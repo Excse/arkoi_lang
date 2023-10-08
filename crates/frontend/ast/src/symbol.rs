@@ -2,14 +2,16 @@
 use serde::Serialize;
 
 use std::{
+    cell::RefCell,
     fmt::{Display, Formatter},
-    rc::Rc, cell::RefCell,
+    rc::Rc,
 };
 
 use lasso::Spur;
 
-use ast::{Type, FunDecl};
 use diagnostics::positional::LabelSpan;
+
+use crate::{FunDecl, Type};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
@@ -51,6 +53,10 @@ pub struct Symbol {
     pub kind: SymbolKind,
     pub type_: Option<Type>,
     pub span: LabelSpan,
+}
+
+impl std::hash::Hash for Symbol {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {}
 }
 
 impl Symbol {

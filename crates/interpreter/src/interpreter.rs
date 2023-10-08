@@ -9,10 +9,9 @@ use crate::error::{InterpreterError, Result};
 use ast::{
     traversal::{Visitable, Visitor},
     Call, Comparison, ComparisonOperator, Equality, EqualityOperator, Factor, FactorOperator, Id,
-    Literal, Return, Term, TermOperator, Unary, UnaryOperator,
+    Literal, Return, Term, TermOperator, Unary, UnaryOperator, symbol::Symbol,
 };
 use lexer::token::TokenValue;
-use name_resolution::symbol::Symbol;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
@@ -26,7 +25,7 @@ pub enum Output {
     Integer(usize),
     Decimal(f64),
     Bool(bool),
-    Function(Rc<Symbol>),
+    Function(Rc<RefCell<Symbol>>),
 }
 
 impl Visitor for Interpreter {

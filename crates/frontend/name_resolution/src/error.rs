@@ -1,3 +1,4 @@
+use ast::symbol::{Symbol, SymbolKind};
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -5,7 +6,6 @@ use std::{cell::RefCell, rc::Rc};
 
 use lasso::{Rodeo, Spur};
 
-use crate::symbol::{Symbol, SymbolKind};
 use diagnostics::{
     positional::LabelSpan,
     report::{LabelBuilder, Report, ReportBuilder, Reportable, Serverity},

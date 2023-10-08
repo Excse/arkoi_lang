@@ -11,24 +11,12 @@ use ast::{
     Block, Call, Comparison, Equality, Factor, FunDecl, Id, LetDecl, Literal, LiteralKind,
     Parameter, Program, Return, Term, Type, TypeKind, Unary, UnaryOperator,
 };
-use name_resolution::ResolvedSymbols;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TypeChecker {
-    resolved: ResolvedSymbols,
     current_function: Option<Type>,
     pub errors: Vec<TypeError>,
-}
-
-impl TypeChecker {
-    pub fn new(resolved: ResolvedSymbols) -> Self {
-        TypeChecker {
-            resolved,
-            current_function: None,
-            errors: Vec::new(),
-        }
-    }
 }
 
 impl Visitor for TypeChecker {
@@ -255,12 +243,8 @@ impl Visitor for TypeChecker {
             expression.accept(self)?;
         }
 
-        let symbol = self
-            .resolved
-            .get(node)
-            .ok_or(NoSymbolFound::error(name_span))?;
-        let mut symbol = symbol.borrow_mut();
-        symbol.type_ = Some(type_);
+        let symbol = node.symbol.clone().ok_or(NoSymbolFound::error(name_span))?;
+        symbol.borrow_mut().type_ = Some(type_);
 
         Self::default_result()
     }
@@ -281,13 +265,12 @@ impl Visitor for TypeChecker {
             .accept(self)?
             .ok_or(NoTypeFound::error(name_span))?;
 
-        // TODO: Revert changes
-        // let symbol = self
-        //     .resolved
-        //     .get(node)
-        //     .ok_or(NoSymbolFound::error(name_span))?;
-        // let mut symbol = symbol.borrow_mut();
-        // symbol.type_ = Some(type_.clone());
+        let symbol = node
+            .borrow()
+            .symbol
+            .clone()
+            .ok_or(NoSymbolFound::error(name_span))?;
+        symbol.borrow_mut().type_ = Some(type_.clone());
 
         let last = self.current_function.clone();
         self.current_function = Some(type_);
@@ -304,25 +287,21 @@ impl Visitor for TypeChecker {
             .accept(self)?
             .ok_or(NoTypeFound::error(name_span))?;
 
-        let symbol = self
-            .resolved
-            .get(node)
-            .ok_or(NoSymbolFound::error(name_span))?;
-        let mut symbol = symbol.borrow_mut();
-        symbol.type_ = Some(type_);
+        let symbol = node.symbol.clone().ok_or(NoSymbolFound::error(name_span))?;
+        symbol.borrow_mut().type_ = Some(type_);
 
         Self::default_result()
     }
 
     fn visit_id(&mut self, node: &mut Id) -> Result {
         let id_span = node.id.span;
-        let symbol = self
-            .resolved
-            .get(node)
-            .ok_or(NoSymbolFound::error(id_span))?;
-        let symbol = symbol.borrow_mut();
+        let symbol = node.symbol.clone().ok_or(NoSymbolFound::error(id_span))?;
 
-        let type_ = symbol.type_.clone().ok_or(NoTypeFound::error(id_span))?;
+        let type_ = symbol
+            .borrow()
+            .type_
+            .clone()
+            .ok_or(NoTypeFound::error(id_span))?;
         Ok(Some(type_))
     }
 }

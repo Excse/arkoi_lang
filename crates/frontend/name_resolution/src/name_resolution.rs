@@ -1,54 +1,24 @@
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
-use std::{
-    cell::RefCell,
-    collections::{hash_map::DefaultHasher, HashMap},
-    hash::Hasher,
-    rc::Rc,
-};
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     error::{InvalidSymbolKind, ResolutionError, Result},
-    symbol::{Symbol, SymbolKind},
     table::SymbolTable,
 };
 use ast::{
+    symbol::{Symbol, SymbolKind},
     traversal::{Visitable, Visitor, Walkable},
-    Block, Call, Comparison, Equality, Factor, FunDecl, Id, LetDecl, Node, Parameter, Program,
-    Return, Term, Unary,
+    Block, Call, Comparison, Equality, Factor, FunDecl, Id, LetDecl, Parameter, Program, Return,
+    Term, Unary,
 };
 use diagnostics::positional::LabelSpan;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Default)]
-pub struct ResolvedSymbols {
-    resolved: HashMap<u64, Rc<RefCell<Symbol>>>,
-}
-
-impl ResolvedSymbols {
-    pub fn insert<'a>(&mut self, span: &impl Node<'a>, symbol: Rc<RefCell<Symbol>>) {
-        let mut hasher = DefaultHasher::new();
-        span.hash(&mut hasher);
-
-        let id = hasher.finish();
-        self.resolved.insert(id, symbol);
-    }
-
-    pub fn get<'a>(&self, span: &impl Node<'a>) -> Option<Rc<RefCell<Symbol>>> {
-        let mut hasher = DefaultHasher::new();
-        span.hash(&mut hasher);
-
-        let id = hasher.finish();
-        self.resolved.get(&id).cloned()
-    }
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Default)]
 pub struct NameResolution {
     table: SymbolTable,
-    pub resolved: ResolvedSymbols,
     pub errors: Vec<ResolutionError>,
 }
 
@@ -88,7 +58,7 @@ impl Visitor for NameResolution {
         let symbol = self
             .table
             .insert(name, node.name.span, symbol, should_shadow)?;
-        self.resolved.insert(node, symbol);
+        node.symbol = Some(symbol);
 
         result
     }
@@ -100,10 +70,9 @@ impl Visitor for NameResolution {
 
         let name = node.borrow().name.get_spur().unwrap();
         let symbol = Symbol::new(name, node.borrow().name.span, function);
-        let _symbol = global.insert(name, node.borrow().name.span, symbol, false)?;
+        let symbol = global.insert(name, node.borrow().name.span, symbol, false)?;
 
-        // TODO: Revert the changes
-        // self.resolved.insert(node, symbol);
+        node.borrow_mut().symbol = Some(symbol);
 
         self.table.enter();
 
@@ -129,7 +98,8 @@ impl Visitor for NameResolution {
 
         let symbol = Symbol::new(name, node.name.span, SymbolKind::Parameter);
         let symbol = self.table.insert(name, node.name.span, symbol, false)?;
-        self.resolved.insert(node, symbol);
+
+        node.symbol = Some(symbol);
 
         node.walk(self)
     }
@@ -222,7 +192,8 @@ impl Visitor for NameResolution {
     fn visit_id(&mut self, node: &mut Id) -> Result {
         let name = node.id.get_spur().unwrap();
         let symbol = self.table.lookup(name, node.id.span)?;
-        self.resolved.insert(node, symbol.clone());
+
+        node.symbol = Some(symbol.clone());
 
         Ok(Some(symbol))
     }

@@ -8,7 +8,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::traversal::Visitor;
+use crate::{symbol::Symbol, traversal::Visitor};
 use diagnostics::positional::LabelSpan;
 use lexer::token::{Token, TokenKind};
 
@@ -73,12 +73,17 @@ impl ExprStmt {
 }
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct LetDecl {
     pub name: Token,
     pub type_: Type,
     pub expression: Option<ExprKind>,
     pub span: LabelSpan,
+    pub symbol: Option<Rc<RefCell<Symbol>>>,
+}
+
+impl Hash for LetDecl {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {}
 }
 
 impl LetDecl {
@@ -93,6 +98,7 @@ impl LetDecl {
             type_,
             expression,
             span,
+            symbol: None,
         }))
     }
 }
@@ -107,6 +113,7 @@ pub struct FunDecl {
     pub type_: Type,
     pub block: Box<Block>,
     pub span: LabelSpan,
+    pub symbol: Option<Rc<RefCell<Symbol>>>,
 }
 
 // TODO: JUST TEMPORARY
@@ -128,6 +135,7 @@ impl FunDecl {
             type_,
             block,
             span,
+            symbol: None,
         })))
     }
 }
@@ -165,16 +173,26 @@ impl Return {
 impl<'a> Node<'a> for Return {}
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Parameter {
     pub name: Token,
     pub type_: Type,
     pub span: LabelSpan,
+    pub symbol: Option<Rc<RefCell<Symbol>>>,
+}
+
+impl Hash for Parameter {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {}
 }
 
 impl Parameter {
     pub fn new(name: Token, type_: Type, span: LabelSpan) -> Self {
-        Parameter { name, type_, span }
+        Parameter {
+            name,
+            type_,
+            span,
+            symbol: None,
+        }
     }
 }
 
@@ -586,14 +604,19 @@ impl Grouping {
 impl<'a> Node<'a> for Grouping {}
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Id {
     pub id: Token,
+    pub symbol: Option<Rc<RefCell<Symbol>>>,
+}
+
+impl Hash for Id {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {}
 }
 
 impl Id {
-    pub fn expression(identifier: Token) -> ExprKind {
-        ExprKind::Id(Box::new(Id { id: identifier }))
+    pub fn expression(id: Token) -> ExprKind {
+        ExprKind::Id(Box::new(Id { id, symbol: None }))
     }
 }
 

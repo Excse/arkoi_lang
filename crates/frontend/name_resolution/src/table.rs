@@ -1,3 +1,4 @@
+use ast::symbol::Symbol;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -5,10 +6,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use lasso::Spur;
 
-use crate::{
-    error::{NameAlreadyUsed, ResolutionError, SymbolNotFound},
-    symbol::Symbol,
-};
+use crate::error::{NameAlreadyUsed, ResolutionError, SymbolNotFound};
 use diagnostics::positional::LabelSpan;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
