@@ -63,7 +63,7 @@ impl Visitor for NameResolution {
         result
     }
 
-    fn visit_fun_decl(&mut self, node: Rc<RefCell<FunDecl>>) -> Result {
+    fn visit_fun_decl(&mut self, node: &mut Rc<RefCell<FunDecl>>) -> Result {
         let global = self.table.global_scope();
 
         let function = SymbolKind::Function(node.clone());

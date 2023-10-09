@@ -33,10 +33,11 @@ pub trait Visitor: Sized {
         node.walk(self)
     }
 
-    fn visit_fun_decl(&mut self, node: Rc<RefCell<FunDecl>>) -> Result<Self::Return, Self::Error> {
-        // node.walk(self)
-
-        Self::default_result()
+    fn visit_fun_decl(
+        &mut self,
+        node: &mut Rc<RefCell<FunDecl>>,
+    ) -> Result<Self::Return, Self::Error> {
+        node.walk(self)
     }
 
     fn visit_parameter(&mut self, node: &mut Parameter) -> Result<Self::Return, Self::Error> {
@@ -191,7 +192,7 @@ impl<V: Visitor> Walkable<V> for Rc<RefCell<FunDecl>> {
 
 impl<V: Visitor> Visitable<V> for Rc<RefCell<FunDecl>> {
     fn accept(&mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        visitor.visit_fun_decl(self.clone())
+        visitor.visit_fun_decl(self)
     }
 }
 

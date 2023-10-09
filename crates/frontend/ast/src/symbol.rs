@@ -19,7 +19,6 @@ pub enum SymbolKind {
     LocalVar,
     GlobalVar,
     Parameter,
-    // TODO: Find a way to prevent the clone
     Function(Rc<RefCell<FunDecl>>),
 }
 

@@ -249,7 +249,7 @@ impl Visitor for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_fun_decl(&mut self, node: Rc<RefCell<FunDecl>>) -> Result {
+    fn visit_fun_decl(&mut self, node: &mut Rc<RefCell<FunDecl>>) -> Result {
         node.borrow_mut()
             .parameters
             .iter_mut()
