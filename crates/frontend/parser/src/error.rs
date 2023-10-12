@@ -30,7 +30,7 @@ impl Unexpected {
 
 impl From<Unexpected> for ParserError {
     fn from(value: Unexpected) -> Self {
-        Self::new(ErrorKind::Unexpected(value))
+        Self::Unexpected(value)
     }
 }
 
@@ -74,7 +74,7 @@ impl UnexpectedEOF {
 
 impl From<UnexpectedEOF> for ParserError {
     fn from(value: UnexpectedEOF) -> Self {
-        Self::new(ErrorKind::UnexpectedEOF(value))
+        Self::UnexpectedEOF(value)
     }
 }
 
@@ -96,13 +96,13 @@ impl Reportable for UnexpectedEOF {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
-pub enum ErrorKind {
+pub enum ParserError {
     Unexpected(Unexpected),
     UnexpectedEOF(UnexpectedEOF),
     InternalError(InternalError),
 }
 
-impl Reportable for ErrorKind {
+impl Reportable for ParserError {
     fn into_report(self, interner: &Rodeo) -> Report {
         match self {
             Self::UnexpectedEOF(error) => error.into_report(interner),
@@ -118,7 +118,7 @@ pub struct EndOfFile;
 
 impl From<EndOfFile> for ParserError {
     fn from(value: EndOfFile) -> Self {
-        Self::new(ErrorKind::InternalError(InternalError::EndOfFile(value)))
+        Self::InternalError(InternalError::EndOfFile(value))
     }
 }
 
@@ -144,32 +144,5 @@ impl Reportable for InternalError {
         match self {
             Self::EndOfFile(error) => error.into_report(interner),
         }
-    }
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug)]
-pub struct ParserError {
-    pub(crate) kind: ErrorKind,
-    pub(crate) wrong_start: bool,
-}
-
-impl Reportable for ParserError {
-    fn into_report(self, interner: &Rodeo) -> Report {
-        self.kind.into_report(interner)
-    }
-}
-
-impl ParserError {
-    fn new(kind: ErrorKind) -> Self {
-        ParserError {
-            kind,
-            wrong_start: false,
-        }
-    }
-
-    pub fn wrong_start(mut self, wrong_start: bool) -> Self {
-        self.wrong_start = wrong_start;
-        self
     }
 }
