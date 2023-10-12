@@ -57,16 +57,12 @@ impl<'a> Parser<'a> {
     ///                    | let_declaration ;
     /// ```
     fn parse_program_decl(&mut self) -> Result<StmtKind> {
-        match self.try_parse_let_decl() {
-            Ok(Some(result)) => return Ok(result),
-            Ok(None) => {}
-            Err(error) => return Err(error),
+        if let Some(result) = self.try_parse_let_decl()? {
+            return Ok(result);
         }
 
-        match self.try_parse_fun_decl() {
-            Ok(Some(result)) => return Ok(result),
-            Ok(None) => {}
-            Err(error) => return Err(error),
+        if let Some(result) = self.try_parse_fun_decl()? {
+            return Ok(result);
         }
 
         let token = self.cursor.peek()?;
@@ -78,16 +74,12 @@ impl<'a> Parser<'a> {
     ///           | block ;
     /// ```
     fn try_parse_stmt(&mut self) -> Result<StmtKind> {
-        match self.try_parse_expr_stmt() {
-            Ok(Some(result)) => return Ok(result),
-            Ok(None) => {}
-            Err(error) => return Err(error),
+        if let Some(result) = self.try_parse_expr_stmt()? {
+            return Ok(result);
         }
 
-        match self.try_parse_block() {
-            Ok(Some(result)) => return Ok(result),
-            Ok(None) => {}
-            Err(error) => return Err(error),
+        if let Some(result) = self.try_parse_block()? {
+            return Ok(result);
         }
 
         let token = self.cursor.peek()?;
@@ -103,10 +95,9 @@ impl<'a> Parser<'a> {
     /// expression_statement = expression ";" ;
     /// ```
     fn try_parse_expr_stmt(&mut self) -> Result<Option<StmtKind>> {
-        let expression = match self.try_parse_expr() {
-            Ok(Some(expression)) => expression,
-            Ok(None) => return Ok(None),
-            Err(error) => return Err(error),
+        let expression = match self.try_parse_expr()? {
+            Some(expression) => expression,
+            None => return Ok(None),
         };
 
         self.cursor.eat(TokenKind::Semicolon)?;
@@ -153,10 +144,9 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_block(&mut self) -> Result<StmtKind> {
-        match self.try_parse_block() {
-            Ok(Some(statement)) => Ok(statement),
-            Ok(None) => Err(UnoptionalParsing.into()),
-            Err(error) => Err(error),
+        match self.try_parse_block()? {
+            Some(statement) => Ok(statement),
+            None => Err(UnoptionalParsing.into()),
         }
     }
 
@@ -166,16 +156,12 @@ impl<'a> Parser<'a> {
     ///                   | statement ;
     /// ```
     fn parse_block_decl(&mut self) -> Result<StmtKind> {
-        match self.try_parse_let_decl() {
-            Ok(Some(result)) => return Ok(result),
-            Ok(None) => {}
-            Err(error) => return Err(error),
+        if let Some(result) = self.try_parse_let_decl()? {
+            return Ok(result);
         }
 
-        match self.try_parse_return_stmt() {
-            Ok(Some(result)) => return Ok(result),
-            Ok(None) => {}
-            Err(error) => return Err(error),
+        if let Some(result) = self.try_parse_return_stmt()? {
+            return Ok(result);
         }
 
         if let Ok(result) = self.try_parse_stmt() {
@@ -200,11 +186,7 @@ impl<'a> Parser<'a> {
             Err(_) => return Ok(None),
         };
 
-        let expression = match self.try_parse_expr() {
-            Ok(Some(expression)) => Some(expression),
-            Ok(None) => None,
-            Err(error) => return Err(error),
-        };
+        let expression = self.try_parse_expr()?;
 
         let end = self.cursor.eat(TokenKind::Semicolon)?;
 
@@ -225,14 +207,15 @@ impl<'a> Parser<'a> {
 
         self.cursor.eat(TokenKind::Parent(true))?;
 
-        let parameters = if self.cursor.eat(TokenKind::Parent(false)).is_err() {
-            let parameters = self.parse_parameters()?;
+        let parameters = match self.cursor.eat(TokenKind::Parent(false)) {
+            Err(_) => {
+                let parameters = self.parse_parameters()?;
 
-            self.cursor.eat(TokenKind::Parent(false))?;
+                self.cursor.eat(TokenKind::Parent(false))?;
 
-            parameters
-        } else {
-            Vec::new()
+                parameters
+            }
+            _ => Vec::new(),
         };
 
         let type_ = self.parse_type()?;
@@ -356,10 +339,9 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_equality(&mut self) -> Result<ExprKind> {
-        match self.try_parse_equality(false) {
-            Ok(Some(expression)) => Ok(expression),
-            Ok(None) => Err(UnoptionalParsing.into()),
-            Err(error) => Err(error),
+        match self.try_parse_equality(false)? {
+            Some(expression) => Ok(expression),
+            None => Err(UnoptionalParsing.into()),
         }
     }
 
@@ -388,10 +370,9 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_comparison(&mut self) -> Result<ExprKind> {
-        match self.try_parse_comparison(false) {
-            Ok(Some(expression)) => Ok(expression),
-            Ok(None) => Err(UnoptionalParsing.into()),
-            Err(error) => Err(error),
+        match self.try_parse_comparison(false)? {
+            Some(expression) => Ok(expression),
+            None => Err(UnoptionalParsing.into()),
         }
     }
 
@@ -415,10 +396,9 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_term(&mut self) -> Result<ExprKind> {
-        match self.try_parse_term(false) {
-            Ok(Some(expression)) => Ok(expression),
-            Ok(None) => Err(UnoptionalParsing.into()),
-            Err(error) => Err(error),
+        match self.try_parse_term(false)? {
+            Some(expression) => Ok(expression),
+            None => Err(UnoptionalParsing.into()),
         }
     }
 
@@ -445,10 +425,9 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_factor(&mut self) -> Result<ExprKind> {
-        match self.try_parse_factor(false) {
-            Ok(Some(expression)) => Ok(expression),
-            Ok(None) => Err(UnoptionalParsing.into()),
-            Err(error) => Err(error),
+        match self.try_parse_factor(false)? {
+            Some(expression) => Ok(expression),
+            None => Err(UnoptionalParsing.into()),
         }
     }
 
@@ -471,10 +450,9 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_unary(&mut self) -> Result<ExprKind> {
-        match self.try_parse_unary(false) {
-            Ok(Some(expression)) => Ok(expression),
-            Ok(None) => Err(UnoptionalParsing.into()),
-            Err(error) => Err(error),
+        match self.try_parse_unary(false)? {
+            Some(expression) => Ok(expression),
+            None => Err(UnoptionalParsing.into()),
         }
     }
 
