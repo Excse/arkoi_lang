@@ -32,7 +32,7 @@ impl<'a> Parser<'a> {
     pub fn parse_program(&mut self) -> Program {
         let mut statements = Vec::new();
         loop {
-            match self.parse_program_declaration() {
+            match self.parse_program_decl() {
                 Ok(expression) => {
                     statements.push(expression);
                 }
@@ -44,11 +44,9 @@ impl<'a> Parser<'a> {
             };
         }
 
-        let span = if let Some(start) = statements.first() {
-            let end = statements.last().unwrap();
-            start.span().combine(&end.span())
-        } else {
-            LabelSpan::default()
+        let span = match (statements.first(), statements.last()) {
+            (Some(first), Some(last)) => first.span().combine(&last.span()),
+            (_, _) => LabelSpan::default(),
         };
 
         Program::new(statements, span)
@@ -58,14 +56,14 @@ impl<'a> Parser<'a> {
     /// program_statements = fun_declaration
     ///                    | let_declaration ;
     /// ```
-    fn parse_program_declaration(&mut self) -> Result<StmtKind> {
-        match self.try_parse_let_declaration() {
+    fn parse_program_decl(&mut self) -> Result<StmtKind> {
+        match self.try_parse_let_decl() {
             Ok(Some(result)) => return Ok(result),
             Ok(None) => {}
             Err(error) => return Err(error),
         }
 
-        match self.try_parse_fun_declaration() {
+        match self.try_parse_fun_decl() {
             Ok(Some(result)) => return Ok(result),
             Ok(None) => {}
             Err(error) => return Err(error),
@@ -79,8 +77,8 @@ impl<'a> Parser<'a> {
     /// statement = expression_statement
     ///           | block ;
     /// ```
-    fn parse_statement(&mut self) -> Result<StmtKind> {
-        match self.try_parse_expression_statement() {
+    fn try_parse_stmt(&mut self) -> Result<StmtKind> {
+        match self.try_parse_expr_stmt() {
             Ok(Some(result)) => return Ok(result),
             Ok(None) => {}
             Err(error) => return Err(error),
@@ -104,8 +102,8 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// expression_statement = expression ";" ;
     /// ```
-    fn try_parse_expression_statement(&mut self) -> Result<Option<StmtKind>> {
-        let expression = match self.try_parse_expression() {
+    fn try_parse_expr_stmt(&mut self) -> Result<Option<StmtKind>> {
+        let expression = match self.try_parse_expr() {
             Ok(Some(expression)) => expression,
             Ok(None) => return Ok(None),
             Err(error) => return Err(error),
@@ -136,7 +134,7 @@ impl<'a> Parser<'a> {
                 break;
             }
 
-            match self.parse_block_declaration() {
+            match self.parse_block_decl() {
                 Ok(expression) => {
                     statements.push(expression);
                 }
@@ -167,20 +165,20 @@ impl<'a> Parser<'a> {
     ///                   | return_statement
     ///                   | statement ;
     /// ```
-    fn parse_block_declaration(&mut self) -> Result<StmtKind> {
-        match self.try_parse_let_declaration() {
+    fn parse_block_decl(&mut self) -> Result<StmtKind> {
+        match self.try_parse_let_decl() {
             Ok(Some(result)) => return Ok(result),
             Ok(None) => {}
             Err(error) => return Err(error),
         }
 
-        match self.try_parse_return_statement() {
+        match self.try_parse_return_stmt() {
             Ok(Some(result)) => return Ok(result),
             Ok(None) => {}
             Err(error) => return Err(error),
         }
 
-        if let Ok(result) = self.parse_statement() {
+        if let Ok(result) = self.try_parse_stmt() {
             return Ok(result);
         }
 
@@ -196,13 +194,13 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// return_statement = return expression? ";" ;
     /// ```
-    fn try_parse_return_statement(&mut self) -> Result<Option<StmtKind>> {
+    fn try_parse_return_stmt(&mut self) -> Result<Option<StmtKind>> {
         let start = match self.cursor.eat(TokenKind::Return) {
             Ok(token) => token,
             Err(_) => return Ok(None),
         };
 
-        let expression = match self.try_parse_expression() {
+        let expression = match self.try_parse_expr() {
             Ok(Some(expression)) => Some(expression),
             Ok(None) => None,
             Err(error) => return Err(error),
@@ -217,7 +215,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// fun_declaration = "fun" IDENTIFIER "(" parameters? ")" type block ;
     /// ```
-    fn try_parse_fun_declaration(&mut self) -> Result<Option<StmtKind>> {
+    fn try_parse_fun_decl(&mut self) -> Result<Option<StmtKind>> {
         let start = match self.cursor.eat(TokenKind::Fun) {
             Ok(token) => token,
             Err(_) => return Ok(None),
@@ -303,7 +301,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// let_declaration = "let" IDENTIFIER ( "=" expression )? ";" ;
     /// ```
-    fn try_parse_let_declaration(&mut self) -> Result<Option<StmtKind>> {
+    fn try_parse_let_decl(&mut self) -> Result<Option<StmtKind>> {
         let start = match self.cursor.eat(TokenKind::Let) {
             Ok(token) => token,
             Err(_) => return Ok(None),
@@ -314,7 +312,7 @@ impl<'a> Parser<'a> {
         let type_ = self.parse_type()?;
 
         let expression = match self.cursor.eat(TokenKind::Eq) {
-            Ok(_) => Some(self.parse_expression()?),
+            Ok(_) => Some(self.parse_expr()?),
             Err(_) => None,
         };
 
@@ -327,14 +325,14 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// expression = equality;
     /// ```
-    fn try_parse_expression(&mut self) -> Result<Option<ExprKind>> {
+    fn try_parse_expr(&mut self) -> Result<Option<ExprKind>> {
         self.try_parse_equality(true)
     }
 
     /// ```ebnf
     /// expression = equality;
     /// ```
-    fn parse_expression(&mut self) -> Result<ExprKind> {
+    fn parse_expr(&mut self) -> Result<ExprKind> {
         self.parse_equality()
     }
 
@@ -507,7 +505,7 @@ impl<'a> Parser<'a> {
 
         let mut arguments = Vec::new();
         loop {
-            arguments.push(self.parse_expression()?);
+            arguments.push(self.parse_expr()?);
 
             if self.cursor.eat(TokenKind::Comma).is_err() {
                 break;
@@ -537,7 +535,7 @@ impl<'a> Parser<'a> {
         } else if let Ok(token) = self.cursor.eat(TokenKind::Id) {
             Ok(Some(Id::new(token).into()))
         } else if let Ok(start) = self.cursor.eat(TokenKind::Parent(true)) {
-            let expression = self.parse_expression()?;
+            let expression = self.parse_expr()?;
             let end = self.cursor.eat(TokenKind::Parent(false))?;
 
             let span = start.span.combine(&end.span);
