@@ -22,8 +22,8 @@ impl Token {
         file_id: FileID,
         value: Option<TokenValue>,
         kind: TokenKind,
-    ) -> Token {
-        Token {
+    ) -> Self {
+        Self {
             span,
             file_id,
             value,

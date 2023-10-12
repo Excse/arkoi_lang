@@ -20,7 +20,7 @@ pub struct Program {
 
 impl Program {
     pub fn new(statements: Vec<StmtKind>, span: LabelSpan) -> Self {
-        Program { statements, span }
+        Self { statements, span }
     }
 }
 

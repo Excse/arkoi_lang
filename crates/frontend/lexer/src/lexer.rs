@@ -22,7 +22,7 @@ pub struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     pub fn new(files: &'a Files, file_id: FileID, interner: Rc<RefCell<Rodeo>>) -> Lexer<'a> {
-        Lexer {
+        Self {
             cursor: Cursor::new(file_id, files),
             interner,
             errors: Vec::new(),

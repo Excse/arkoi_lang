@@ -21,7 +21,7 @@ impl File {
 
         let lines = File::line_ranges(&source);
 
-        File {
+        Self {
             id,
             path,
             source,
@@ -83,7 +83,7 @@ impl Default for Files {
 
 impl Files {
     pub fn new() -> Self {
-        Files { files: Vec::new() }
+        Self { files: Vec::new() }
     }
 
     pub fn add(&mut self, path: impl Into<String>, source: impl Into<String>) -> FileID {

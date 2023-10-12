@@ -21,7 +21,7 @@ pub struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     pub fn new(iterator: TokenIterator<'a>) -> Parser<'a> {
-        Parser {
+        Self {
             cursor: Cursor::new(iterator),
             errors: Vec::new(),
             wrong_start: false,

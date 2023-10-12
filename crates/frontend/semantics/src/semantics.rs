@@ -15,7 +15,7 @@ pub struct Semantics<'a> {
 
 impl<'a> Semantics<'a> {
     pub fn new(program: &'a mut Program) -> Self {
-        Semantics {
+        Self {
             program,
             errors: Vec::new(),
         }

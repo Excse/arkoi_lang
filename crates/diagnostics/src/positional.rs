@@ -14,7 +14,7 @@ pub struct LabelSpan {
 
 impl LabelSpan {
     pub fn new(span: impl Into<Span>, file_id: FileID) -> Self {
-        LabelSpan {
+        Self {
             span: span.into(),
             file_id,
         }
@@ -38,7 +38,7 @@ impl Span {
     pub fn new(start: usize, end: usize) -> Self {
         assert!(end >= start);
 
-        Span { start, end }
+        Self { start, end }
     }
 
     pub fn single(index: usize) -> Self {

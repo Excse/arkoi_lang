@@ -15,7 +15,7 @@ pub struct TokenIterator<'a> {
 
 impl<'a> TokenIterator<'a> {
     pub fn new(lexer: Lexer<'a>) -> Self {
-        TokenIterator { lexer }
+        Self { lexer }
     }
 }
 

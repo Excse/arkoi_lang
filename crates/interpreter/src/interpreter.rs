@@ -181,7 +181,7 @@ impl Visitor for Interpreter {
 
 impl Interpreter {
     pub fn new(interner: Rc<RefCell<Rodeo>>) -> Self {
-        Interpreter { interner }
+        Self { interner }
     }
 
     fn convert_numerical_operands(&self, lhs: Output, rhs: Output) -> (Output, Output) {

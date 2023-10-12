@@ -66,8 +66,14 @@ pub struct Binary {
 }
 
 impl Binary {
-    pub fn instruction(lhs: Operand, op: BinaryOperator, rhs: Operand) -> Quadruple {
-        Quadruple::Binary(Box::new(Binary { lhs, op, rhs }))
+    pub fn new(lhs: Operand, op: BinaryOperator, rhs: Operand) -> Self {
+        Binary { lhs, op, rhs }
+    }
+}
+
+impl From<Binary> for Quadruple {
+    fn from(value: Binary) -> Self {
+        Self::Binary(Box::new(value))
     }
 }
 

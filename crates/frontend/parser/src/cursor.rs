@@ -18,7 +18,7 @@ pub(crate) struct Cursor<'a> {
 
 impl<'a> Cursor<'a> {
     pub fn new(iterator: TokenIterator<'a>) -> Cursor<'a> {
-        Cursor {
+        Self {
             iterator: iterator.peekable(),
         }
     }

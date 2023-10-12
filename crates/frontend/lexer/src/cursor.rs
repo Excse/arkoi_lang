@@ -26,7 +26,7 @@ impl<'a> Cursor<'a> {
             .source(file_id)
             .expect("Couldn't get the source of this file.");
 
-        Cursor {
+        Self {
             file_id,
             files,
             chars: source.char_indices().peekable(),

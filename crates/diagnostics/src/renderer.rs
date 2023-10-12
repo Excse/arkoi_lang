@@ -18,7 +18,7 @@ pub struct Renderer<'a, Writer: WriteColor> {
 
 impl<'a, Writer: WriteColor> Renderer<'a, Writer> {
     pub fn new(files: &'a Files, interner: Rc<RefCell<Rodeo>>, writer: Writer) -> Self {
-        Renderer {
+        Self {
             files,
             interner,
             writer,

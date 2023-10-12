@@ -56,7 +56,7 @@ pub struct Symbol {
 
 impl Symbol {
     pub fn new(name: Spur, span: LabelSpan, kind: SymbolKind) -> Self {
-        Symbol {
+        Self {
             name,
             span,
             kind,
