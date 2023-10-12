@@ -222,17 +222,14 @@ impl Visitor for TypeChecker {
     }
 
     fn visit_let_decl(&mut self, node: &mut LetDecl) -> Result {
-        let name_span = node.name.span;
-        let type_ = node
-            .type_
-            .accept(self)?
-            .ok_or(NoTypeFound::new(name_span))?;
+        let id_span = node.id.span;
+        let type_ = node.type_.accept(self)?.ok_or(NoTypeFound::new(id_span))?;
 
         if let Some(ref mut expression) = node.expression {
             expression.accept(self)?;
         }
 
-        let symbol = node.symbol.clone().ok_or(NoSymbolFound::new(name_span))?;
+        let symbol = node.symbol.clone().ok_or(NoSymbolFound::new(id_span))?;
         symbol.borrow_mut().type_ = Some(type_);
 
         Self::default_result()
@@ -247,18 +244,18 @@ impl Visitor for TypeChecker {
                 Err(error) => self.errors.push(error),
             });
 
-        let name_span = node.borrow().name.span;
+        let id_span = node.borrow().id.span;
         let type_ = node
             .borrow_mut()
             .type_
             .accept(self)?
-            .ok_or(NoTypeFound::new(name_span))?;
+            .ok_or(NoTypeFound::new(id_span))?;
 
         let symbol = node
             .borrow()
             .symbol
             .clone()
-            .ok_or(NoSymbolFound::new(name_span))?;
+            .ok_or(NoSymbolFound::new(id_span))?;
         symbol.borrow_mut().type_ = Some(type_.clone());
 
         let last = self.current_function.clone();
@@ -270,13 +267,10 @@ impl Visitor for TypeChecker {
     }
 
     fn visit_parameter(&mut self, node: &mut Parameter) -> Result {
-        let name_span = node.name.span;
-        let type_ = node
-            .type_
-            .accept(self)?
-            .ok_or(NoTypeFound::new(name_span))?;
+        let id_span = node.id.span;
+        let type_ = node.type_.accept(self)?.ok_or(NoTypeFound::new(id_span))?;
 
-        let symbol = node.symbol.clone().ok_or(NoSymbolFound::new(name_span))?;
+        let symbol = node.symbol.clone().ok_or(NoSymbolFound::new(id_span))?;
         symbol.borrow_mut().type_ = Some(type_);
 
         Self::default_result()

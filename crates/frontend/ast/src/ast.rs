@@ -67,7 +67,7 @@ impl From<ExprStmt> for StmtKind {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub struct LetDecl {
-    pub name: Token,
+    pub id: Token,
     pub type_: Type,
     pub expression: Option<ExprKind>,
     pub span: LabelSpan,
@@ -75,9 +75,9 @@ pub struct LetDecl {
 }
 
 impl LetDecl {
-    pub fn new(name: Token, type_: Type, expression: Option<ExprKind>, span: LabelSpan) -> Self {
+    pub fn new(id: Token, type_: Type, expression: Option<ExprKind>, span: LabelSpan) -> Self {
         Self {
-            name,
+            id,
             type_,
             expression,
             span,
@@ -95,7 +95,7 @@ impl From<LetDecl> for StmtKind {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub struct FunDecl {
-    pub name: Token,
+    pub id: Token,
     pub parameters: Vec<Parameter>,
     pub type_: Type,
     pub block: Box<Block>,
@@ -105,14 +105,14 @@ pub struct FunDecl {
 
 impl FunDecl {
     pub fn new(
-        name: Token,
+        id: Token,
         parameters: Vec<Parameter>,
         type_: Type,
         block: Box<Block>,
         span: LabelSpan,
     ) -> Self {
         Self {
-            name,
+            id,
             parameters,
             type_,
             block,
@@ -169,16 +169,16 @@ impl From<Return> for StmtKind {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub struct Parameter {
-    pub name: Token,
+    pub id: Token,
     pub type_: Type,
     pub span: LabelSpan,
     pub symbol: Option<Rc<RefCell<Symbol>>>,
 }
 
 impl Parameter {
-    pub fn new(name: Token, type_: Type, span: LabelSpan) -> Self {
+    pub fn new(id: Token, type_: Type, span: LabelSpan) -> Self {
         Self {
-            name,
+            id,
             type_,
             span,
             symbol: None,

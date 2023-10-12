@@ -44,7 +44,7 @@ impl Visitor for NameResolution {
     fn visit_let_decl(&mut self, node: &mut LetDecl) -> Result {
         let should_shadow = !self.table.is_global();
 
-        let name = node.name.get_spur().unwrap();
+        let id = node.id.get_spur().unwrap();
 
         let kind = if should_shadow {
             SymbolKind::GlobalVar
@@ -54,10 +54,8 @@ impl Visitor for NameResolution {
 
         let result = node.walk(self);
 
-        let symbol = Symbol::new(name, node.name.span, kind);
-        let symbol = self
-            .table
-            .insert(name, node.name.span, symbol, should_shadow)?;
+        let symbol = Symbol::new(id, node.id.span, kind);
+        let symbol = self.table.insert(id, node.id.span, symbol, should_shadow)?;
         node.symbol = Some(symbol);
 
         result
@@ -68,9 +66,9 @@ impl Visitor for NameResolution {
 
         let function = SymbolKind::Function(node.clone());
 
-        let name = node.borrow().name.get_spur().unwrap();
-        let symbol = Symbol::new(name, node.borrow().name.span, function);
-        let symbol = global.insert(name, node.borrow().name.span, symbol, false)?;
+        let id = node.borrow().id.get_spur().unwrap();
+        let symbol = Symbol::new(id, node.borrow().id.span, function);
+        let symbol = global.insert(id, node.borrow().id.span, symbol, false)?;
 
         node.borrow_mut().symbol = Some(symbol);
 
@@ -94,10 +92,10 @@ impl Visitor for NameResolution {
     }
 
     fn visit_parameter(&mut self, node: &mut Parameter) -> Result {
-        let name = node.name.get_spur().unwrap();
+        let id = node.id.get_spur().unwrap();
 
-        let symbol = Symbol::new(name, node.name.span, SymbolKind::Parameter);
-        let symbol = self.table.insert(name, node.name.span, symbol, false)?;
+        let symbol = Symbol::new(id, node.id.span, SymbolKind::Parameter);
+        let symbol = self.table.insert(id, node.id.span, symbol, false)?;
 
         node.symbol = Some(symbol);
 
@@ -190,8 +188,8 @@ impl Visitor for NameResolution {
     }
 
     fn visit_id(&mut self, node: &mut Id) -> Result {
-        let name = node.id.get_spur().unwrap();
-        let symbol = self.table.lookup(name, node.id.span)?;
+        let id = node.id.get_spur().unwrap();
+        let symbol = self.table.lookup(id, node.id.span)?;
 
         node.symbol = Some(symbol.clone());
 
