@@ -1,6 +1,6 @@
 ---
-source: crates/frontend/lexer/src/lexer.rs
-expression: "InstaSnapshot { tokens: &tokens, interner: &interner }"
+source: crates/frontend/lexer/tests/insta.rs
+expression: "InstaSnapshot { tokens: &tokens, interner: &interner.borrow() }"
 ---
 tokens:
   - file_id: 1
