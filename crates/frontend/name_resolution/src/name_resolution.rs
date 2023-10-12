@@ -213,7 +213,7 @@ impl NameResolution {
         let kind = symbol.borrow().kind.clone();
         match kind {
             SymbolKind::Function(_) => Ok(()),
-            _ => Err(InvalidSymbolKind::error(kind, "function", span)),
+            _ => Err(InvalidSymbolKind::new(kind, "function", span).into()),
         }
     }
 
@@ -230,7 +230,7 @@ impl NameResolution {
         let kind = symbol.borrow().kind.clone();
         match kind {
             SymbolKind::LocalVar | SymbolKind::GlobalVar | SymbolKind::Parameter => Ok(()),
-            _ => Err(InvalidSymbolKind::error(kind, "variable/parameter", span)),
+            _ => Err(InvalidSymbolKind::new(kind, "variable/parameter", span).into()),
         }
     }
 }

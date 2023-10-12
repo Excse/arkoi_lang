@@ -22,12 +22,18 @@ pub struct InvalidSymbolKind {
 }
 
 impl InvalidSymbolKind {
-    pub fn error(got: SymbolKind, expected: impl Into<String>, span: LabelSpan) -> ResolutionError {
-        ResolutionError::InvalidSymbolKind(InvalidSymbolKind {
+    pub fn new(got: SymbolKind, expected: impl Into<String>, span: LabelSpan) -> Self {
+        Self {
             got,
             expected: expected.into(),
             span,
-        })
+        }
+    }
+}
+
+impl From<InvalidSymbolKind> for ResolutionError {
+    fn from(value: InvalidSymbolKind) -> Self {
+        Self::InvalidSymbolKind(value)
     }
 }
 
@@ -57,12 +63,18 @@ pub struct NameAlreadyUsed {
 }
 
 impl NameAlreadyUsed {
-    pub fn error(name: Spur, original: LabelSpan, other: LabelSpan) -> ResolutionError {
-        ResolutionError::NameAlreadyUsed(NameAlreadyUsed {
+    pub fn new(name: Spur, original: LabelSpan, other: LabelSpan) -> Self {
+        Self {
             name,
             original,
             other,
-        })
+        }
+    }
+}
+
+impl From<NameAlreadyUsed> for ResolutionError {
+    fn from(value: NameAlreadyUsed) -> Self {
+        Self::NameAlreadyUsed(value)
     }
 }
 
@@ -119,8 +131,14 @@ pub struct SymbolNotFound {
 }
 
 impl SymbolNotFound {
-    pub fn error(span: LabelSpan) -> ResolutionError {
-        ResolutionError::InternalError(InternalError::SymbolNotFound(SymbolNotFound { span }))
+    pub fn new(span: LabelSpan) -> Self {
+        Self { span }
+    }
+}
+
+impl From<SymbolNotFound> for ResolutionError {
+    fn from(value: SymbolNotFound) -> Self {
+        Self::InternalError(InternalError::SymbolNotFound(value))
     }
 }
 

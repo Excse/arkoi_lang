@@ -18,12 +18,18 @@ pub struct DidntExpect {
 }
 
 impl DidntExpect {
-    pub fn error(got: char, span: LabelSpan, expected: impl Into<String>) -> LexerError {
-        LexerError::DidntExpect(DidntExpect {
+    pub fn new(got: char, span: LabelSpan, expected: impl Into<String>) -> Self {
+        Self {
             got,
             span,
             expected: expected.into(),
-        })
+        }
+    }
+}
+
+impl From<DidntExpect> for LexerError {
+    fn from(value: DidntExpect) -> Self {
+        Self::DidntExpect(value)
     }
 }
 
@@ -71,9 +77,9 @@ impl Reportable for LexerError {
 #[derive(Debug)]
 pub struct EndOfFile;
 
-impl EndOfFile {
-    pub fn error() -> LexerError {
-        LexerError::InternalError(InternalError::EndOfFile(EndOfFile))
+impl From<EndOfFile> for LexerError {
+    fn from(value: EndOfFile) -> Self {
+        Self::InternalError(InternalError::EndOfFile(value))
     }
 }
 

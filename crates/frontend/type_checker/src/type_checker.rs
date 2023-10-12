@@ -56,7 +56,7 @@ impl Visitor for TypeChecker {
             let _type_ = match argument.accept(self) {
                 Ok(Some(type_)) => type_,
                 Ok(None) => {
-                    self.errors.push(NoTypeFound::error(argument.span()));
+                    self.errors.push(NoTypeFound::new(argument.span()).into());
                     continue;
                 }
                 Err(error) => {
@@ -71,21 +71,18 @@ impl Visitor for TypeChecker {
 
     fn visit_equality(&mut self, node: &mut Equality) -> Result {
         let lhs_span = node.lhs.span();
-        let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
+        let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::new(lhs_span))?;
         let rhs_span = node.lhs.span();
-        let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::error(rhs_span))?;
+        let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::new(rhs_span))?;
 
         let type_kind = match (lhs.kind, node.operator, rhs.kind) {
             (TypeKind::Bool, _, TypeKind::Bool)
             | (TypeKind::Int(_, _), _, TypeKind::Int(_, _))
             | (TypeKind::Decimal(_), _, TypeKind::Decimal(_)) => TypeKind::Bool,
             (lhs, operator, rhs) => {
-                return Err(InvalidBinaryType::error(
-                    lhs,
-                    operator.to_string(),
-                    rhs,
-                    node.span,
-                ))
+                return Err(
+                    InvalidBinaryType::new(lhs, operator.to_string(), rhs, node.span).into(),
+                )
             }
         };
 
@@ -94,9 +91,9 @@ impl Visitor for TypeChecker {
 
     fn visit_comparison(&mut self, node: &mut Comparison) -> Result {
         let lhs_span = node.lhs.span();
-        let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
+        let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::new(lhs_span))?;
         let rhs_span = node.lhs.span();
-        let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::error(rhs_span))?;
+        let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::new(rhs_span))?;
 
         let type_kind = match (lhs.kind, node.operator, rhs.kind) {
             // TODO: Check size and sign
@@ -104,7 +101,7 @@ impl Visitor for TypeChecker {
             // TODO: Check size and sign
             | (TypeKind::Decimal(_), _, TypeKind::Decimal(_)) => TypeKind::Bool,
             (lhs, operator, rhs) => {
-                return Err(InvalidBinaryType::error(lhs, operator.to_string(), rhs, node.span));
+                return Err(InvalidBinaryType::new(lhs, operator.to_string(), rhs, node.span).into());
             }
         };
 
@@ -113,9 +110,9 @@ impl Visitor for TypeChecker {
 
     fn visit_term(&mut self, node: &mut Term) -> Result {
         let lhs_span = node.lhs.span();
-        let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
+        let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::new(lhs_span))?;
         let rhs_span = node.lhs.span();
-        let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::error(rhs_span))?;
+        let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::new(rhs_span))?;
 
         let type_kind = match (lhs.kind, node.operator, rhs.kind) {
             // TODO: Check size and sign
@@ -123,12 +120,9 @@ impl Visitor for TypeChecker {
             // TODO: Check size and sign
             (TypeKind::Decimal(size), _, TypeKind::Decimal(_)) => TypeKind::Decimal(size),
             (lhs, operator, rhs) => {
-                return Err(InvalidBinaryType::error(
-                    lhs,
-                    operator.to_string(),
-                    rhs,
-                    node.span,
-                ));
+                return Err(
+                    InvalidBinaryType::new(lhs, operator.to_string(), rhs, node.span).into(),
+                );
             }
         };
 
@@ -137,9 +131,9 @@ impl Visitor for TypeChecker {
 
     fn visit_factor(&mut self, node: &mut Factor) -> Result {
         let lhs_span = node.lhs.span();
-        let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::error(lhs_span))?;
+        let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::new(lhs_span))?;
         let rhs_span = node.lhs.span();
-        let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::error(rhs_span))?;
+        let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::new(rhs_span))?;
 
         let type_kind = match (lhs.kind, node.operator, rhs.kind) {
             // TODO: Check size and sign
@@ -147,12 +141,9 @@ impl Visitor for TypeChecker {
             // TODO: Check size and sign
             (TypeKind::Decimal(size), _, TypeKind::Decimal(_)) => TypeKind::Decimal(size),
             (lhs, operator, rhs) => {
-                return Err(InvalidBinaryType::error(
-                    lhs,
-                    operator.to_string(),
-                    rhs,
-                    node.span,
-                ));
+                return Err(
+                    InvalidBinaryType::new(lhs, operator.to_string(), rhs, node.span).into(),
+                );
             }
         };
 
@@ -164,18 +155,16 @@ impl Visitor for TypeChecker {
         let expression = node
             .expression
             .accept(self)?
-            .ok_or(NoTypeFound::error(expression_span))?;
+            .ok_or(NoTypeFound::new(expression_span))?;
 
         let type_kind = match (node.operator, expression.kind) {
             (UnaryOperator::Neg, TypeKind::Int(true, size)) => TypeKind::Int(true, size),
             (UnaryOperator::Neg, TypeKind::Decimal(size)) => TypeKind::Decimal(size),
             (UnaryOperator::LogNeg, TypeKind::Bool) => TypeKind::Bool,
             (operator, expression) => {
-                return Err(InvalidUnaryType::error(
-                    operator.to_string(),
-                    expression,
-                    node.span,
-                ));
+                return Err(
+                    InvalidUnaryType::new(operator.to_string(), expression, node.span).into(),
+                );
             }
         };
 
@@ -187,13 +176,13 @@ impl Visitor for TypeChecker {
             let function_type = self
                 .current_function
                 .clone()
-                .ok_or(NoTypeFound::error(node.span))?;
+                .ok_or(NoTypeFound::new(node.span))?;
 
             let type_ = expression
                 .accept(self)?
-                .ok_or(NoTypeFound::error(node.span))?;
+                .ok_or(NoTypeFound::new(node.span))?;
             if function_type != type_ {
-                return Err(NotMatching::error(type_, function_type));
+                return Err(NotMatching::new(type_, function_type).into());
             }
         }
 
@@ -237,13 +226,13 @@ impl Visitor for TypeChecker {
         let type_ = node
             .type_
             .accept(self)?
-            .ok_or(NoTypeFound::error(name_span))?;
+            .ok_or(NoTypeFound::new(name_span))?;
 
         if let Some(ref mut expression) = node.expression {
             expression.accept(self)?;
         }
 
-        let symbol = node.symbol.clone().ok_or(NoSymbolFound::error(name_span))?;
+        let symbol = node.symbol.clone().ok_or(NoSymbolFound::new(name_span))?;
         symbol.borrow_mut().type_ = Some(type_);
 
         Self::default_result()
@@ -263,13 +252,13 @@ impl Visitor for TypeChecker {
             .borrow_mut()
             .type_
             .accept(self)?
-            .ok_or(NoTypeFound::error(name_span))?;
+            .ok_or(NoTypeFound::new(name_span))?;
 
         let symbol = node
             .borrow()
             .symbol
             .clone()
-            .ok_or(NoSymbolFound::error(name_span))?;
+            .ok_or(NoSymbolFound::new(name_span))?;
         symbol.borrow_mut().type_ = Some(type_.clone());
 
         let last = self.current_function.clone();
@@ -285,9 +274,9 @@ impl Visitor for TypeChecker {
         let type_ = node
             .type_
             .accept(self)?
-            .ok_or(NoTypeFound::error(name_span))?;
+            .ok_or(NoTypeFound::new(name_span))?;
 
-        let symbol = node.symbol.clone().ok_or(NoSymbolFound::error(name_span))?;
+        let symbol = node.symbol.clone().ok_or(NoSymbolFound::new(name_span))?;
         symbol.borrow_mut().type_ = Some(type_);
 
         Self::default_result()
@@ -295,13 +284,13 @@ impl Visitor for TypeChecker {
 
     fn visit_id(&mut self, node: &mut Id) -> Result {
         let id_span = node.id.span;
-        let symbol = node.symbol.clone().ok_or(NoSymbolFound::error(id_span))?;
+        let symbol = node.symbol.clone().ok_or(NoSymbolFound::new(id_span))?;
 
         let type_ = symbol
             .borrow()
             .type_
             .clone()
-            .ok_or(NoTypeFound::error(id_span))?;
+            .ok_or(NoTypeFound::new(id_span))?;
         Ok(Some(type_))
     }
 }

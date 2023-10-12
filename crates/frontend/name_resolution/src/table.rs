@@ -25,7 +25,7 @@ impl Scope {
     ) -> Result<Rc<RefCell<Symbol>>, ResolutionError> {
         if !shadow {
             if let Some(other) = self.lookup(name) {
-                return Err(NameAlreadyUsed::error(name, other.borrow().span, span));
+                return Err(NameAlreadyUsed::new(name, other.borrow().span, span).into());
             }
         }
 
@@ -95,6 +95,6 @@ impl SymbolTable {
             }
         }
 
-        Err(SymbolNotFound::error(span))
+        Err(SymbolNotFound::new(span).into())
     }
 }

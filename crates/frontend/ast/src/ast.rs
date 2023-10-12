@@ -53,8 +53,14 @@ pub struct ExprStmt {
 }
 
 impl ExprStmt {
-    pub fn statement(expression: ExprKind) -> StmtKind {
-        StmtKind::ExprStmt(Box::new(ExprStmt { expression }))
+    pub fn new(expression: ExprKind) -> Self {
+        Self { expression }
+    }
+}
+
+impl From<ExprStmt> for StmtKind {
+    fn from(value: ExprStmt) -> Self {
+        Self::ExprStmt(Box::new(value))
     }
 }
 
@@ -69,19 +75,20 @@ pub struct LetDecl {
 }
 
 impl LetDecl {
-    pub fn statement(
-        name: Token,
-        type_: Type,
-        expression: Option<ExprKind>,
-        span: LabelSpan,
-    ) -> StmtKind {
-        StmtKind::LetDecl(Box::new(LetDecl {
+    pub fn new(name: Token, type_: Type, expression: Option<ExprKind>, span: LabelSpan) -> Self {
+        Self {
             name,
             type_,
             expression,
             span,
             symbol: None,
-        }))
+        }
+    }
+}
+
+impl From<LetDecl> for StmtKind {
+    fn from(value: LetDecl) -> Self {
+        Self::LetDecl(Box::new(value))
     }
 }
 
@@ -97,21 +104,27 @@ pub struct FunDecl {
 }
 
 impl FunDecl {
-    pub fn statement(
+    pub fn new(
         name: Token,
         parameters: Vec<Parameter>,
         type_: Type,
         block: Box<Block>,
         span: LabelSpan,
-    ) -> StmtKind {
-        StmtKind::FunDecl(Rc::new(RefCell::new(FunDecl {
+    ) -> Self {
+        Self {
             name,
             parameters,
             type_,
             block,
             span,
             symbol: None,
-        })))
+        }
+    }
+}
+
+impl From<FunDecl> for StmtKind {
+    fn from(value: FunDecl) -> Self {
+        Self::FunDecl(Rc::new(RefCell::new(value)))
     }
 }
 
@@ -123,8 +136,14 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn statement(statements: Vec<StmtKind>, span: LabelSpan) -> StmtKind {
-        StmtKind::Block(Box::new(Block { statements, span }))
+    pub fn new(statements: Vec<StmtKind>, span: LabelSpan) -> Self {
+        Self { statements, span }
+    }
+}
+
+impl From<Block> for StmtKind {
+    fn from(value: Block) -> Self {
+        Self::Block(Box::new(value))
     }
 }
 
@@ -136,8 +155,14 @@ pub struct Return {
 }
 
 impl Return {
-    pub fn statement(expression: Option<ExprKind>, span: LabelSpan) -> StmtKind {
-        StmtKind::Return(Box::new(Return { expression, span }))
+    pub fn new(expression: Option<ExprKind>, span: LabelSpan) -> Self {
+        Self { expression, span }
+    }
+}
+
+impl From<Return> for StmtKind {
+    fn from(value: Return) -> Self {
+        Self::Return(Box::new(value))
     }
 }
 
@@ -152,7 +177,7 @@ pub struct Parameter {
 
 impl Parameter {
     pub fn new(name: Token, type_: Type, span: LabelSpan) -> Self {
-        Parameter {
+        Self {
             name,
             type_,
             span,
@@ -216,7 +241,7 @@ impl PartialEq for Type {
 
 impl Type {
     pub fn new(kind: impl Into<TypeKind>, span: LabelSpan) -> Self {
-        Type {
+        Self {
             kind: kind.into(),
             span,
         }
@@ -289,18 +314,24 @@ pub struct Equality {
 }
 
 impl Equality {
-    pub fn expression(
+    pub fn new(
         lhs: ExprKind,
         operator: impl Into<EqualityOperator>,
         rhs: ExprKind,
         span: LabelSpan,
-    ) -> ExprKind {
-        ExprKind::Equality(Box::new(Equality {
+    ) -> Self {
+        Self {
             lhs,
             operator: operator.into(),
             rhs,
             span,
-        }))
+        }
+    }
+}
+
+impl From<Equality> for ExprKind {
+    fn from(value: Equality) -> Self {
+        Self::Equality(Box::new(value))
     }
 }
 
@@ -346,18 +377,24 @@ pub struct Comparison {
 }
 
 impl Comparison {
-    pub fn expression(
+    pub fn new(
         lhs: ExprKind,
         operator: impl Into<ComparisonOperator>,
         rhs: ExprKind,
         span: LabelSpan,
-    ) -> ExprKind {
-        ExprKind::Comparison(Box::new(Comparison {
+    ) -> Self {
+        Self {
             lhs,
             operator: operator.into(),
             rhs,
             span,
-        }))
+        }
+    }
+}
+
+impl From<Comparison> for ExprKind {
+    fn from(value: Comparison) -> Self {
+        Self::Comparison(Box::new(value))
     }
 }
 
@@ -397,18 +434,24 @@ pub struct Term {
 }
 
 impl Term {
-    pub fn expression(
+    pub fn new(
         lhs: ExprKind,
         operator: impl Into<TermOperator>,
         rhs: ExprKind,
         span: LabelSpan,
-    ) -> ExprKind {
-        ExprKind::Term(Box::new(Term {
+    ) -> Self {
+        Self {
             lhs,
             operator: operator.into(),
             rhs,
             span,
-        }))
+        }
+    }
+}
+
+impl From<Term> for ExprKind {
+    fn from(value: Term) -> Self {
+        Self::Term(Box::new(value))
     }
 }
 
@@ -448,18 +491,24 @@ pub struct Factor {
 }
 
 impl Factor {
-    pub fn expression(
+    pub fn new(
         lhs: ExprKind,
         operator: impl Into<FactorOperator>,
         rhs: ExprKind,
         span: LabelSpan,
-    ) -> ExprKind {
-        ExprKind::Factor(Box::new(Factor {
+    ) -> Self {
+        Self {
             lhs,
             operator: operator.into(),
             rhs,
             span,
-        }))
+        }
+    }
+}
+
+impl From<Factor> for ExprKind {
+    fn from(value: Factor) -> Self {
+        Self::Factor(Box::new(value))
     }
 }
 
@@ -498,16 +547,18 @@ pub struct Unary {
 }
 
 impl Unary {
-    pub fn expression(
-        operator: impl Into<UnaryOperator>,
-        expression: ExprKind,
-        span: LabelSpan,
-    ) -> ExprKind {
-        ExprKind::Unary(Box::new(Unary {
+    pub fn new(operator: impl Into<UnaryOperator>, expression: ExprKind, span: LabelSpan) -> Self {
+        Self {
             operator: operator.into(),
             expression,
             span,
-        }))
+        }
+    }
+}
+
+impl From<Unary> for ExprKind {
+    fn from(value: Unary) -> Self {
+        Self::Unary(Box::new(value))
     }
 }
 
@@ -520,12 +571,18 @@ pub struct Call {
 }
 
 impl Call {
-    pub fn expression(callee: ExprKind, arguments: Vec<ExprKind>, span: LabelSpan) -> ExprKind {
-        ExprKind::Call(Box::new(Call {
+    pub fn new(callee: ExprKind, arguments: Vec<ExprKind>, span: LabelSpan) -> Self {
+        Self {
             callee,
             arguments,
             span,
-        }))
+        }
+    }
+}
+
+impl From<Call> for ExprKind {
+    fn from(value: Call) -> Self {
+        Self::Call(Box::new(value))
     }
 }
 
@@ -537,8 +594,14 @@ pub struct Grouping {
 }
 
 impl Grouping {
-    pub fn expression(expression: ExprKind, span: LabelSpan) -> ExprKind {
-        ExprKind::Grouping(Box::new(Grouping { expression, span }))
+    pub fn new(expression: ExprKind, span: LabelSpan) -> Self {
+        Self { expression, span }
+    }
+}
+
+impl From<Grouping> for ExprKind {
+    fn from(value: Grouping) -> Self {
+        Self::Grouping(Box::new(value))
     }
 }
 
@@ -550,8 +613,14 @@ pub struct Id {
 }
 
 impl Id {
-    pub fn expression(id: Token) -> ExprKind {
-        ExprKind::Id(Box::new(Id { id, symbol: None }))
+    pub fn new(id: Token) -> Self {
+        Self { id, symbol: None }
+    }
+}
+
+impl From<Id> for ExprKind {
+    fn from(value: Id) -> Self {
+        Self::Id(Box::new(value))
     }
 }
 
@@ -572,7 +641,13 @@ pub struct Literal {
 }
 
 impl Literal {
-    pub fn expression(token: Token, kind: LiteralKind) -> ExprKind {
-        ExprKind::Literal(Box::new(Literal { token, kind }))
+    pub fn new(token: Token, kind: LiteralKind) -> Self {
+        Self { token, kind }
+    }
+}
+
+impl From<Literal> for ExprKind {
+    fn from(value: Literal) -> Self {
+        Self::Literal(Box::new(value))
     }
 }

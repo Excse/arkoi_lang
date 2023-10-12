@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use std::iter::Peekable;
 
-use crate::error::{Unexpected, EndOfFile, Result, UnexpectedEOF};
+use crate::error::{EndOfFile, Result, Unexpected, UnexpectedEOF};
 use lexer::{
     iterator::TokenIterator,
     token::{Token, TokenKind},
@@ -72,7 +72,7 @@ impl<'a> Cursor<'a> {
     }
 
     pub fn peek(&mut self) -> Result<&Token> {
-        self.iterator.peek().ok_or(EndOfFile::error())
+        self.iterator.peek().ok_or(EndOfFile.into())
     }
 
     pub fn is_peek(&mut self, expected: TokenKind) -> Option<&Token> {
@@ -97,7 +97,7 @@ impl<'a> Cursor<'a> {
                     .map(|kind| kind.to_string())
                     .collect::<Vec<String>>()
                     .join(", ");
-                return Err(UnexpectedEOF::error(expected));
+                return Err(UnexpectedEOF::new(expected).into());
             }
         };
 
@@ -111,18 +111,14 @@ impl<'a> Cursor<'a> {
             .collect::<Vec<String>>()
             .join(", ");
 
-        Err(Unexpected::error(
-            token.kind.to_string(),
-            token.span,
-            expected,
-        ))
+        Err(Unexpected::new(token.kind.to_string(), token.span, expected).into())
     }
 
     pub fn eat(&mut self, expected: TokenKind) -> Result<Token> {
         let token = match self.peek() {
             Ok(token) => token,
             Err(_) => {
-                return Err(UnexpectedEOF::error(expected.to_string()));
+                return Err(UnexpectedEOF::new(expected.to_string()).into());
             }
         };
 
@@ -130,10 +126,6 @@ impl<'a> Cursor<'a> {
             return Ok(self.iterator.next().unwrap());
         }
 
-        Err(Unexpected::error(
-            token.kind.to_string(),
-            token.span,
-            expected.to_string(),
-        ))
+        Err(Unexpected::new(token.kind.to_string(), token.span, expected.to_string()).into())
     }
 }

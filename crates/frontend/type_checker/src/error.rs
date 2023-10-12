@@ -21,18 +21,19 @@ pub struct InvalidBinaryType {
 }
 
 impl InvalidBinaryType {
-    pub fn error(
-        lhs: TypeKind,
-        operator: impl Into<String>,
-        rhs: TypeKind,
-        span: LabelSpan,
-    ) -> TypeError {
-        TypeError::InvalidBinaryType(InvalidBinaryType {
+    pub fn new(lhs: TypeKind, operator: impl Into<String>, rhs: TypeKind, span: LabelSpan) -> Self {
+        Self {
             rhs,
             operator: operator.into(),
             lhs,
             span,
-        })
+        }
+    }
+}
+
+impl From<InvalidBinaryType> for TypeError {
+    fn from(value: InvalidBinaryType) -> Self {
+        Self::InvalidBinaryType(value)
     }
 }
 
@@ -62,12 +63,18 @@ pub struct InvalidUnaryType {
 }
 
 impl InvalidUnaryType {
-    pub fn error(operator: impl Into<String>, expression: TypeKind, span: LabelSpan) -> TypeError {
-        TypeError::InvalidUnaryType(InvalidUnaryType {
+    pub fn new(operator: impl Into<String>, expression: TypeKind, span: LabelSpan) -> Self {
+        Self {
             operator: operator.into(),
             expression,
             span,
-        })
+        }
+    }
+}
+
+impl From<InvalidUnaryType> for TypeError {
+    fn from(value: InvalidUnaryType) -> Self {
+        Self::InvalidUnaryType(value)
     }
 }
 
@@ -96,8 +103,14 @@ pub struct NotMatching {
 }
 
 impl NotMatching {
-    pub fn error(got: Type, expected: Type) -> TypeError {
-        TypeError::NotMatching(NotMatching { got, expected })
+    pub fn new(got: Type, expected: Type) -> Self {
+        Self { got, expected }
+    }
+}
+
+impl From<NotMatching> for TypeError {
+    fn from(value: NotMatching) -> Self {
+        Self::NotMatching(value)
     }
 }
 
@@ -156,8 +169,14 @@ pub struct NoTypeFound {
 }
 
 impl NoTypeFound {
-    pub fn error(span: LabelSpan) -> TypeError {
-        TypeError::InternalError(InternalError::NoTypeFound(NoTypeFound { span }))
+    pub fn new(span: LabelSpan) -> Self {
+        Self { span }
+    }
+}
+
+impl From<NoTypeFound> for TypeError {
+    fn from(value: NoTypeFound) -> Self {
+        Self::InternalError(InternalError::NoTypeFound(value))
     }
 }
 
@@ -180,8 +199,14 @@ pub struct NoSymbolFound {
 }
 
 impl NoSymbolFound {
-    pub fn error(span: LabelSpan) -> TypeError {
-        TypeError::InternalError(InternalError::NoSymbolFound(NoSymbolFound { span }))
+    pub fn new(span: LabelSpan) -> Self {
+        Self { span }
+    }
+}
+
+impl From<NoSymbolFound> for TypeError {
+    fn from(value: NoSymbolFound) -> Self {
+        Self::InternalError(InternalError::NoSymbolFound(value))
     }
 }
 

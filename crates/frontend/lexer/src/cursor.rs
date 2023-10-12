@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use std::{iter::Peekable, str::CharIndices};
 
-use crate::error::{DidntExpect, Result, EndOfFile};
+use crate::error::{DidntExpect, EndOfFile, Result};
 use diagnostics::{
     file::{FileID, Files},
     positional::{LabelSpan, Span},
@@ -73,12 +73,13 @@ impl<'a> Cursor<'a> {
     pub fn try_eat(&mut self, expected: char) -> Result<char> {
         match self.peek_indexed() {
             Some((_, char)) if char == expected => Ok(self.try_consume().unwrap()),
-            Some((index, char)) => Err(DidntExpect::error(
+            Some((index, char)) => Err(DidntExpect::new(
                 char,
                 LabelSpan::new(Span::single(index), self.file_id),
                 expected,
-            )),
-            None => Err(EndOfFile::error()),
+            )
+            .into()),
+            None => Err(EndOfFile.into()),
         }
     }
 
@@ -88,12 +89,13 @@ impl<'a> Cursor<'a> {
     {
         match self.peek_indexed() {
             Some((_, char)) if predicate(char) => Ok(self.try_consume().unwrap()),
-            Some((index, char)) => Err(DidntExpect::error(
+            Some((index, char)) => Err(DidntExpect::new(
                 char,
                 LabelSpan::new(Span::single(index), self.file_id),
                 message,
-            )),
-            None => Err(EndOfFile::error()),
+            )
+            .into()),
+            None => Err(EndOfFile.into()),
         }
     }
 

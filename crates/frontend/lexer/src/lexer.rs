@@ -33,7 +33,7 @@ impl<'a> Lexer<'a> {
     pub fn next_token_kind(&mut self) -> Result<TokenKind> {
         let current = match self.cursor.peek() {
             Some(char) => char,
-            None => return Err(EndOfFile::error()),
+            None => return Err(EndOfFile.into()),
         };
 
         self.cursor.mark_start();
@@ -67,7 +67,7 @@ impl<'a> Lexer<'a> {
             Some('!') => TokenKind::Apostrophe,
             Some(';') => TokenKind::Semicolon,
             Some(char) => TokenKind::Unknown(char),
-            None => return Err(EndOfFile::error()),
+            None => return Err(EndOfFile.into()),
         };
 
         let current = match self.cursor.peek() {

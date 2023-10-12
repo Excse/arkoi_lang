@@ -19,12 +19,18 @@ pub struct Unexpected {
 }
 
 impl Unexpected {
-    pub fn error(got: String, span: LabelSpan, expected: impl Into<String>) -> ParserError {
-        ParserError::new(ErrorKind::Unexpected(Unexpected {
+    pub fn new(got: String, span: LabelSpan, expected: impl Into<String>) -> Self {
+        Self {
             got,
             span,
             expected: expected.into(),
-        }))
+        }
+    }
+}
+
+impl From<Unexpected> for ParserError {
+    fn from(value: Unexpected) -> Self {
+        Self::new(ErrorKind::Unexpected(value))
     }
 }
 
@@ -59,10 +65,16 @@ pub struct UnexpectedEOF {
 }
 
 impl UnexpectedEOF {
-    pub fn error(expected: impl Into<String>) -> ParserError {
-        ParserError::new(ErrorKind::UnexpectedEOF(UnexpectedEOF {
+    pub fn new(expected: impl Into<String>) -> Self {
+        Self {
             expected: expected.into(),
-        }))
+        }
+    }
+}
+
+impl From<UnexpectedEOF> for ParserError {
+    fn from(value: UnexpectedEOF) -> Self {
+        Self::new(ErrorKind::UnexpectedEOF(value))
     }
 }
 
@@ -104,11 +116,9 @@ impl Reportable for ErrorKind {
 #[derive(Debug)]
 pub struct EndOfFile;
 
-impl EndOfFile {
-    pub fn error() -> ParserError {
-        ParserError::new(ErrorKind::InternalError(InternalError::EndOfFile(
-            EndOfFile,
-        )))
+impl From<EndOfFile> for ParserError {
+    fn from(value: EndOfFile) -> Self {
+        Self::new(ErrorKind::InternalError(InternalError::EndOfFile(value)))
     }
 }
 
