@@ -135,7 +135,29 @@ impl Reportable for EndOfFile {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug)]
+pub struct UnoptionalParsing;
+
+impl From<UnoptionalParsing> for ParserError {
+    fn from(value: UnoptionalParsing) -> Self {
+        Self::InternalError(InternalError::UnoptionalParsing(value))
+    }
+}
+
+impl Reportable for UnoptionalParsing {
+    fn into_report(self, _interner: &Rodeo) -> Report {
+        ReportBuilder::default()
+            .message("Parsing returned 'None' even though it shouldn't be.")
+            .code(2)
+            .serverity(Serverity::Bug)
+            .build()
+            .unwrap()
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug)]
 pub enum InternalError {
+    UnoptionalParsing(UnoptionalParsing),
     EndOfFile(EndOfFile),
 }
 
@@ -143,6 +165,7 @@ impl Reportable for InternalError {
     fn into_report(self, interner: &Rodeo) -> Report {
         match self {
             Self::EndOfFile(error) => error.into_report(interner),
+            Self::UnoptionalParsing(error) => error.into_report(interner),
         }
     }
 }

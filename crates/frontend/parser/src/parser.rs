@@ -2,7 +2,7 @@
 use serde::Serialize;
 
 use crate::cursor::Cursor;
-use crate::error::{InternalError, ParserError, Result, Unexpected};
+use crate::error::{InternalError, ParserError, Result, Unexpected, UnoptionalParsing};
 use ast::{
     Block, Call, Comparison, Equality, ExprKind, ExprStmt, Factor, FunDecl, Grouping, Id, LetDecl,
     Literal, LiteralKind, Parameter, Program, Return, StmtKind, Term, Type, Unary,
@@ -59,13 +59,13 @@ impl<'a> Parser<'a> {
     ///                    | let_declaration ;
     /// ```
     fn parse_program_declaration(&mut self) -> Result<StmtKind> {
-        match self.parse_let_declaration() {
+        match self.try_parse_let_declaration() {
             Ok(Some(result)) => return Ok(result),
             Ok(None) => {}
             Err(error) => return Err(error),
         }
 
-        match self.parse_fun_declaration() {
+        match self.try_parse_fun_declaration() {
             Ok(Some(result)) => return Ok(result),
             Ok(None) => {}
             Err(error) => return Err(error),
@@ -80,13 +80,13 @@ impl<'a> Parser<'a> {
     ///           | block ;
     /// ```
     fn parse_statement(&mut self) -> Result<StmtKind> {
-        match self.parse_expression_statement() {
+        match self.try_parse_expression_statement() {
             Ok(Some(result)) => return Ok(result),
             Ok(None) => {}
             Err(error) => return Err(error),
         }
 
-        match self.parse_block() {
+        match self.try_parse_block() {
             Ok(Some(result)) => return Ok(result),
             Ok(None) => {}
             Err(error) => return Err(error),
@@ -104,7 +104,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// expression_statement = expression ";" ;
     /// ```
-    fn parse_expression_statement(&mut self) -> Result<Option<StmtKind>> {
+    fn try_parse_expression_statement(&mut self) -> Result<Option<StmtKind>> {
         let expression = match self.try_parse_expression() {
             Ok(Some(expression)) => expression,
             Ok(None) => return Ok(None),
@@ -119,7 +119,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// block = "{" block_declaration* "}" ;
     /// ```
-    fn parse_block(&mut self) -> Result<Option<StmtKind>> {
+    fn try_parse_block(&mut self) -> Result<Option<StmtKind>> {
         let start = match self.cursor.eat(TokenKind::Brace(true)) {
             Ok(token) => token,
             Err(_) => return Ok(None),
@@ -154,19 +154,27 @@ impl<'a> Parser<'a> {
         Ok(Some(Block::new(statements, span).into()))
     }
 
+    fn parse_block(&mut self) -> Result<StmtKind> {
+        match self.try_parse_block() {
+            Ok(Some(statement)) => Ok(statement),
+            Ok(None) => Err(UnoptionalParsing.into()),
+            Err(error) => Err(error),
+        }
+    }
+
     /// ```ebnf
     /// block_declaration = let_declaration
     ///                   | return_statement
     ///                   | statement ;
     /// ```
     fn parse_block_declaration(&mut self) -> Result<StmtKind> {
-        match self.parse_let_declaration() {
+        match self.try_parse_let_declaration() {
             Ok(Some(result)) => return Ok(result),
             Ok(None) => {}
             Err(error) => return Err(error),
         }
 
-        match self.parse_return_statement() {
+        match self.try_parse_return_statement() {
             Ok(Some(result)) => return Ok(result),
             Ok(None) => {}
             Err(error) => return Err(error),
@@ -188,7 +196,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// return_statement = return expression? ";" ;
     /// ```
-    fn parse_return_statement(&mut self) -> Result<Option<StmtKind>> {
+    fn try_parse_return_statement(&mut self) -> Result<Option<StmtKind>> {
         let start = match self.cursor.eat(TokenKind::Return) {
             Ok(token) => token,
             Err(_) => return Ok(None),
@@ -209,7 +217,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// fun_declaration = "fun" IDENTIFIER "(" parameters? ")" type block ;
     /// ```
-    fn parse_fun_declaration(&mut self) -> Result<Option<StmtKind>> {
+    fn try_parse_fun_declaration(&mut self) -> Result<Option<StmtKind>> {
         let start = match self.cursor.eat(TokenKind::Fun) {
             Ok(token) => token,
             Err(_) => return Ok(None),
@@ -232,7 +240,7 @@ impl<'a> Parser<'a> {
         let type_ = self.parse_type()?;
 
         let block = match self.parse_block()? {
-            Some(StmtKind::Block(node)) => node,
+            StmtKind::Block(node) => node,
             _ => panic!("Couldn't unbox the block. This shouldn't have happened."),
         };
 
@@ -295,7 +303,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// let_declaration = "let" IDENTIFIER ( "=" expression )? ";" ;
     /// ```
-    fn parse_let_declaration(&mut self) -> Result<Option<StmtKind>> {
+    fn try_parse_let_declaration(&mut self) -> Result<Option<StmtKind>> {
         let start = match self.cursor.eat(TokenKind::Let) {
             Ok(token) => token,
             Err(_) => return Ok(None),
@@ -320,31 +328,27 @@ impl<'a> Parser<'a> {
     /// expression = equality;
     /// ```
     fn try_parse_expression(&mut self) -> Result<Option<ExprKind>> {
-        self.parse_equality(true)
+        self.try_parse_equality(true)
     }
 
     /// ```ebnf
     /// expression = equality;
     /// ```
     fn parse_expression(&mut self) -> Result<ExprKind> {
-        match self.parse_equality(false) {
-            Ok(Some(expression)) => Ok(expression),
-            Ok(None) => panic!("This shouldn't have happened."),
-            Err(error) => Err(error),
-        }
+        self.parse_equality()
     }
 
     /// ```ebnf
     /// equality = comparison ( ( "==" | "!=" ) comparison )* ;
     /// ```
-    fn parse_equality(&mut self, start: bool) -> Result<Option<ExprKind>> {
-        let mut expression = match self.parse_comparison(start)? {
+    fn try_parse_equality(&mut self, start: bool) -> Result<Option<ExprKind>> {
+        let mut expression = match self.try_parse_comparison(start)? {
             Some(expression) => expression,
             None => return Ok(None),
         };
 
         while let Ok(token) = self.cursor.eat_any(&[TokenKind::EqEq, TokenKind::NotEq]) {
-            let rhs = self.parse_comparison(false)?.unwrap();
+            let rhs = self.parse_comparison()?;
 
             let span = expression.span().combine(&rhs.span());
             expression = Equality::new(expression, token, rhs, span).into();
@@ -353,11 +357,19 @@ impl<'a> Parser<'a> {
         Ok(Some(expression))
     }
 
+    fn parse_equality(&mut self) -> Result<ExprKind> {
+        match self.try_parse_equality(false) {
+            Ok(Some(expression)) => Ok(expression),
+            Ok(None) => Err(UnoptionalParsing.into()),
+            Err(error) => Err(error),
+        }
+    }
+
     /// ```ebnf
     /// comparison = term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
     /// ```
-    fn parse_comparison(&mut self, start: bool) -> Result<Option<ExprKind>> {
-        let mut expression = match self.parse_term(start)? {
+    fn try_parse_comparison(&mut self, start: bool) -> Result<Option<ExprKind>> {
+        let mut expression = match self.try_parse_term(start)? {
             Some(expression) => expression,
             None => return Ok(None),
         };
@@ -368,7 +380,7 @@ impl<'a> Parser<'a> {
             TokenKind::Less,
             TokenKind::LessEq,
         ]) {
-            let rhs = self.parse_term(false)?.unwrap();
+            let rhs = self.parse_term()?;
 
             let span = expression.span().combine(&rhs.span());
             expression = Comparison::new(expression, token, rhs, span).into();
@@ -377,17 +389,25 @@ impl<'a> Parser<'a> {
         Ok(Some(expression))
     }
 
+    fn parse_comparison(&mut self) -> Result<ExprKind> {
+        match self.try_parse_comparison(false) {
+            Ok(Some(expression)) => Ok(expression),
+            Ok(None) => Err(UnoptionalParsing.into()),
+            Err(error) => Err(error),
+        }
+    }
+
     /// ```ebnf
     /// term = factor ( ( "-" | "+" ) factor )* ;
     /// ```
-    fn parse_term(&mut self, start: bool) -> Result<Option<ExprKind>> {
-        let mut expression = match self.parse_factor(start)? {
+    fn try_parse_term(&mut self, start: bool) -> Result<Option<ExprKind>> {
+        let mut expression = match self.try_parse_factor(start)? {
             Some(expression) => expression,
             None => return Ok(None),
         };
 
         while let Ok(token) = self.cursor.eat_any(&[TokenKind::Plus, TokenKind::Minus]) {
-            let rhs = self.parse_factor(false)?.unwrap();
+            let rhs = self.parse_factor()?;
 
             let span = expression.span().combine(&rhs.span());
             expression = Term::new(expression, token, rhs, span).into();
@@ -396,11 +416,19 @@ impl<'a> Parser<'a> {
         Ok(Some(expression))
     }
 
+    fn parse_term(&mut self) -> Result<ExprKind> {
+        match self.try_parse_term(false) {
+            Ok(Some(expression)) => Ok(expression),
+            Ok(None) => Err(UnoptionalParsing.into()),
+            Err(error) => Err(error),
+        }
+    }
+
     /// ```ebnf
     /// factor = unary ( ( "/" | "*" ) unary )* ;
     /// ```
-    fn parse_factor(&mut self, start: bool) -> Result<Option<ExprKind>> {
-        let mut expression = match self.parse_unary(start)? {
+    fn try_parse_factor(&mut self, start: bool) -> Result<Option<ExprKind>> {
+        let mut expression = match self.try_parse_unary(start)? {
             Some(expression) => expression,
             None => return Ok(None),
         };
@@ -409,7 +437,7 @@ impl<'a> Parser<'a> {
             .cursor
             .eat_any(&[TokenKind::Slash, TokenKind::Asterisk])
         {
-            let rhs = self.parse_unary(false)?.unwrap();
+            let rhs = self.parse_unary()?;
 
             let span = expression.span().combine(&rhs.span());
             expression = Factor::new(expression, token, rhs, span).into();
@@ -418,29 +446,45 @@ impl<'a> Parser<'a> {
         Ok(Some(expression))
     }
 
+    fn parse_factor(&mut self) -> Result<ExprKind> {
+        match self.try_parse_factor(false) {
+            Ok(Some(expression)) => Ok(expression),
+            Ok(None) => Err(UnoptionalParsing.into()),
+            Err(error) => Err(error),
+        }
+    }
+
     /// ```ebnf
     /// unary = ( ( "!" | "-" ) unary )
     ///       | call ;
     /// ```
-    fn parse_unary(&mut self, start: bool) -> Result<Option<ExprKind>> {
+    fn try_parse_unary(&mut self, start: bool) -> Result<Option<ExprKind>> {
         if let Ok(token) = self
             .cursor
             .eat_any(&[TokenKind::Apostrophe, TokenKind::Minus])
         {
-            let expression = self.parse_unary(false)?.unwrap();
+            let expression = self.parse_unary()?;
 
             let span = token.span.combine(&expression.span());
             return Ok(Some(Unary::new(token, expression, span).into()));
         }
 
-        self.parse_call(start)
+        self.try_parse_call(start)
+    }
+
+    fn parse_unary(&mut self) -> Result<ExprKind> {
+        match self.try_parse_unary(false) {
+            Ok(Some(expression)) => Ok(expression),
+            Ok(None) => Err(UnoptionalParsing.into()),
+            Err(error) => Err(error),
+        }
     }
 
     ///```ebnf
     /// call = primary ( "(" arguments? ")" )* ;
     ///```
-    fn parse_call(&mut self, start: bool) -> Result<Option<ExprKind>> {
-        let mut primary = match self.parse_primary(start)? {
+    fn try_parse_call(&mut self, start: bool) -> Result<Option<ExprKind>> {
+        let mut primary = match self.try_parse_primary(start)? {
             Some(primary) => primary,
             None => return Ok(None),
         };
@@ -479,7 +523,7 @@ impl<'a> Parser<'a> {
     /// ```ebnf
     /// primary = NUMBER | STRING | IDENTIFIER | "true" | "false" | "(" expression ")" ;
     /// ```
-    fn parse_primary(&mut self, start: bool) -> Result<Option<ExprKind>> {
+    fn try_parse_primary(&mut self, start: bool) -> Result<Option<ExprKind>> {
         if let Ok(token) = self.cursor.eat(TokenKind::Int) {
             Ok(Some(Literal::new(token, LiteralKind::Int).into()))
         } else if let Ok(token) = self.cursor.eat(TokenKind::Decimal) {
