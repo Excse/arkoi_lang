@@ -10,8 +10,7 @@ use crate::{
 use ast::{
     symbol::{Symbol, SymbolKind},
     traversal::{Visitable, Visitor, Walkable},
-    Block, Call, Comparison, Equality, Factor, FunDecl, Id, LetDecl, Parameter, Program, Return,
-    Term, Unary,
+    Binary, Block, Call, FunDecl, Id, LetDecl, Parameter, Program, Return, Unary,
 };
 use diagnostics::positional::LabelSpan;
 
@@ -131,37 +130,7 @@ impl Visitor for NameResolution {
         Self::default_result()
     }
 
-    fn visit_equality(&mut self, node: &mut Equality) -> Result {
-        let lhs = node.lhs.accept(self)?;
-        self.is_potential_variable_symbol(lhs, node.lhs.span())?;
-
-        let rhs = node.rhs.accept(self)?;
-        self.is_potential_variable_symbol(rhs, node.rhs.span())?;
-
-        Self::default_result()
-    }
-
-    fn visit_comparison(&mut self, node: &mut Comparison) -> Result {
-        let lhs = node.lhs.accept(self)?;
-        self.is_potential_variable_symbol(lhs, node.lhs.span())?;
-
-        let rhs = node.rhs.accept(self)?;
-        self.is_potential_variable_symbol(rhs, node.rhs.span())?;
-
-        Self::default_result()
-    }
-
-    fn visit_term(&mut self, node: &mut Term) -> Result {
-        let lhs = node.lhs.accept(self)?;
-        self.is_potential_variable_symbol(lhs, node.lhs.span())?;
-
-        let rhs = node.rhs.accept(self)?;
-        self.is_potential_variable_symbol(rhs, node.rhs.span())?;
-
-        Self::default_result()
-    }
-
-    fn visit_factor(&mut self, node: &mut Factor) -> Result {
+    fn visit_binary(&mut self, node: &mut Binary) -> Result {
         let lhs = node.lhs.accept(self)?;
         self.is_potential_variable_symbol(lhs, node.lhs.span())?;
 

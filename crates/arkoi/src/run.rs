@@ -64,9 +64,4 @@ pub fn run(args: RunArgs) {
 
         return;
     }
-
-    let mut interpreter = Interpreter::new(interner);
-    program.statements.iter_mut().for_each(|statement| {
-        println!("{:?}", interpreter.visit_stmt(statement));
-    });
 }

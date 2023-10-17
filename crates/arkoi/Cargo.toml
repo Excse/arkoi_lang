@@ -10,7 +10,6 @@ version = { workspace = true }
 
 [dependencies]
 diagnostics = { path = "../diagnostics" }
-interpreter = { path = "../interpreter" }
 semantics = { path = "../frontend/semantics" }
 parser = { path = "../frontend/parser" }
 lexer = { path = "../frontend/lexer" }

@@ -1,14 +1,14 @@
-use std::{cell::RefCell, rc::Rc};
-
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
     ast::{
-        Block, Call, Comparison, Equality, ExprKind, ExprStmt, Factor, FunDecl, Grouping, Id,
-        LetDecl, Literal, Parameter, Program, StmtKind, Term, Type, Unary,
+        Block, Call, ExprKind, ExprStmt, FunDecl, Grouping, Id, LetDecl, Literal, Parameter,
+        Program, StmtKind, Type, Unary,
     },
-    Return,
+    Binary, Return,
 };
 
 pub trait Visitor: Sized {
@@ -56,19 +56,7 @@ pub trait Visitor: Sized {
         node.walk(self)
     }
 
-    fn visit_equality(&mut self, node: &mut Equality) -> Result<Self::Return, Self::Error> {
-        node.walk(self)
-    }
-
-    fn visit_comparison(&mut self, node: &mut Comparison) -> Result<Self::Return, Self::Error> {
-        node.walk(self)
-    }
-
-    fn visit_term(&mut self, node: &mut Term) -> Result<Self::Return, Self::Error> {
-        node.walk(self)
-    }
-
-    fn visit_factor(&mut self, node: &mut Factor) -> Result<Self::Return, Self::Error> {
+    fn visit_binary(&mut self, node: &mut Binary) -> Result<Self::Return, Self::Error> {
         node.walk(self)
     }
 
@@ -245,10 +233,7 @@ impl<V: Visitor> Visitable<V> for Return {
 impl<V: Visitor> Walkable<V> for ExprKind {
     fn walk(&mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
         match self {
-            ExprKind::Equality(node) => node.accept(visitor),
-            ExprKind::Comparison(node) => node.accept(visitor),
-            ExprKind::Term(node) => node.accept(visitor),
-            ExprKind::Factor(node) => node.accept(visitor),
+            ExprKind::Binary(node) => node.accept(visitor),
             ExprKind::Unary(node) => node.accept(visitor),
             ExprKind::Call(node) => node.accept(visitor),
             ExprKind::Grouping(node) => node.accept(visitor),
@@ -264,7 +249,7 @@ impl<V: Visitor> Visitable<V> for ExprKind {
     }
 }
 
-impl<V: Visitor> Walkable<V> for Equality {
+impl<V: Visitor> Walkable<V> for Binary {
     fn walk(&mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
         self.lhs.accept(visitor)?;
         self.rhs.accept(visitor)?;
@@ -273,54 +258,9 @@ impl<V: Visitor> Walkable<V> for Equality {
     }
 }
 
-impl<V: Visitor> Visitable<V> for Equality {
+impl<V: Visitor> Visitable<V> for Binary {
     fn accept(&mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        visitor.visit_equality(self)
-    }
-}
-
-impl<V: Visitor> Walkable<V> for Comparison {
-    fn walk(&mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        self.lhs.accept(visitor)?;
-        self.rhs.accept(visitor)?;
-
-        V::default_result()
-    }
-}
-
-impl<V: Visitor> Visitable<V> for Comparison {
-    fn accept(&mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        visitor.visit_comparison(self)
-    }
-}
-
-impl<V: Visitor> Walkable<V> for Term {
-    fn walk(&mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        self.lhs.accept(visitor)?;
-        self.rhs.accept(visitor)?;
-
-        V::default_result()
-    }
-}
-
-impl<V: Visitor> Visitable<V> for Term {
-    fn accept(&mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        visitor.visit_term(self)
-    }
-}
-
-impl<V: Visitor> Walkable<V> for Factor {
-    fn walk(&mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        self.lhs.accept(visitor)?;
-        self.rhs.accept(visitor)?;
-
-        V::default_result()
-    }
-}
-
-impl<V: Visitor> Visitable<V> for Factor {
-    fn accept(&mut self, visitor: &mut V) -> Result<V::Return, V::Error> {
-        visitor.visit_factor(self)
+        visitor.visit_binary(self)
     }
 }
 

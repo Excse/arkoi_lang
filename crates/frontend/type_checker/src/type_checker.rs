@@ -8,8 +8,8 @@ use crate::error::{
 };
 use ast::{
     traversal::{Visitable, Visitor},
-    Block, Call, Comparison, Equality, Factor, FunDecl, Id, LetDecl, Literal, LiteralKind,
-    Parameter, Program, Return, Term, Type, TypeKind, Unary, UnaryOperator,
+    Block, Call, FunDecl, Id, LetDecl, Literal, LiteralKind, Parameter, Program, Return, Type,
+    TypeKind, Unary, UnaryOperator,
 };
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -69,86 +69,86 @@ impl Visitor for TypeChecker {
         Self::default_result()
     }
 
-    fn visit_equality(&mut self, node: &mut Equality) -> Result {
-        let lhs_span = node.lhs.span();
-        let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::new(lhs_span))?;
-        let rhs_span = node.lhs.span();
-        let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::new(rhs_span))?;
+    // fn visit_equality(&mut self, node: &mut Equality) -> Result {
+    //     let lhs_span = node.lhs.span();
+    //     let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::new(lhs_span))?;
+    //     let rhs_span = node.lhs.span();
+    //     let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::new(rhs_span))?;
 
-        let type_kind = match (lhs.kind, node.operator, rhs.kind) {
-            (TypeKind::Bool, _, TypeKind::Bool)
-            | (TypeKind::Int(_, _), _, TypeKind::Int(_, _))
-            | (TypeKind::Decimal(_), _, TypeKind::Decimal(_)) => TypeKind::Bool,
-            (lhs, operator, rhs) => {
-                return Err(
-                    InvalidBinaryType::new(lhs, operator.to_string(), rhs, node.span).into(),
-                )
-            }
-        };
+    //     let type_kind = match (lhs.kind, node.operator, rhs.kind) {
+    //         (TypeKind::Bool, _, TypeKind::Bool)
+    //         | (TypeKind::Int(_, _), _, TypeKind::Int(_, _))
+    //         | (TypeKind::Decimal(_), _, TypeKind::Decimal(_)) => TypeKind::Bool,
+    //         (lhs, operator, rhs) => {
+    //             return Err(
+    //                 InvalidBinaryType::new(lhs, operator.to_string(), rhs, node.span).into(),
+    //             )
+    //         }
+    //     };
 
-        Ok(Some(Type::new(type_kind, node.span)))
-    }
+    //     Ok(Some(Type::new(type_kind, node.span)))
+    // }
 
-    fn visit_comparison(&mut self, node: &mut Comparison) -> Result {
-        let lhs_span = node.lhs.span();
-        let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::new(lhs_span))?;
-        let rhs_span = node.lhs.span();
-        let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::new(rhs_span))?;
+    // fn visit_comparison(&mut self, node: &mut Comparison) -> Result {
+    //     let lhs_span = node.lhs.span();
+    //     let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::new(lhs_span))?;
+    //     let rhs_span = node.lhs.span();
+    //     let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::new(rhs_span))?;
 
-        let type_kind = match (lhs.kind, node.operator, rhs.kind) {
-            // TODO: Check size and sign
-            (TypeKind::Int(_, _), _, TypeKind::Int(_, _))
-            // TODO: Check size and sign
-            | (TypeKind::Decimal(_), _, TypeKind::Decimal(_)) => TypeKind::Bool,
-            (lhs, operator, rhs) => {
-                return Err(InvalidBinaryType::new(lhs, operator.to_string(), rhs, node.span).into());
-            }
-        };
+    //     let type_kind = match (lhs.kind, node.operator, rhs.kind) {
+    //         // TODO: Check size and sign
+    //         (TypeKind::Int(_, _), _, TypeKind::Int(_, _))
+    //         // TODO: Check size and sign
+    //         | (TypeKind::Decimal(_), _, TypeKind::Decimal(_)) => TypeKind::Bool,
+    //         (lhs, operator, rhs) => {
+    //             return Err(InvalidBinaryType::new(lhs, operator.to_string(), rhs, node.span).into());
+    //         }
+    //     };
 
-        Ok(Some(Type::new(type_kind, node.span)))
-    }
+    //     Ok(Some(Type::new(type_kind, node.span)))
+    // }
 
-    fn visit_term(&mut self, node: &mut Term) -> Result {
-        let lhs_span = node.lhs.span();
-        let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::new(lhs_span))?;
-        let rhs_span = node.lhs.span();
-        let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::new(rhs_span))?;
+    // fn visit_term(&mut self, node: &mut Term) -> Result {
+    //     let lhs_span = node.lhs.span();
+    //     let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::new(lhs_span))?;
+    //     let rhs_span = node.lhs.span();
+    //     let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::new(rhs_span))?;
 
-        let type_kind = match (lhs.kind, node.operator, rhs.kind) {
-            // TODO: Check size and sign
-            (TypeKind::Int(signed, size), _, TypeKind::Int(_, _)) => TypeKind::Int(signed, size),
-            // TODO: Check size and sign
-            (TypeKind::Decimal(size), _, TypeKind::Decimal(_)) => TypeKind::Decimal(size),
-            (lhs, operator, rhs) => {
-                return Err(
-                    InvalidBinaryType::new(lhs, operator.to_string(), rhs, node.span).into(),
-                );
-            }
-        };
+    //     let type_kind = match (lhs.kind, node.operator, rhs.kind) {
+    //         // TODO: Check size and sign
+    //         (TypeKind::Int(signed, size), _, TypeKind::Int(_, _)) => TypeKind::Int(signed, size),
+    //         // TODO: Check size and sign
+    //         (TypeKind::Decimal(size), _, TypeKind::Decimal(_)) => TypeKind::Decimal(size),
+    //         (lhs, operator, rhs) => {
+    //             return Err(
+    //                 InvalidBinaryType::new(lhs, operator.to_string(), rhs, node.span).into(),
+    //             );
+    //         }
+    //     };
 
-        Ok(Some(Type::new(type_kind, node.span)))
-    }
+    //     Ok(Some(Type::new(type_kind, node.span)))
+    // }
 
-    fn visit_factor(&mut self, node: &mut Factor) -> Result {
-        let lhs_span = node.lhs.span();
-        let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::new(lhs_span))?;
-        let rhs_span = node.lhs.span();
-        let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::new(rhs_span))?;
+    // fn visit_factor(&mut self, node: &mut Factor) -> Result {
+    //     let lhs_span = node.lhs.span();
+    //     let lhs = node.lhs.accept(self)?.ok_or(NoTypeFound::new(lhs_span))?;
+    //     let rhs_span = node.lhs.span();
+    //     let rhs = node.rhs.accept(self)?.ok_or(NoTypeFound::new(rhs_span))?;
 
-        let type_kind = match (lhs.kind, node.operator, rhs.kind) {
-            // TODO: Check size and sign
-            (TypeKind::Int(signed, size), _, TypeKind::Int(_, _)) => TypeKind::Int(signed, size),
-            // TODO: Check size and sign
-            (TypeKind::Decimal(size), _, TypeKind::Decimal(_)) => TypeKind::Decimal(size),
-            (lhs, operator, rhs) => {
-                return Err(
-                    InvalidBinaryType::new(lhs, operator.to_string(), rhs, node.span).into(),
-                );
-            }
-        };
+    //     let type_kind = match (lhs.kind, node.operator, rhs.kind) {
+    //         // TODO: Check size and sign
+    //         (TypeKind::Int(signed, size), _, TypeKind::Int(_, _)) => TypeKind::Int(signed, size),
+    //         // TODO: Check size and sign
+    //         (TypeKind::Decimal(size), _, TypeKind::Decimal(_)) => TypeKind::Decimal(size),
+    //         (lhs, operator, rhs) => {
+    //             return Err(
+    //                 InvalidBinaryType::new(lhs, operator.to_string(), rhs, node.span).into(),
+    //             );
+    //         }
+    //     };
 
-        Ok(Some(Type::new(type_kind, node.span)))
-    }
+    //     Ok(Some(Type::new(type_kind, node.span)))
+    // }
 
     fn visit_unary(&mut self, node: &mut Unary) -> Result {
         let expression_span = node.expression.span();

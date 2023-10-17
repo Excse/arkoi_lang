@@ -251,10 +251,7 @@ impl Type {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub enum ExprKind {
-    Equality(Box<Equality>),
-    Comparison(Box<Comparison>),
-    Term(Box<Term>),
-    Factor(Box<Factor>),
+    Binary(Box<Binary>),
     Unary(Box<Unary>),
     Call(Box<Call>),
     Grouping(Box<Grouping>),
@@ -265,10 +262,7 @@ pub enum ExprKind {
 impl ExprKind {
     pub fn span(&self) -> LabelSpan {
         match self {
-            Self::Equality(node) => node.span,
-            Self::Comparison(node) => node.span,
-            Self::Term(node) => node.span,
-            Self::Factor(node) => node.span,
+            Self::Binary(node) => node.span,
             Self::Unary(node) => node.span,
             Self::Call(node) => node.span,
             Self::Grouping(node) => node.span,
@@ -280,200 +274,47 @@ impl ExprKind {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum EqualityOperator {
+pub enum BinaryOperator {
     Eq,
     NotEq,
-}
-
-impl Display for EqualityOperator {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self {
-            Self::Eq => write!(f, "=="),
-            Self::NotEq => write!(f, "!="),
-        }
-    }
-}
-
-impl From<Token> for EqualityOperator {
-    fn from(value: Token) -> Self {
-        match value.kind {
-            TokenKind::EqEq => Self::Eq,
-            TokenKind::NotEq => Self::NotEq,
-            _ => todo!("This convertion is not implemented."),
-        }
-    }
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone)]
-pub struct Equality {
-    pub lhs: ExprKind,
-    pub operator: EqualityOperator,
-    pub rhs: ExprKind,
-    pub span: LabelSpan,
-}
-
-impl Equality {
-    pub fn new(
-        lhs: ExprKind,
-        operator: impl Into<EqualityOperator>,
-        rhs: ExprKind,
-        span: LabelSpan,
-    ) -> Self {
-        Self {
-            lhs,
-            operator: operator.into(),
-            rhs,
-            span,
-        }
-    }
-}
-
-impl From<Equality> for ExprKind {
-    fn from(value: Equality) -> Self {
-        Self::Equality(Box::new(value))
-    }
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ComparisonOperator {
     Greater,
     GreaterEq,
     Less,
     LessEq,
-}
-
-impl Display for ComparisonOperator {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self {
-            Self::Greater => write!(f, ">"),
-            Self::GreaterEq => write!(f, ">="),
-            Self::Less => write!(f, "<="),
-            Self::LessEq => write!(f, "<="),
-        }
-    }
-}
-
-impl From<Token> for ComparisonOperator {
-    fn from(value: Token) -> Self {
-        match value.kind {
-            TokenKind::Greater => Self::Greater,
-            TokenKind::GreaterEq => Self::GreaterEq,
-            TokenKind::Less => Self::Less,
-            TokenKind::LessEq => Self::LessEq,
-            _ => todo!("This convertion is not implemented."),
-        }
-    }
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone)]
-pub struct Comparison {
-    pub lhs: ExprKind,
-    pub operator: ComparisonOperator,
-    pub rhs: ExprKind,
-    pub span: LabelSpan,
-}
-
-impl Comparison {
-    pub fn new(
-        lhs: ExprKind,
-        operator: impl Into<ComparisonOperator>,
-        rhs: ExprKind,
-        span: LabelSpan,
-    ) -> Self {
-        Self {
-            lhs,
-            operator: operator.into(),
-            rhs,
-            span,
-        }
-    }
-}
-
-impl From<Comparison> for ExprKind {
-    fn from(value: Comparison) -> Self {
-        Self::Comparison(Box::new(value))
-    }
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum TermOperator {
     Add,
     Sub,
-}
-
-impl Display for TermOperator {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self {
-            Self::Add => write!(f, "+"),
-            Self::Sub => write!(f, "-"),
-        }
-    }
-}
-
-impl From<Token> for TermOperator {
-    fn from(value: Token) -> Self {
-        match value.kind {
-            TokenKind::Plus => Self::Add,
-            TokenKind::Minus => Self::Sub,
-            _ => todo!("This convertion is not implemented."),
-        }
-    }
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone)]
-pub struct Term {
-    pub lhs: ExprKind,
-    pub operator: TermOperator,
-    pub rhs: ExprKind,
-    pub span: LabelSpan,
-}
-
-impl Term {
-    pub fn new(
-        lhs: ExprKind,
-        operator: impl Into<TermOperator>,
-        rhs: ExprKind,
-        span: LabelSpan,
-    ) -> Self {
-        Self {
-            lhs,
-            operator: operator.into(),
-            rhs,
-            span,
-        }
-    }
-}
-
-impl From<Term> for ExprKind {
-    fn from(value: Term) -> Self {
-        Self::Term(Box::new(value))
-    }
-}
-
-#[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum FactorOperator {
     Mul,
     Div,
 }
 
-impl Display for FactorOperator {
+impl Display for BinaryOperator {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
+            Self::Eq => write!(f, "=="),
+            Self::NotEq => write!(f, "!="),
+            Self::Greater => write!(f, ">"),
+            Self::GreaterEq => write!(f, ">="),
+            Self::Less => write!(f, "<="),
+            Self::LessEq => write!(f, "<="),
+            Self::Add => write!(f, "+"),
+            Self::Sub => write!(f, "-"),
             Self::Mul => write!(f, "*"),
             Self::Div => write!(f, "/"),
         }
     }
 }
 
-impl From<Token> for FactorOperator {
+impl From<Token> for BinaryOperator {
     fn from(value: Token) -> Self {
         match value.kind {
+            TokenKind::EqEq => Self::Eq,
+            TokenKind::NotEq => Self::NotEq,
+            TokenKind::Greater => Self::Greater,
+            TokenKind::GreaterEq => Self::GreaterEq,
+            TokenKind::Less => Self::Less,
+            TokenKind::LessEq => Self::LessEq,
+            TokenKind::Plus => Self::Add,
+            TokenKind::Minus => Self::Sub,
             TokenKind::Asterisk => Self::Mul,
             TokenKind::Slash => Self::Div,
             _ => todo!("This convertion is not implemented."),
@@ -483,17 +324,17 @@ impl From<Token> for FactorOperator {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
-pub struct Factor {
+pub struct Binary {
     pub lhs: ExprKind,
-    pub operator: FactorOperator,
+    pub operator: BinaryOperator,
     pub rhs: ExprKind,
     pub span: LabelSpan,
 }
 
-impl Factor {
+impl Binary {
     pub fn new(
         lhs: ExprKind,
-        operator: impl Into<FactorOperator>,
+        operator: impl Into<BinaryOperator>,
         rhs: ExprKind,
         span: LabelSpan,
     ) -> Self {
@@ -506,9 +347,9 @@ impl Factor {
     }
 }
 
-impl From<Factor> for ExprKind {
-    fn from(value: Factor) -> Self {
-        Self::Factor(Box::new(value))
+impl From<Binary> for ExprKind {
+    fn from(value: Binary) -> Self {
+        Self::Binary(Box::new(value))
     }
 }
 

@@ -2,7 +2,6 @@
 members = [
   "crates/arkoi",
   "crates/diagnostics",
-  "crates/interpreter",
   "crates/frontend/ast",
   "crates/frontend/lexer",
   "crates/frontend/parser",

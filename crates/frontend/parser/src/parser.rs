@@ -4,8 +4,8 @@ use serde::Serialize;
 use crate::cursor::Cursor;
 use crate::error::{InternalError, ParserError, Result, Unexpected, UnoptionalParsing};
 use ast::{
-    Block, Call, Comparison, Equality, ExprKind, ExprStmt, Factor, FunDecl, Grouping, Id, LetDecl,
-    Literal, LiteralKind, Parameter, Program, Return, StmtKind, Term, Type, Unary,
+    Binary, Block, Call, ExprKind, ExprStmt, FunDecl, Grouping, Id, LetDecl, Literal, LiteralKind,
+    Parameter, Program, Return, StmtKind, Type, Unary,
 };
 use diagnostics::positional::LabelSpan;
 use lexer::iterator::TokenIterator;
@@ -316,7 +316,7 @@ impl<'a> Parser<'a> {
             let rhs = self.parse_comparison()?;
 
             let span = expr.span().combine(&rhs.span());
-            expr = Equality::new(expr, token, rhs, span).into();
+            expr = Binary::new(expr, token, rhs, span).into();
         }
 
         Ok(Some(expr))
@@ -347,7 +347,7 @@ impl<'a> Parser<'a> {
             let rhs = self.parse_term()?;
 
             let span = expr.span().combine(&rhs.span());
-            expr = Comparison::new(expr, token, rhs, span).into();
+            expr = Binary::new(expr, token, rhs, span).into();
         }
 
         Ok(Some(expr))
@@ -373,7 +373,7 @@ impl<'a> Parser<'a> {
             let rhs = self.parse_factor()?;
 
             let span = expr.span().combine(&rhs.span());
-            expr = Term::new(expr, token, rhs, span).into();
+            expr = Binary::new(expr, token, rhs, span).into();
         }
 
         Ok(Some(expr))
@@ -402,7 +402,7 @@ impl<'a> Parser<'a> {
             let rhs = self.parse_unary()?;
 
             let span = expr.span().combine(&rhs.span());
-            expr = Factor::new(expr, token, rhs, span).into();
+            expr = Binary::new(expr, token, rhs, span).into();
         }
 
         Ok(Some(expr))
