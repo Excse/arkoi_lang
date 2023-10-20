@@ -125,7 +125,7 @@ impl ReportBuilder {
 #[derive(Debug, Builder, Clone, PartialEq)]
 pub struct Label {
     pub(crate) span: LabelSpan,
-    #[builder(setter(into, strip_option))]
+    #[builder(default, setter(into, strip_option))]
     pub(crate) message: Option<String>,
 
     #[builder(setter(skip))]

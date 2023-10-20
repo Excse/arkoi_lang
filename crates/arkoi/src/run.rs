@@ -4,9 +4,7 @@ use clap::Args;
 use lasso::Rodeo;
 use termcolor::{ColorChoice, StandardStream};
 
-use ast::traversal::Visitor;
 use diagnostics::{file::Files, renderer::Renderer};
-use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
 use semantics::Semantics;
@@ -61,7 +59,5 @@ pub fn run(args: RunArgs) {
         for error in semantics.errors {
             renderer.render(error);
         }
-
-        return;
     }
 }

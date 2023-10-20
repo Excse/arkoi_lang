@@ -287,6 +287,27 @@ pub enum BinaryOperator {
     Div,
 }
 
+impl BinaryOperator {
+    pub fn is_equality(&self) -> bool {
+        matches!(self, Self::Eq | Self::NotEq)
+    }
+
+    pub fn is_comparison(&self) -> bool {
+        matches!(
+            self,
+            Self::Greater | Self::GreaterEq | Self::Less | Self::LessEq
+        )
+    }
+
+    pub fn is_term(&self) -> bool {
+        matches!(self, Self::Add | Self::Sub)
+    }
+
+    pub fn is_factor(&self) -> bool {
+        matches!(self, Self::Div | Self::Mul)
+    }
+}
+
 impl Display for BinaryOperator {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {

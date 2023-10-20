@@ -48,7 +48,12 @@ impl Reportable for InvalidBinaryType {
             .message(report_message)
             .code(1)
             .serverity(Serverity::Error)
-            .label(LabelBuilder::default().span(self.span).build().unwrap())
+            .label(
+                LabelBuilder::default()
+                    .span(self.span)
+                    .build()
+                    .unwrap(),
+            )
             .build()
             .unwrap()
     }
@@ -186,7 +191,12 @@ impl Reportable for NoTypeFound {
             .message("Couldn't find a type for this node:")
             .code(1)
             .serverity(Serverity::Bug)
-            .label(LabelBuilder::default().span(self.span).build().unwrap())
+            .label(
+                LabelBuilder::default()
+                    .span(self.span)
+                    .build()
+                    .unwrap(),
+            )
             .build()
             .unwrap()
     }
