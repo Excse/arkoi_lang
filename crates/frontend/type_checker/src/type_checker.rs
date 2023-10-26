@@ -1,12 +1,15 @@
+use name_resolution::error::InvalidSymbolKind;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
 use std::{cell::RefCell, rc::Rc};
 
 use crate::error::{
-    InvalidBinaryType, InvalidUnaryType, NoSymbolFound, NoTypeFound, NotMatching, Result, TypeError,
+    InvalidArity, InvalidBinaryType, InvalidUnaryType, NoSymbolFound, NoTypeFound, NotMatching,
+    Result, TypeError,
 };
 use ast::{
+    symbol::SymbolKind,
     traversal::{Visitable, Visitor},
     Binary, BinaryOperator, Block, Call, FunDecl, Id, LetDecl, Literal, LiteralKind, Parameter,
     Program, Return, Type, TypeKind, Unary, UnaryOperator,
@@ -134,8 +137,29 @@ impl Visitor for TypeChecker {
     fn visit_call(&mut self, node: &mut Call) -> Result {
         node.callee.accept(self)?;
 
-        for argument in node.arguments.iter_mut() {
-            let _type_ = match argument.accept(self) {
+        let call_span = node.span;
+        let symbol = node.symbol.get().ok_or(NoSymbolFound::new(call_span))?;
+        let symbol = symbol.borrow();
+
+        let kind = symbol.kind.clone();
+        let fun_decl = match kind {
+            SymbolKind::Function(fun_decl) => fun_decl,
+            kind => return Err(InvalidSymbolKind::new(kind, "function", call_span).into()),
+        };
+        let mut fun_decl = fun_decl.borrow_mut();
+
+        if node.arguments.len() != fun_decl.parameters.len() {
+            return Err(InvalidArity::new(
+                node.arguments.len(),
+                node.span,
+                fun_decl.parameters.len(),
+                fun_decl.span,
+            )
+            .into());
+        }
+
+        for (index, argument) in node.arguments.iter_mut().enumerate() {
+            let argument_type = match argument.accept(self) {
                 Ok(Some(type_)) => type_,
                 Ok(None) => {
                     self.errors.push(NoTypeFound::new(argument.span()).into());
@@ -146,6 +170,23 @@ impl Visitor for TypeChecker {
                     continue;
                 }
             };
+
+            let parameter = fun_decl.parameters.get_mut(index).unwrap();
+            let parameter_type = match parameter.accept(self) {
+                Ok(Some(type_)) => type_,
+                Ok(None) => {
+                    self.errors.push(NoTypeFound::new(argument.span()).into());
+                    continue;
+                }
+                Err(error) => {
+                    self.errors.push(error);
+                    continue;
+                }
+            };
+
+            if parameter_type != argument_type {
+                return Err(NotMatching::new(argument_type, parameter_type).into());
+            }
         }
 
         Self::default_result()
@@ -251,8 +292,8 @@ impl Visitor for TypeChecker {
             expression.accept(self)?;
         }
 
-        let symbol = node.symbol.clone().ok_or(NoSymbolFound::new(id_span))?;
-        symbol.borrow_mut().type_ = Some(type_);
+        let symbol = node.symbol.get().ok_or(NoSymbolFound::new(id_span))?;
+        symbol.borrow_mut().type_.set(type_).unwrap();
 
         Self::default_result()
     }
@@ -273,12 +314,9 @@ impl Visitor for TypeChecker {
             .accept(self)?
             .ok_or(NoTypeFound::new(id_span))?;
 
-        let symbol = node
-            .borrow()
-            .symbol
-            .clone()
-            .ok_or(NoSymbolFound::new(id_span))?;
-        symbol.borrow_mut().type_ = Some(type_.clone());
+        let borrow = node.borrow();
+        let symbol = borrow.symbol.get().ok_or(NoSymbolFound::new(id_span))?;
+        symbol.borrow_mut().type_.set(type_.clone()).unwrap();
 
         let last = self.current_function.clone();
         self.current_function = Some(type_);
@@ -292,21 +330,18 @@ impl Visitor for TypeChecker {
         let id_span = node.id.span;
         let type_ = node.type_.accept(self)?.ok_or(NoTypeFound::new(id_span))?;
 
-        let symbol = node.symbol.clone().ok_or(NoSymbolFound::new(id_span))?;
-        symbol.borrow_mut().type_ = Some(type_);
+        let symbol = node.symbol.get().ok_or(NoSymbolFound::new(id_span))?;
+        symbol.borrow_mut().type_.set(type_).unwrap();
 
         Self::default_result()
     }
 
     fn visit_id(&mut self, node: &mut Id) -> Result {
         let id_span = node.id.span;
-        let symbol = node.symbol.clone().ok_or(NoSymbolFound::new(id_span))?;
+        let symbol = node.symbol.get().ok_or(NoSymbolFound::new(id_span))?;
 
-        let type_ = symbol
-            .borrow()
-            .type_
-            .clone()
-            .ok_or(NoTypeFound::new(id_span))?;
-        Ok(Some(type_))
+        let borrow = symbol.borrow();
+        let type_ = borrow.type_.get().ok_or(NoTypeFound::new(id_span))?;
+        Ok(Some(type_.clone()))
     }
 }
