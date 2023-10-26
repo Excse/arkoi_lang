@@ -1,3 +1,4 @@
+use name_resolution::error::InvalidSymbolKind;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 
@@ -48,12 +49,7 @@ impl Reportable for InvalidBinaryType {
             .message(report_message)
             .code(1)
             .serverity(Serverity::Error)
-            .label(
-                LabelBuilder::default()
-                    .span(self.span)
-                    .build()
-                    .unwrap(),
-            )
+            .label(LabelBuilder::default().span(self.span).build().unwrap())
             .build()
             .unwrap()
     }
@@ -149,10 +145,67 @@ impl Reportable for NotMatching {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
+pub struct InvalidArity {
+    expected: usize,
+    expected_span: LabelSpan,
+    got: usize,
+    got_span: LabelSpan,
+}
+
+impl InvalidArity {
+    pub fn new(got: usize, got_span: LabelSpan, expected: usize, expected_span: LabelSpan) -> Self {
+        Self {
+            got,
+            got_span,
+            expected,
+            expected_span,
+        }
+    }
+}
+
+impl From<InvalidArity> for TypeError {
+    fn from(value: InvalidArity) -> Self {
+        Self::InvalidArity(value)
+    }
+}
+
+impl Reportable for InvalidArity {
+    fn into_report(self, _interner: &Rodeo) -> Report {
+        let report_message =
+            "The amount of arguments provided doesn't match with the arity of this function.";
+
+        let expected_message = format!("This function expected '{}' arguments.", self.expected);
+        let got_message = format!("But instead got '{}' arguments.", self.got);
+
+        ReportBuilder::default()
+            .message(report_message)
+            .code(1)
+            .serverity(Serverity::Error)
+            .label(
+                LabelBuilder::default()
+                    .message(expected_message)
+                    .span(self.expected_span)
+                    .build()
+                    .unwrap(),
+            )
+            .label(
+                LabelBuilder::default()
+                    .message(got_message)
+                    .span(self.got_span)
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap()
+    }
+}
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Clone)]
 pub enum TypeError {
     InvalidBinaryType(InvalidBinaryType),
     InvalidUnaryType(InvalidUnaryType),
     NotMatching(NotMatching),
+    InvalidArity(InvalidArity),
     InternalError(InternalError),
 }
 
@@ -162,6 +215,7 @@ impl Reportable for TypeError {
             Self::InvalidBinaryType(error) => error.into_report(interner),
             Self::InvalidUnaryType(error) => error.into_report(interner),
             Self::NotMatching(error) => error.into_report(interner),
+            Self::InvalidArity(error) => error.into_report(interner),
             Self::InternalError(error) => error.into_report(interner),
         }
     }
@@ -191,12 +245,7 @@ impl Reportable for NoTypeFound {
             .message("Couldn't find a type for this node:")
             .code(1)
             .serverity(Serverity::Bug)
-            .label(
-                LabelBuilder::default()
-                    .span(self.span)
-                    .build()
-                    .unwrap(),
-            )
+            .label(LabelBuilder::default().span(self.span).build().unwrap())
             .build()
             .unwrap()
     }
@@ -232,11 +281,18 @@ impl Reportable for NoSymbolFound {
     }
 }
 
+impl From<InvalidSymbolKind> for TypeError {
+    fn from(value: InvalidSymbolKind) -> Self {
+        Self::InternalError(InternalError::InvalidSymbolKind(value))
+    }
+}
+
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive(Debug, Clone)]
 pub enum InternalError {
     NoTypeFound(NoTypeFound),
     NoSymbolFound(NoSymbolFound),
+    InvalidSymbolKind(InvalidSymbolKind),
 }
 
 impl Reportable for InternalError {
@@ -244,6 +300,7 @@ impl Reportable for InternalError {
         match self {
             Self::NoSymbolFound(error) => error.into_report(interner),
             Self::NoTypeFound(error) => error.into_report(interner),
+            Self::InvalidSymbolKind(error) => error.into_report(interner),
         }
     }
 }

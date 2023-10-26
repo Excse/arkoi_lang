@@ -44,6 +44,7 @@ impl Visitor for NameResolution {
         let should_shadow = !self.table.is_global();
 
         let id = node.id.get_spur().unwrap();
+        let id_span = node.id.span;
 
         let kind = if should_shadow {
             SymbolKind::GlobalVar
@@ -53,9 +54,9 @@ impl Visitor for NameResolution {
 
         let result = node.walk(self);
 
-        let symbol = Symbol::new(id, node.id.span, kind);
-        let symbol = self.table.insert(id, node.id.span, symbol, should_shadow)?;
-        node.symbol = Some(symbol);
+        let symbol = Symbol::new(id, id_span, kind);
+        let symbol = self.table.insert(id, id_span, symbol, should_shadow)?;
+        node.symbol.set(symbol).ok();
 
         result
     }
@@ -66,10 +67,11 @@ impl Visitor for NameResolution {
         let function = SymbolKind::Function(node.clone());
 
         let id = node.borrow().id.get_spur().unwrap();
-        let symbol = Symbol::new(id, node.borrow().id.span, function);
-        let symbol = global.insert(id, node.borrow().id.span, symbol, false)?;
+        let id_span = node.borrow().id.span;
 
-        node.borrow_mut().symbol = Some(symbol);
+        let symbol = Symbol::new(id, id_span, function);
+        let symbol = global.insert(id, id_span, symbol, false)?;
+        node.borrow_mut().symbol.set(symbol).ok();
 
         self.table.enter();
 
@@ -92,11 +94,11 @@ impl Visitor for NameResolution {
 
     fn visit_parameter(&mut self, node: &mut Parameter) -> Result {
         let id = node.id.get_spur().unwrap();
+        let id_span = node.id.span;
 
-        let symbol = Symbol::new(id, node.id.span, SymbolKind::Parameter);
-        let symbol = self.table.insert(id, node.id.span, symbol, false)?;
-
-        node.symbol = Some(symbol);
+        let symbol = Symbol::new(id, id_span, SymbolKind::Parameter);
+        let symbol = self.table.insert(id, id_span, symbol, false)?;
+        node.symbol.set(symbol).ok();
 
         node.walk(self)
     }
@@ -118,7 +120,11 @@ impl Visitor for NameResolution {
 
     fn visit_call(&mut self, node: &mut Call) -> Result {
         let symbol = node.callee.accept(self)?;
-        self.is_potential_function_symbol(symbol, node.span)?;
+        self.is_potential_function_symbol(symbol.clone(), node.span)?;
+
+        if let Some(symbol) = symbol {
+            node.symbol.set(symbol).ok();
+        }
 
         node.arguments
             .iter_mut()
@@ -158,9 +164,10 @@ impl Visitor for NameResolution {
 
     fn visit_id(&mut self, node: &mut Id) -> Result {
         let id = node.id.get_spur().unwrap();
-        let symbol = self.table.lookup(id, node.id.span)?;
+        let id_span = node.id.span;
 
-        node.symbol = Some(symbol.clone());
+        let symbol = self.table.lookup(id, id_span)?;
+        node.symbol.set(symbol.clone()).ok();
 
         Ok(Some(symbol))
     }

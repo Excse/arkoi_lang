@@ -2,7 +2,7 @@
 use serde::Serialize;
 
 use std::{
-    cell::RefCell,
+    cell::{OnceCell, RefCell},
     fmt::{Display, Formatter},
     rc::Rc,
 };
@@ -50,7 +50,8 @@ impl PartialEq for SymbolKind {
 pub struct Symbol {
     pub name: Spur,
     pub kind: SymbolKind,
-    pub type_: Option<Type>,
+    #[serde(skip)]
+    pub type_: OnceCell<Type>,
     pub span: LabelSpan,
 }
 
@@ -60,7 +61,7 @@ impl Symbol {
             name,
             span,
             kind,
-            type_: None,
+            type_: OnceCell::new(),
         }
     }
 }

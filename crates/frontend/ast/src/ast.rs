@@ -2,7 +2,7 @@
 use serde::Serialize;
 
 use std::{
-    cell::RefCell,
+    cell::{OnceCell, RefCell},
     fmt::{Display, Formatter, Result},
     rc::Rc,
 };
@@ -71,7 +71,8 @@ pub struct LetDecl {
     pub type_: Type,
     pub expression: Option<ExprKind>,
     pub span: LabelSpan,
-    pub symbol: Option<Rc<RefCell<Symbol>>>,
+    #[serde(skip)]
+    pub symbol: OnceCell<Rc<RefCell<Symbol>>>,
 }
 
 impl LetDecl {
@@ -81,7 +82,7 @@ impl LetDecl {
             type_,
             expression,
             span,
-            symbol: None,
+            symbol: OnceCell::new(),
         }
     }
 }
@@ -100,7 +101,8 @@ pub struct FunDecl {
     pub type_: Type,
     pub block: Box<Block>,
     pub span: LabelSpan,
-    pub symbol: Option<Rc<RefCell<Symbol>>>,
+    #[serde(skip)]
+    pub symbol: OnceCell<Rc<RefCell<Symbol>>>,
 }
 
 impl FunDecl {
@@ -117,7 +119,7 @@ impl FunDecl {
             type_,
             block,
             span,
-            symbol: None,
+            symbol: OnceCell::new(),
         }
     }
 }
@@ -172,7 +174,8 @@ pub struct Parameter {
     pub id: Token,
     pub type_: Type,
     pub span: LabelSpan,
-    pub symbol: Option<Rc<RefCell<Symbol>>>,
+    #[serde(skip)]
+    pub symbol: OnceCell<Rc<RefCell<Symbol>>>,
 }
 
 impl Parameter {
@@ -181,7 +184,7 @@ impl Parameter {
             id,
             type_,
             span,
-            symbol: None,
+            symbol: OnceCell::new(),
         }
     }
 }
@@ -430,6 +433,8 @@ pub struct Call {
     pub callee: ExprKind,
     pub arguments: Vec<ExprKind>,
     pub span: LabelSpan,
+    #[serde(skip)]
+    pub symbol: OnceCell<Rc<RefCell<Symbol>>>,
 }
 
 impl Call {
@@ -438,6 +443,7 @@ impl Call {
             callee,
             arguments,
             span,
+            symbol: OnceCell::new(),
         }
     }
 }
@@ -471,12 +477,16 @@ impl From<Grouping> for ExprKind {
 #[derive(Debug, Clone)]
 pub struct Id {
     pub id: Token,
-    pub symbol: Option<Rc<RefCell<Symbol>>>,
+    #[serde(skip)]
+    pub symbol: OnceCell<Rc<RefCell<Symbol>>>,
 }
 
 impl Id {
     pub fn new(id: Token) -> Self {
-        Self { id, symbol: None }
+        Self {
+            id,
+            symbol: OnceCell::new(),
+        }
     }
 }
 
